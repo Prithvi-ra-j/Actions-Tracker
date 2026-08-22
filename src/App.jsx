@@ -38,6 +38,7 @@ const TABS = [
   { id: 'stats',      label: 'Stats'    },
   { id: 'goals',      label: 'Goals'    },
   { id: 'milestones', label: 'Timeline' },
+  { id: 'calendar',   label: 'Calendar' },
   { id: 'persona',    label: 'The Man'  },
 ];
 
@@ -397,6 +398,13 @@ export default function App() {
                 t={t}
                 milestoneChecks={milestoneChecks}
                 onToggle={handleMilestoneToggle}
+              />
+            )}
+
+            {tab === 'calendar' && (
+              <CalendarTab
+                t={t}
+                allDailyRecords={allDailyRecords}
               />
             )}
 
