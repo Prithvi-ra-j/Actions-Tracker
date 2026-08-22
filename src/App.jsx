@@ -336,9 +336,20 @@ export default function App() {
         t={t} 
         onComplete={async () => {
           setNeedsOnboarding(false);
-          // Recompute stats immediately so the new onboarding logs are ingested,
-          // AND so recomputeStats seeds the first set of lastStatTitles.
-          // This prevents level-up ceremonies from firing instantly due to onboarding.
+          // Seed baseline titles from post-onboarding stats WITHOUT detecting level-ups,
+          // so ceremonies only fire for tiers crossed by real activity afterward.
+          const freshLogs = await getAllLogs();
+          const freshConfigs = await getAllAxisConfigs();
+          const freshQuests = await getAllQuests();
+          const postOnboardingStats = computeAllStats(freshLogs, freshConfigs, freshQuests, localDateStr());
+          
+          const seedTitles = {};
+          for (const axis of ['strength', 'discipline', 'knowledge', 'wisdom', 'creativity', 'strategy']) {
+            seedTitles[axis] = getThresholdTitle(axis, Math.round(postOnboardingStats[axis] ?? 0));
+          }
+          await setSetting('lastStatTitles', JSON.stringify(seedTitles));
+          
+          // Now safe — will see no diff, won't queue ceremonies
           await recomputeStats();
         }} 
       />
