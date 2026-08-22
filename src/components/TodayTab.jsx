@@ -54,7 +54,7 @@ export default function TodayTab({ t, allDailyRecords, onToggle, onGoToGoals, ha
     <>
       {/* ── Date header ──────────────────────────────────────────────────────── */}
       <div style={{ marginBottom: '1.5rem' }}>
-        <div style={{ fontFamily: 'monospace', fontSize: '0.72rem', letterSpacing: '0.25em', color: ACCENT, textTransform: 'uppercase', marginBottom: '0.5rem' }}>
+        <div style={{ fontFamily: 'monospace', fontSize: '0.52rem', letterSpacing: '0.25em', color: ACCENT, textTransform: 'uppercase', marginBottom: '0.5rem' }}>
           Today · {formatDisplayDate(today)}
         </div>
         <div style={{ fontSize: '2rem', fontWeight: 900, lineHeight: 1, marginBottom: '0.5rem' }}>
@@ -69,13 +69,13 @@ export default function TodayTab({ t, allDailyRecords, onToggle, onGoToGoals, ha
       <div style={{ marginBottom: '1.25rem', background: t.invertBg, color: t.invertText, padding: '1rem' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '0.5rem' }}>
           <div>
-            <div style={{ fontFamily: 'monospace', fontSize: '0.68rem', letterSpacing: '0.15em', color: t.invertMuted50, marginBottom: '0.2rem' }}>
+            <div style={{ fontFamily: 'monospace', fontSize: '0.48rem', letterSpacing: '0.15em', color: t.invertMuted50, marginBottom: '0.2rem' }}>
               DAILY SCORE
             </div>
             <div style={{ fontSize: '2rem', fontWeight: 900, lineHeight: 1, color: isComplete ? ACCENT : t.invertText }}>
               {dailyDone}/{dailyItems.length}
             </div>
-            <div style={{ fontFamily: 'monospace', fontSize: '0.68rem', letterSpacing: '0.1em', color: t.invertMuted50, marginTop: '0.15rem' }}>
+            <div style={{ fontFamily: 'monospace', fontSize: '0.48rem', letterSpacing: '0.1em', color: t.invertMuted50, marginTop: '0.15rem' }}>
               {pct}% COMPLETE
             </div>
           </div>
@@ -84,7 +84,7 @@ export default function TodayTab({ t, allDailyRecords, onToggle, onGoToGoals, ha
           {currentStreak > 0 && (
             <div style={{ textAlign: 'right' }}>
               <div style={{ fontSize: '1.4rem', lineHeight: 1 }}>🔥</div>
-              <div style={{ fontFamily: 'monospace', fontSize: '0.7rem', letterSpacing: '0.1em', color: ACCENT, marginTop: '0.2rem' }}>
+              <div style={{ fontFamily: 'monospace', fontSize: '0.5rem', letterSpacing: '0.1em', color: ACCENT, marginTop: '0.2rem' }}>
                 {currentStreak} DAY STREAK
               </div>
             </div>
@@ -101,20 +101,6 @@ export default function TodayTab({ t, allDailyRecords, onToggle, onGoToGoals, ha
             borderRadius: 4,
           }} />
         </div>
-        {pct === 100 && (
-          <div style={{
-            marginTop: '1rem',
-            textAlign: 'center',
-            fontFamily: 'monospace',
-            fontSize: '0.75rem',
-            letterSpacing: '0.2em',
-            color: '#4f8a5f',
-            textTransform: 'uppercase',
-            animation: 'pulse 2s infinite' // defined in App.jsx
-          }}>
-            ✦ Perfect Day ✦
-          </div>
-        )}
       </div>
 
       {/* ── Streak Warning ────────────────────────────────────────────────────── */}
@@ -125,7 +111,7 @@ export default function TodayTab({ t, allDailyRecords, onToggle, onGoToGoals, ha
           borderLeft: '4px solid #c1442c',
           marginBottom: '1.25rem',
         }}>
-          <div style={{ fontFamily: 'monospace', fontSize: '0.65rem', letterSpacing: '0.15em', color: '#c1442c', textTransform: 'uppercase', marginBottom: '0.25rem' }}>
+          <div style={{ fontFamily: 'monospace', fontSize: '0.45rem', letterSpacing: '0.15em', color: '#c1442c', textTransform: 'uppercase', marginBottom: '0.25rem' }}>
             Warning
           </div>
           <div style={{ fontSize: '0.85rem', color: t.pageText }}>
@@ -165,25 +151,19 @@ export default function TodayTab({ t, allDailyRecords, onToggle, onGoToGoals, ha
           >
             {/* Checkbox */}
             <div style={{
-              minWidth: 44, minHeight: 44, flexShrink: 0,
-              display: 'flex', alignItems: 'center', justifyContent: 'center'
+              width: 24, height: 24, flexShrink: 0,
+              border: `2px solid ${done ? item.color : t.checkboxBorder2}`,
+              borderRadius: 4,
+              background: done ? item.color : 'transparent',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              transition: 'all 0.2s',
             }}>
-              <div style={{
-                width: 24, height: 24,
-                border: `2px solid ${done ? item.color : t.checkboxBorder2}`,
-                borderRadius: 4,
-                background: done ? item.color : 'transparent',
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
-                transform: done ? 'scale(1.15)' : 'scale(1)',
-              }}>
-                {done && <span style={{ color: 'white', fontSize: '0.85rem' }}>✓</span>}
-              </div>
+              {done && <span style={{ color: 'white', fontSize: '0.75rem' }}>✓</span>}
             </div>
 
             {/* Label */}
             <div>
-              <div style={{ fontFamily: 'monospace', fontSize: '0.65rem', letterSpacing: '0.18em', color: item.color, marginBottom: '0.25rem' }}>
+              <div style={{ fontFamily: 'monospace', fontSize: '0.48rem', letterSpacing: '0.18em', color: item.color, marginBottom: '0.25rem' }}>
                 {item.icon} · {item.domain}
               </div>
               <div style={{ fontSize: '0.92rem', lineHeight: 1.5, textDecoration: done ? 'line-through' : 'none', color: done ? t.muted : t.pageText, transition: 'color 0.2s' }}>
@@ -196,7 +176,7 @@ export default function TodayTab({ t, allDailyRecords, onToggle, onGoToGoals, ha
 
       {/* ── Weekly row ───────────────────────────────────────────────────────── */}
       <div style={{ marginTop: '1.75rem', marginBottom: '1.25rem' }}>
-        <div style={{ fontFamily: 'monospace', fontSize: '0.65rem', letterSpacing: '0.2em', color: t.muted, textTransform: 'uppercase', marginBottom: '0.75rem' }}>
+        <div style={{ fontFamily: 'monospace', fontSize: '0.48rem', letterSpacing: '0.2em', color: t.muted, textTransform: 'uppercase', marginBottom: '0.75rem' }}>
           This Week
         </div>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: '0.2rem' }}>
@@ -209,7 +189,7 @@ export default function TodayTab({ t, allDailyRecords, onToggle, onGoToGoals, ha
 
             return (
               <div key={dateStr} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.25rem' }}>
-                <div style={{ fontFamily: 'monospace', fontSize: '0.6rem', letterSpacing: '0.04em', color: isTd ? ACCENT : t.muted }}>
+                <div style={{ fontFamily: 'monospace', fontSize: '0.4rem', letterSpacing: '0.04em', color: isTd ? ACCENT : t.muted }}>
                   {WEEK_LABELS[i]}
                 </div>
                 <div style={{
@@ -217,7 +197,7 @@ export default function TodayTab({ t, allDailyRecords, onToggle, onGoToGoals, ha
                   border: `2px solid ${isTd ? ACCENT : perfect ? ACCENT : t.borderSoft}`,
                   background: perfect ? ACCENT : score > 0 ? 'rgba(196,130,26,0.25)' : 'transparent',
                   display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  fontSize: '0.75rem',
+                  fontSize: '0.55rem',
                   opacity: isFuture ? 0.25 : 1,
                 }}>
                   {!isFuture && (perfect ? <span style={{ color: '#fff' }}>✓</span> : score > 0 ? <span style={{ color: ACCENT }}>{score}</span> : null)}
@@ -239,10 +219,10 @@ export default function TodayTab({ t, allDailyRecords, onToggle, onGoToGoals, ha
           { label: 'THIS MONTH',     value: `${monthlyStats.pct}%` },
         ].map(({ label, value }) => (
           <div key={label} style={{ padding: '0.75rem', background: t.subtleBg, borderLeft: `2px solid ${t.border}` }}>
-            <div style={{ fontFamily: 'monospace', fontSize: '0.65rem', letterSpacing: '0.12em', color: t.muted, textTransform: 'uppercase', marginBottom: '0.25rem' }}>
+            <div style={{ fontFamily: 'monospace', fontSize: '0.42rem', letterSpacing: '0.12em', color: t.muted, textTransform: 'uppercase', marginBottom: '0.25rem' }}>
               {label}
             </div>
-            <div style={{ fontFamily: 'monospace', fontSize: '1.25rem', fontWeight: 700, color: t.pageText }}>
+            <div style={{ fontFamily: 'monospace', fontSize: '1.1rem', fontWeight: 700, color: t.pageText }}>
               {value}
             </div>
           </div>
@@ -255,7 +235,7 @@ export default function TodayTab({ t, allDailyRecords, onToggle, onGoToGoals, ha
         style={{
           width: '100%', padding: '0.85rem', marginTop: '0.4rem',
           background: 'transparent', border: `1px solid ${t.border}`, color: t.pageText,
-          fontFamily: 'monospace', fontSize: '0.75rem', letterSpacing: '0.15em',
+          fontFamily: 'monospace', fontSize: '0.55rem', letterSpacing: '0.15em',
           textTransform: 'uppercase', cursor: 'pointer',
         }}
       >

@@ -93,7 +93,7 @@ export default function ProofFearCheckin({ onComplete }) {
       {/* Header */}
       <div style={{
         fontFamily: 'monospace',
-        fontSize: '0.62rem',
+        fontSize: '0.42rem',
         letterSpacing: '0.35em',
         color: 'rgba(255,255,255,0.3)',
         textTransform: 'uppercase',
@@ -115,7 +115,7 @@ export default function ProofFearCheckin({ onComplete }) {
           }}>
             {domain.domain}
           </div>
-          <div style={{ fontFamily: 'monospace', fontSize: '0.62rem', color: domain.color, textTransform: 'uppercase', letterSpacing: '0.2em', marginTop: 2 }}>
+          <div style={{ fontFamily: 'monospace', fontSize: '0.42rem', color: domain.color, textTransform: 'uppercase', letterSpacing: '0.2em', marginTop: 2 }}>
             {domain.label}
           </div>
         </div>
@@ -152,7 +152,7 @@ export default function ProofFearCheckin({ onComplete }) {
       </div>
 
       {/* 3-way tags */}
-      <div style={{ fontFamily: 'monospace', fontSize: '0.62rem', letterSpacing: '0.2em', color: 'rgba(255,255,255,0.35)', textTransform: 'uppercase', marginBottom: '0.75rem' }}>
+      <div style={{ fontFamily: 'monospace', fontSize: '0.42rem', letterSpacing: '0.2em', color: 'rgba(255,255,255,0.35)', textTransform: 'uppercase', marginBottom: '0.75rem' }}>
         Where are you with this?
       </div>
 
@@ -181,7 +181,7 @@ export default function ProofFearCheckin({ onComplete }) {
                 {tag.icon}
               </span>
               <div>
-                <div style={{ fontFamily: 'monospace', fontSize: '0.75rem', fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase' }}>
+                <div style={{ fontFamily: 'monospace', fontSize: '0.55rem', fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase' }}>
                   {tag.label}
                 </div>
                 <div style={{ fontSize: '0.72rem', marginTop: '0.15rem', opacity: isSelected ? 0.8 : 0.5 }}>
@@ -196,7 +196,7 @@ export default function ProofFearCheckin({ onComplete }) {
       {/* Skip */}
       <button
         onClick={onComplete}
-        style={{ marginTop: '1.5rem', background: 'none', border: 'none', color: 'rgba(255,255,255,0.2)', cursor: 'pointer', fontFamily: 'monospace', fontSize: '0.6rem', letterSpacing: '0.15em', textTransform: 'uppercase', textAlign: 'center', padding: '0.5rem' }}
+        style={{ marginTop: '1.5rem', background: 'none', border: 'none', color: 'rgba(255,255,255,0.2)', cursor: 'pointer', fontFamily: 'monospace', fontSize: '0.4rem', letterSpacing: '0.15em', textTransform: 'uppercase', textAlign: 'center', padding: '0.5rem' }}
       >
         Skip check-in
       </button>

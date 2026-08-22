@@ -45,7 +45,7 @@ export default function MilestonesTab({ t, milestoneChecks, onToggle }) {
           <div key={mi} style={{ marginBottom: '1.5rem', opacity: isFuture ? 0.4 : 1, transition: 'opacity 0.2s' }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1rem', paddingBottom: '0.75rem', borderBottom: `2px solid ${isActive ? m.color : t.borderSoft}` }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                <div style={{ fontFamily: 'monospace', fontSize: '0.7rem', letterSpacing: '0.2em', color: isActive ? m.color : t.muted, textTransform: 'uppercase' }}>
+                <div style={{ fontFamily: 'monospace', fontSize: '0.5rem', letterSpacing: '0.2em', color: isActive ? m.color : t.muted, textTransform: 'uppercase' }}>
                   {m.period}
                 </div>
                 <div style={{ fontSize: '1rem', fontWeight: 700, color: isFuture ? t.muted : t.pageText }}>
@@ -54,12 +54,12 @@ export default function MilestonesTab({ t, milestoneChecks, onToggle }) {
               </div>
               
               {isActive && (
-                <div style={{ fontFamily: 'monospace', fontSize: '0.65rem', padding: '0.15rem 0.4rem', background: m.color, color: '#fff', borderRadius: 2, letterSpacing: '0.15em', textTransform: 'uppercase' }}>
+                <div style={{ fontFamily: 'monospace', fontSize: '0.45rem', padding: '0.15rem 0.4rem', background: m.color, color: '#fff', borderRadius: 2, letterSpacing: '0.15em', textTransform: 'uppercase' }}>
                   Current Phase
                 </div>
               )}
               {isLagging && (
-                <div style={{ fontFamily: 'monospace', fontSize: '0.65rem', padding: '0.15rem 0.4rem', background: 'transparent', border: '1px solid #c1442c', color: '#c1442c', borderRadius: 2, letterSpacing: '0.15em', textTransform: 'uppercase' }}>
+                <div style={{ fontFamily: 'monospace', fontSize: '0.45rem', padding: '0.15rem 0.4rem', background: 'transparent', border: '1px solid #c1442c', color: '#c1442c', borderRadius: 2, letterSpacing: '0.15em', textTransform: 'uppercase' }}>
                   Lagging
                 </div>
               )}
@@ -81,20 +81,14 @@ export default function MilestonesTab({ t, milestoneChecks, onToggle }) {
                   }}
                 >
                   <div style={{
-                    minWidth: 44, minHeight: 44, flexShrink: 0,
-                    display: 'flex', alignItems: 'center', justifyContent: 'center'
+                    width: 18, height: 18, flexShrink: 0,
+                    border: `2px solid ${done ? m.color : t.checkboxBorder}`,
+                    borderRadius: 3,
+                    background: done ? m.color : 'transparent',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    transition: 'all 0.2s', marginTop: 1,
                   }}>
-                    <div style={{
-                      width: 20, height: 20,
-                      border: `2px solid ${done ? m.color : t.checkboxBorder}`,
-                      borderRadius: 4,
-                      background: done ? m.color : 'transparent',
-                      display: 'flex', alignItems: 'center', justifyContent: 'center',
-                      transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
-                      transform: done ? 'scale(1.15)' : 'scale(1)',
-                    }}>
-                      {done && <span style={{ color: 'white', fontSize: '0.75rem' }}>✓</span>}
-                    </div>
+                    {done && <span style={{ color: 'white', fontSize: '0.58rem' }}>✓</span>}
                   </div>
                   <span style={{ fontSize: '0.9rem', lineHeight: 1.6, textDecoration: done ? 'line-through' : 'none', color: done ? t.muted : t.pageText }}>
                     {task}
@@ -107,7 +101,7 @@ export default function MilestonesTab({ t, milestoneChecks, onToggle }) {
       })}
 
       <div style={{ background: t.invertBg, color: t.invertText, padding: '1.25rem', marginTop: '1rem' }}>
-        <div style={{ fontFamily: 'monospace', fontSize: '0.7rem', letterSpacing: '0.25em', color: ACCENT, textTransform: 'uppercase', marginBottom: '0.5rem' }}>
+        <div style={{ fontFamily: 'monospace', fontSize: '0.5rem', letterSpacing: '0.25em', color: ACCENT, textTransform: 'uppercase', marginBottom: '0.5rem' }}>
           Dec 31 — The Only Question
         </div>
         <p style={{ fontSize: '0.9rem', fontStyle: 'italic', lineHeight: 1.7, color: t.invertMuted80 }}>

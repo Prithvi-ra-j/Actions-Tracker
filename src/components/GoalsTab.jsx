@@ -22,7 +22,7 @@ export default function GoalsTab({ t, dark, goalChecks, onToggle, expanded, setE
     <>
       {/* ── Starting point banner ─────────────────────────────────────────────── */}
       <div style={{ marginBottom: '1.5rem', padding: '1rem', background: t.subtleBg, borderLeft: `3px solid ${ACCENT}` }}>
-        <div style={{ fontFamily: 'monospace', fontSize: '0.7rem', letterSpacing: '0.25em', color: ACCENT, textTransform: 'uppercase', marginBottom: '0.4rem' }}>
+        <div style={{ fontFamily: 'monospace', fontSize: '0.5rem', letterSpacing: '0.25em', color: ACCENT, textTransform: 'uppercase', marginBottom: '0.4rem' }}>
           Your Starting Point
         </div>
         <p style={{ fontSize: '0.85rem', fontStyle: 'italic', color: t.muted, lineHeight: 1.7 }}>
@@ -33,7 +33,7 @@ export default function GoalsTab({ t, dark, goalChecks, onToggle, expanded, setE
 
       {/* ── Fear callout ──────────────────────────────────────────────────────── */}
       <div style={{ marginBottom: '1.75rem', padding: '1rem 1.1rem', background: t.invertBg, color: t.invertText }}>
-        <div style={{ fontFamily: 'monospace', fontSize: '0.7rem', letterSpacing: '0.25em', color: ACCENT, textTransform: 'uppercase', marginBottom: '0.4rem' }}>
+        <div style={{ fontFamily: 'monospace', fontSize: '0.5rem', letterSpacing: '0.25em', color: ACCENT, textTransform: 'uppercase', marginBottom: '0.4rem' }}>
           Your Real Fear
         </div>
         <p style={{ fontSize: '0.88rem', lineHeight: 1.7, color: t.invertMuted80 }}>
@@ -57,11 +57,11 @@ export default function GoalsTab({ t, dark, goalChecks, onToggle, expanded, setE
               style={{ padding: '1.1rem', cursor: 'pointer', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '1rem' }}
             >
               <div style={{ flex: 1 }}>
-                <div style={{ fontFamily: 'monospace', fontSize: '0.7rem', letterSpacing: '0.25em', color: g.color, textTransform: 'uppercase', marginBottom: '0.25rem' }}>
+                <div style={{ fontFamily: 'monospace', fontSize: '0.5rem', letterSpacing: '0.25em', color: g.color, textTransform: 'uppercase', marginBottom: '0.25rem' }}>
                   {g.label} · {g.domain}
                 </div>
                 <div style={{ fontWeight: 700, fontSize: '1rem', marginBottom: '0.25rem' }}>{g.end}</div>
-                <div style={{ fontFamily: 'monospace', fontSize: '0.72rem', color: t.muted }}>
+                <div style={{ fontFamily: 'monospace', fontSize: '0.52rem', color: t.muted }}>
                   {doneCt}/{g.targets.length} targets checked
                 </div>
               </div>
@@ -83,16 +83,16 @@ export default function GoalsTab({ t, dark, goalChecks, onToggle, expanded, setE
                 {/* Start / End grid */}
                 <div style={{ marginTop: '1rem', marginBottom: '1rem', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem', fontSize: '0.78rem' }}>
                   <div style={{ padding: '0.6rem', background: t.subtleBg }}>
-                    <div style={{ fontFamily: 'monospace', fontSize: '0.68rem', letterSpacing: '0.15em', color: t.muted, marginBottom: '0.25rem' }}>WHERE YOU START</div>
+                    <div style={{ fontFamily: 'monospace', fontSize: '0.48rem', letterSpacing: '0.15em', color: t.muted, marginBottom: '0.25rem' }}>WHERE YOU START</div>
                     <div style={{ fontStyle: 'italic', color: t.muted }}>{g.start}</div>
                   </div>
                   <div style={{ padding: '0.6rem', background: `rgba(${hexRgb(g.color)}, ${dark ? 0.12 : 0.05})` }}>
-                    <div style={{ fontFamily: 'monospace', fontSize: '0.68rem', letterSpacing: '0.15em', color: g.color, marginBottom: '0.25rem' }}>WHERE YOU END</div>
+                    <div style={{ fontFamily: 'monospace', fontSize: '0.48rem', letterSpacing: '0.15em', color: g.color, marginBottom: '0.25rem' }}>WHERE YOU END</div>
                     <div style={{ fontStyle: 'italic', color: t.pageText }}>{g.end}</div>
                   </div>
                 </div>
 
-                <div style={{ fontFamily: 'monospace', fontSize: '0.7rem', letterSpacing: '0.2em', color: t.muted, textTransform: 'uppercase', marginBottom: '0.75rem' }}>
+                <div style={{ fontFamily: 'monospace', fontSize: '0.5rem', letterSpacing: '0.2em', color: t.muted, textTransform: 'uppercase', marginBottom: '0.75rem' }}>
                   Specific Targets
                 </div>
 
@@ -120,12 +120,12 @@ export default function GoalsTab({ t, dark, goalChecks, onToggle, expanded, setE
                         display: 'flex', alignItems: 'center', justifyContent: 'center',
                         transition: 'all 0.2s', marginTop: 1,
                       }}>
-                        {done && <span style={{ color: 'white', fontSize: '0.78rem' }}>✓</span>}
+                        {done && <span style={{ color: 'white', fontSize: '0.58rem' }}>✓</span>}
                       </div>
                       <span style={{ fontSize: '0.88rem', lineHeight: 1.6, textDecoration: done ? 'line-through' : 'none', color: done ? t.muted : t.pageText }}>
                         {tg.text}
                       </span>
-                      <span style={{ fontFamily: 'monospace', fontSize: '0.7rem', color: g.color, letterSpacing: '0.08em', whiteSpace: 'nowrap', paddingTop: 2 }}>
+                      <span style={{ fontFamily: 'monospace', fontSize: '0.5rem', color: g.color, letterSpacing: '0.08em', whiteSpace: 'nowrap', paddingTop: 2 }}>
                         {tg.metric}
                       </span>
                     </div>
@@ -134,13 +134,13 @@ export default function GoalsTab({ t, dark, goalChecks, onToggle, expanded, setE
 
                 {/* How You'll Know */}
                 <div style={{ marginTop: '1rem', padding: '0.85rem', background: t.subtleBg, borderLeft: `2px solid ${g.color}` }}>
-                  <div style={{ fontFamily: 'monospace', fontSize: '0.68rem', letterSpacing: '0.15em', color: g.color, marginBottom: '0.3rem', textTransform: 'uppercase' }}>How You'll Know</div>
+                  <div style={{ fontFamily: 'monospace', fontSize: '0.48rem', letterSpacing: '0.15em', color: g.color, marginBottom: '0.3rem', textTransform: 'uppercase' }}>How You'll Know</div>
                   <p style={{ fontSize: '0.82rem', fontStyle: 'italic', color: t.muted, lineHeight: 1.65 }}>{g.proof}</p>
                 </div>
 
                 {/* Watch Out For */}
                 <div style={{ marginTop: '0.75rem', padding: '0.85rem', background: t.subtleBg }}>
-                  <div style={{ fontFamily: 'monospace', fontSize: '0.68rem', letterSpacing: '0.15em', color: t.muted, marginBottom: '0.3rem', textTransform: 'uppercase' }}>Watch Out For</div>
+                  <div style={{ fontFamily: 'monospace', fontSize: '0.48rem', letterSpacing: '0.15em', color: t.muted, marginBottom: '0.3rem', textTransform: 'uppercase' }}>Watch Out For</div>
                   <p style={{ fontSize: '0.82rem', fontStyle: 'italic', color: t.muted, lineHeight: 1.65 }}>{g.fear}</p>
                 </div>
               </div>
