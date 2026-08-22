@@ -2,14 +2,26 @@ import React from 'react';
 import { PERSONA, ACCENT } from '../constants.js';
 import BookTracker from './BookTracker.jsx';
 import GymLog from './GymLog.jsx';
+import { getThresholdTitle } from '../helpers/statsEngine.js';
+
+const AXIS_META = {
+  strength:   { label: 'Strength',   color: '#c1442c' },
+  discipline: { label: 'Discipline', color: '#c1442c' },
+  knowledge:  { label: 'Knowledge',  color: '#4a7ba6' },
+  wisdom:     { label: 'Wisdom',     color: '#4a7ba6' },
+  creativity: { label: 'Creativity', color: '#d99a2b' },
+  strategy:   { label: 'Strategy',   color: '#4f8a5f' },
+};
 
 /**
- * The Man / Persona tab — entirely read-only, content preserved from original.
+ * The Man / Persona tab.
  *
  * Props:
- *   t — current theme object
+ *   t         — current theme object
+ *   stats     — { strength, discipline, knowledge, wisdom, creativity, strategy }  (0-99)
+ *   allQuests — questBoard items array
  */
-export default function PersonaTab({ t }) {
+export default function PersonaTab({ t, stats = {}, allQuests = [] }) {
   return (
     <>
       <div style={{ marginBottom: '2rem' }}>
@@ -74,7 +86,43 @@ export default function PersonaTab({ t }) {
       </div>
 
       <div style={{ marginTop: '3rem' }}>
-        <h2 style={{ fontFamily: 'monospace', fontSize: '0.8rem', color: ACCENT, textTransform: 'uppercase', marginBottom: '1rem' }}>Data Entry (Phase 1 Testing)</h2>
+        <div style={{ fontFamily: 'monospace', fontSize: '0.52rem', letterSpacing: '0.25em', color: ACCENT, textTransform: 'uppercase', marginBottom: '1rem' }}>
+          Character Stats · Phase 2 Preview
+        </div>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.6rem', marginBottom: '1.5rem' }}>
+          {Object.entries(AXIS_META).map(([axis, meta]) => {
+            const val = Math.round(stats[axis] ?? 0);
+            const title = getThresholdTitle(axis, val);
+            const axisQuests = allQuests.filter(q => q.axis === axis);
+            return (
+              <div key={axis} style={{ padding: '0.85rem', background: t.subtleBg, borderLeft: `3px solid ${meta.color}` }}>
+                <div style={{ fontFamily: 'monospace', fontSize: '0.42rem', letterSpacing: '0.15em', color: meta.color, textTransform: 'uppercase', marginBottom: '0.2rem' }}>
+                  {meta.label}
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
+                  <span style={{ fontFamily: 'monospace', fontSize: '1.6rem', fontWeight: 900, color: t.pageText }}>{val}</span>
+                  <span style={{ fontFamily: 'monospace', fontSize: '0.42rem', color: t.muted }}>{title}</span>
+                </div>
+                {/* stat bar */}
+                <div style={{ marginTop: '0.4rem', height: 3, background: t.trackBg2, borderRadius: 3 }}>
+                  <div style={{ height: '100%', width: `${val}%`, background: meta.color, borderRadius: 3, transition: 'width 0.4s ease' }} />
+                </div>
+                {/* quest mini-list */}
+                {axisQuests.map(q => (
+                  <div key={q.id} style={{ marginTop: '0.4rem', fontSize: '0.65rem', color: t.muted, display: 'flex', justifyContent: 'space-between' }}>
+                    <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '70%' }}>{q.title}</span>
+                    <span style={{ fontFamily: 'monospace', flexShrink: 0, marginLeft: '0.5rem', color: q.done ? ACCENT : t.muted }}>
+                      {q.done ? '✓' : `${Math.round(q.currentValue)}/${q.targetValue}`}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            );
+          })}
+        </div>
+        <div style={{ fontFamily: 'monospace', fontSize: '0.52rem', color: ACCENT, textTransform: 'uppercase', marginBottom: '1rem' }}>
+          Data Entry (Phase 1 Testing)
+        </div>
         <BookTracker t={t} />
         <GymLog t={t} />
       </div>

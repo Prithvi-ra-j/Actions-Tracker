@@ -41,7 +41,7 @@ export default function BookTracker({ t }) {
           <div style={{ fontSize: '0.8rem', color: t.muted }}>Progress: {b.pagesRead} / {b.totalPages}</div>
           <div style={{ marginTop: '0.5rem', display: 'flex', gap: '0.5rem' }}>
             {b.status === 'not_started' && <button onClick={async () => { await updateBookStatus(b.id, 'in_progress', localDateStr()); loadBooks(); }} style={btnStyle(t)}>Start Reading</button>}
-            {b.status === 'in_progress' && <button onClick={async () => { await updateBookPagesRead(b.id, 10); loadBooks(); }} style={btnStyle(t)}>Log 10 Pages</button>}
+            {b.status === 'in_progress' && <button onClick={async () => { await updateBookPagesRead(b.id, 10, localDateStr()); loadBooks(); }} style={btnStyle(t)}>Log 10 Pages</button>}
             {b.status === 'in_progress' && <button onClick={async () => { await updateBookStatus(b.id, 'finished', localDateStr()); loadBooks(); }} style={btnStyle(t)}>Finish</button>}
           </div>
         </div>

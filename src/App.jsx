@@ -5,12 +5,16 @@ import { localDateStr }   from './helpers/dateHelpers.js';
 // ── Database ──────────────────────────────────────────────────────────────────
 import { initDB }                from './database/db.js';
 import { migrateFromLocalStorage } from './database/migration.js';
-import { initAxisConfigs }         from './database/axisConfigRepository.js';
+import { initAxisConfigs, getAllAxisConfigs } from './database/axisConfigRepository.js';
 import { getAllLogs }              from './database/logsRepository.js';
+import { initQuestBoard, getAllQuests, syncQuestProgress } from './database/questBoardRepository.js';
 import { getAllDailyRecords, saveDailyRecord } from './database/dailyRepository.js';
 import { getAllGoalChecks,   setGoalCheck }    from './database/goalsRepository.js';
 import { getAllMilestoneChecks, setMilestoneCheck } from './database/milestonesRepository.js';
 import { getSetting, setSetting, getReminders, saveReminders } from './database/settingsRepository.js';
+
+// ── Helpers ─────────────────────────────────────────────────────────────────────────────
+import { computeAllStats } from './helpers/statsEngine.js';
 
 // ── Native ────────────────────────────────────────────────────────────────────
 import { rescheduleDailyCheck } from './native/notifications.js';
@@ -62,6 +66,10 @@ export default function App() {
     { id: 3, label: 'DAILY CHECK', time: '22:00', enabled: true },
   ]);
 
+  // ── Stat engine state ─────────────────────────────────────────────────────────
+  const [stats,            setStats]             = useState({ strength: 0, discipline: 0, knowledge: 0, wisdom: 0, creativity: 0, strategy: 0 });
+  const [allQuests,        setAllQuests]          = useState([]);
+
   // ── Derived values ─────────────────────────────────────────────────────────
   const t          = dark ? THEMES.dark : THEMES.light;
   const today      = localDateStr();
@@ -76,25 +84,40 @@ export default function App() {
         await initDB();
         await migrateFromLocalStorage();
         await initAxisConfigs();
+        await initQuestBoard();
 
-        const [records, goals, milestones, darkPref, savedReminders, allLogs] = await Promise.all([
-          getAllDailyRecords(),
-          getAllGoalChecks(),
-          getAllMilestoneChecks(),
-          getSetting('darkMode'),
-          getReminders(),
-          getAllLogs(),
-        ]);
+        const [records, goals, milestones, darkPref, savedReminders, allLogs, axisConfigs, quests] =
+          await Promise.all([
+            getAllDailyRecords(),
+            getAllGoalChecks(),
+            getAllMilestoneChecks(),
+            getSetting('darkMode'),
+            getReminders(),
+            getAllLogs(),
+            getAllAxisConfigs(),
+            getAllQuests(),
+          ]);
 
-        if (allLogs.length === 0) {
+        // Sync quest progress from logs, then re-fetch updated quests
+        await syncQuestProgress(allLogs);
+        const syncedQuests = await getAllQuests();
+
+        if (allLogs.filter(l => l.type !== 'daily_checkbox').length === 0) {
+          // Only show onboarding if there are no meaningful logs yet
+          // (daily checkboxes alone don't count as "onboarded")
           setNeedsOnboarding(true);
         }
 
         setAllDailyRecords(records);
         setGoalChecks(goals);
         setMilestoneChecks(milestones);
+        setAllQuests(syncedQuests);
         if (darkPref === 'true') setDark(true);
         if (savedReminders?.length) setReminders(savedReminders);
+
+        // Compute initial stats
+        const initialStats = computeAllStats(allLogs, axisConfigs, syncedQuests, localDateStr());
+        setStats(initialStats);
       } catch (err) {
         console.error('[App] Bootstrap error:', err);
         setDbError(String(err?.message ?? err));
@@ -124,6 +147,20 @@ export default function App() {
     if (dbReady) setSetting('darkMode', String(dark));
   }, [dark, dbReady]);
 
+  // ── Stat recompute — called after any write that could affect a stat ──────
+  const recomputeStats = useCallback(async () => {
+    try {
+      const [freshLogs, freshConfigs] = await Promise.all([getAllLogs(), getAllAxisConfigs()]);
+      await syncQuestProgress(freshLogs);
+      const freshQuests = await getAllQuests();
+      setAllQuests(freshQuests);
+      const newStats = computeAllStats(freshLogs, freshConfigs, freshQuests, localDateStr());
+      setStats(newStats);
+    } catch (err) {
+      console.error('[App] recomputeStats failed:', err);
+    }
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
   // ── Handlers ──────────────────────────────────────────────────────────────
 
   const handleDailyToggle = useCallback(async (id) => {
@@ -138,10 +175,12 @@ export default function App() {
       if (dcReminder?.enabled) {
         await rescheduleDailyCheck(newRecord, dcReminder.time, true);
       }
+      // Recompute stats after any daily checkbox change
+      await recomputeStats();
     } catch (err) {
       console.error('[App] saveDailyRecord failed:', err);
     }
-  }, [todayRecord, today, reminders]);
+  }, [todayRecord, today, reminders, recomputeStats]);
 
   const handleGoalToggle = useCallback(async (key) => {
     const newValue = !goalChecks[key];
@@ -343,7 +382,7 @@ export default function App() {
             )}
 
             {tab === 'persona' && (
-              <PersonaTab t={t} />
+              <PersonaTab t={t} stats={stats} allQuests={allQuests} />
             )}
           </>
         )}

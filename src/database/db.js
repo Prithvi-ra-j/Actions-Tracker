@@ -14,7 +14,7 @@
  */
 
 const DB_NAME = 'yearendgoals';
-const DB_VERSION = 2;
+const DB_VERSION = 3;
 
 /** @type {IDBDatabase|null} */
 let _db = null;
@@ -77,6 +77,9 @@ export function initDB() {
       }
       if (!db.objectStoreNames.contains('gymSessions')) {
         db.createObjectStore('gymSessions', { keyPath: 'id' });
+      }
+      if (!db.objectStoreNames.contains('questBoard')) {
+        db.createObjectStore('questBoard', { keyPath: 'id' });
       }
     };
   });
