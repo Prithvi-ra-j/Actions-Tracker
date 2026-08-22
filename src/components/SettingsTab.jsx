@@ -3,6 +3,7 @@ import { ACCENT } from '../constants.js';
 import {
   requestNotificationPermission,
   scheduleAllReminders,
+  NOTIFICATION_IDS,
 } from '../native/notifications.js';
 
 /**
@@ -123,8 +124,20 @@ export default function SettingsTab({ t, dark, setDark, reminders, setReminders,
             transition: 'border-color 0.2s',
           }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.6rem' }}>
-              <div style={{ fontFamily: 'monospace', fontSize: '0.5rem', letterSpacing: '0.15em', color: reminder.enabled ? ACCENT : t.muted, textTransform: 'uppercase' }}>
-                {reminder.label}
+              <div>
+                <div style={{ fontFamily: 'monospace', fontSize: '0.5rem', letterSpacing: '0.15em', color: reminder.enabled ? ACCENT : t.muted, textTransform: 'uppercase' }}>
+                  {reminder.label}
+                </div>
+                {reminder.id === NOTIFICATION_IDS.BODY && (
+                  <div style={{ fontSize: '0.65rem', color: t.muted, marginTop: '0.2rem' }}>
+                    Fires on Mon, Wed, Fri, Sat
+                  </div>
+                )}
+                {reminder.id === NOTIFICATION_IDS.PHILOSOPHY && (
+                  <div style={{ fontSize: '0.65rem', color: t.muted, marginTop: '0.2rem' }}>
+                    Fires every day
+                  </div>
+                )}
               </div>
               <label style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', cursor: 'pointer' }}>
                 <input

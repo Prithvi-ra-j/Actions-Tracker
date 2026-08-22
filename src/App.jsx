@@ -18,7 +18,7 @@ import { checkAndWriteWeeklySnapshot, getLatestSnapshot } from './database/statS
 import { computeAllStats, computeAxisDetails, getThresholdTitle } from './helpers/statsEngine.js';
 
 // ── Native ────────────────────────────────────────────────────────────────────
-import { rescheduleDailyCheck } from './native/notifications.js';
+import { scheduleAllReminders } from './native/notifications.js';
 import { registerBackHandler, setupStatusBar } from './native/backButton.js';
 
 // ── Components ────────────────────────────────────────────────────────────────
@@ -158,7 +158,14 @@ export default function App() {
         setMilestoneChecks(milestones);
         setAllQuests(syncedQuests);
         if (darkPref === 'true') setDark(true);
-        if (savedReminders?.length) setReminders(savedReminders);
+        if (savedReminders?.length) {
+          setReminders(savedReminders);
+          // Phase 6: Sync schedules to reset any stale "Completed" messages from previous weeks
+          await scheduleAllReminders(savedReminders, records[localDateStr()] ?? {});
+        } else {
+          // If no saved reminders, schedule the default ones
+          await scheduleAllReminders(reminders, records[localDateStr()] ?? {});
+        }
 
         // Compute stats + per-axis details
         const today = localDateStr();
@@ -278,11 +285,8 @@ export default function App() {
 
     try {
       await saveDailyRecord(today, newRecord);
-      // Reschedule the Daily Check notification with the fresh score
-      const dcReminder = reminders.find(r => r.id === 3);
-      if (dcReminder?.enabled) {
-        await rescheduleDailyCheck(newRecord, dcReminder.time, true);
-      }
+      // Reschedule all reminders to inject the fresh score / completion state (Phase 6)
+      await scheduleAllReminders(reminders, newRecord);
       // Recompute stats after any daily checkbox change
       await recomputeStats();
     } catch (err) {
@@ -481,7 +485,7 @@ export default function App() {
                 t={t}
                 allDailyRecords={allDailyRecords}
                 onToggle={handleDailyToggle}
-                onGoToGoals={() => handleTabChange('stats')}
+                onGoToGoals={() => handleTabChange('goals')}
                 hasSundayReflection={hasSundayReflection}
                 onSundayReflection={async (text) => {
                   const { addLog } = await import('./database/logsRepository.js');

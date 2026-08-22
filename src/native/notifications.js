@@ -80,8 +80,9 @@ export async function checkNotificationPermission() {
  * @param {string} title   Notification title
  * @param {string} body    Notification body
  * @param {string} time    "HH:MM" local time
+ * @param {number} weekday Capacitor weekday (1=Sunday, 2=Monday, ... 7=Saturday). If null, repeats every day.
  */
-export async function scheduleReminder(id, title, body, time) {
+export async function scheduleReminder(id, title, body, time, weekday = null) {
   const plugin = await getPlugin();
   if (!plugin) return;
 
@@ -98,16 +99,22 @@ export async function scheduleReminder(id, title, body, time) {
     // Always cancel first so we never accumulate duplicate schedules
     await plugin.cancel({ notifications: [{ id }] });
 
+    const scheduleObj = {
+      on:      { hour, minute },
+      repeats: true,
+      allowWhileIdle: true,
+    };
+    
+    if (weekday !== null) {
+      scheduleObj.on.weekday = weekday;
+    }
+
     await plugin.schedule({
       notifications: [{
         id,
         title,
         body,
-        schedule: {
-          on:      { hour, minute },
-          repeats: true,
-          allowWhileIdle: true,
-        },
+        schedule: scheduleObj,
         sound: null,
         iconColor: '#c4821a',
       }],
@@ -131,69 +138,81 @@ export async function cancelReminder(id) {
   }
 }
 
-// ─── Daily Check smart rescheduling ───────────────────────────────────────────
-
-/**
- * Cancels and reschedules the Daily Check notification with current progress.
- *
- * Call this every time any daily task is toggled so that the notification
- * body text accurately reflects the completion count at fire time.
- *
- * @param {{ body: boolean, philosophy: boolean, art: boolean, history: boolean }} todayRecord
- * @param {string}  time     "HH:MM"
- * @param {boolean} enabled  Whether the Daily Check reminder is enabled
- */
-export async function rescheduleDailyCheck(todayRecord, time, enabled) {
-  if (!enabled) {
-    await cancelReminder(NOTIFICATION_IDS.DAILY_CHECK);
-    return;
-  }
-
-  const score = [
-    todayRecord.body,
-    todayRecord.philosophy,
-    todayRecord.art,
-    todayRecord.history,
-  ].filter(Boolean).length;
-
-  const notifBody = score === 4
-    ? 'Day complete. Well done.'
-    : `Your day isn't finished yet. ${score}/4 complete.`;
-
-  await scheduleReminder(
-    NOTIFICATION_IDS.DAILY_CHECK,
-    'Year End Goals',
-    notifBody,
-    time,
-  );
-}
-
 // ─── Bulk scheduling ───────────────────────────────────────────────────────────
 
 /**
  * Schedules (or cancels) all reminders based on the saved configuration.
- * Pass today's record so the Daily Check text is accurate.
+ * Pass today's record so the texts are accurate. Because we split reminders
+ * by weekday, rewriting today's text won't ruin next week's text (they are distinct IDs).
+ * Every time the app boots, this rewrites all future days to their default text,
+ * preventing stale "Complete" messages from lingering if the app wasn't opened.
  *
  * @param {Array<{id: number, label: string, time: string, enabled: boolean}>} reminders
  * @param {{ body: boolean, philosophy: boolean, art: boolean, history: boolean }} todayRecord
  */
 export async function scheduleAllReminders(reminders, todayRecord = {}) {
-  const labelBodies = {
-    [NOTIFICATION_IDS.BODY]:       'Time for your body practice.',
-    [NOTIFICATION_IDS.PHILOSOPHY]: 'Time for your philosophy practice.',
-  };
+  const jsToday = new Date().getDay(); // 0 = Sunday, 1 = Monday ... 6 = Saturday
 
   for (const reminder of reminders) {
-    if (!reminder.enabled) {
-      await cancelReminder(reminder.id);
-      continue;
-    }
+    // For each reminder, loop over all 7 days of the week.
+    // jsDay = 0 (Sun) .. 6 (Sat)
+    for (let jsDay = 0; jsDay <= 6; jsDay++) {
+      const capWeekday = jsDay + 1; // 1 = Sunday .. 7 = Saturday
+      // Generate a distinct ID for each weekday: e.g. Body (1) -> 101 for Monday
+      const notifId = (reminder.id * 100) + jsDay;
 
-    if (reminder.id === NOTIFICATION_IDS.DAILY_CHECK) {
-      await rescheduleDailyCheck(todayRecord, reminder.time, true);
-    } else {
-      const body = labelBodies[reminder.id] ?? `Time for your ${reminder.label.toLowerCase()} practice.`;
-      await scheduleReminder(reminder.id, 'Year End Goals', body, reminder.time);
+      // Determine if this reminder should fire on this jsDay
+      let shouldSchedule = false;
+      if (reminder.id === NOTIFICATION_IDS.BODY) {
+        // Body only fires on training days: Mon(1), Wed(3), Fri(5), Sat(6)
+        if ([1, 3, 5, 6].includes(jsDay)) shouldSchedule = true;
+      } else {
+        // Philosophy and Daily Check fire every day
+        shouldSchedule = true;
+      }
+
+      if (!reminder.enabled || !shouldSchedule) {
+        await cancelReminder(notifId);
+        continue;
+      }
+
+      const isToday = (jsDay === jsToday);
+      let notifBody = '';
+
+      if (reminder.id === NOTIFICATION_IDS.DAILY_CHECK) {
+        // Daily Check logic
+        if (isToday) {
+          const score = [
+            todayRecord.body, todayRecord.philosophy,
+            todayRecord.art, todayRecord.history
+          ].filter(Boolean).length;
+          notifBody = score === 4
+            ? 'Day complete. Well done.'
+            : `Your day isn't finished yet. ${score}/4 complete.`;
+        } else {
+          notifBody = `Your day isn't finished yet. 0/4 complete.`; // Reset for future
+        }
+      } else if (reminder.id === NOTIFICATION_IDS.BODY) {
+        if (isToday && todayRecord.body) {
+          notifBody = 'Training complete for today. Rest well.';
+        } else {
+          notifBody = 'Time for your body practice.';
+        }
+      } else if (reminder.id === NOTIFICATION_IDS.PHILOSOPHY) {
+        if (isToday && todayRecord.philosophy) {
+          notifBody = 'Reading complete for today.';
+        } else {
+          notifBody = 'Time for your philosophy practice.';
+        }
+      }
+
+      await scheduleReminder(
+        notifId,
+        'Year End Goals',
+        notifBody,
+        reminder.time,
+        capWeekday
+      );
     }
   }
 }
