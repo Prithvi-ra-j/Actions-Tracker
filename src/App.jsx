@@ -28,6 +28,7 @@ import MilestonesTab from './components/MilestonesTab.jsx';
 import PersonaTab    from './components/PersonaTab.jsx';
 import CalendarTab from './components/CalendarTab.jsx';
 import SettingsTab   from './components/SettingsTab.jsx';
+import NavDrawer     from './components/NavDrawer.jsx';
 import { Haptics, ImpactStyle } from '@capacitor/haptics';
 import OnboardingScreen  from './components/OnboardingScreen.jsx';
 import StatsTab          from './components/StatsTab.jsx';
@@ -94,6 +95,7 @@ export default function App() {
     return window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
   });
   const [showSettings, setShowSettings] = useState(false);
+  const [showNavDrawer, setShowNavDrawer] = useState(false);
   const [expanded,     setExpanded]     = useState(null); // expanded goal index
 
   // ── Data state (loaded from DB on mount; written back on every change) ─────
@@ -235,11 +237,12 @@ export default function App() {
   useEffect(() => {
     registerBackHandler(() => {
       if (showSettings)        { setShowSettings(false);  return true; }
+      if (showNavDrawer)       { setShowNavDrawer(false); return true; }
       if (expanded !== null)   { setExpanded(null);        return true; }
       if (tab !== 'daily')     { setTab('daily');          return true; }
       return false; // allow exit
     });
-  }, [showSettings, expanded, tab]);
+  }, [showSettings, showNavDrawer, expanded, tab]);
 
   // ── Persist dark-mode preference ───────────────────────────────────────────
   useEffect(() => {
@@ -337,6 +340,7 @@ export default function App() {
   function handleTabChange(id) {
     setTab(id);
     setShowSettings(false);
+    setShowNavDrawer(false);
   }
 
   // ── Loading screen ─────────────────────────────────────────────────────────
@@ -396,34 +400,60 @@ export default function App() {
         transition: 'background 0.2s',
       }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.5rem' }}>
-          <span style={{ fontFamily: 'monospace', fontSize: '0.58rem', letterSpacing: '0.3em', color: t.headerText, textTransform: 'uppercase' }}>
-            Prithvi · Year End Goals · 2026
-          </span>
+          
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+            {/* Hamburger menu */}
+            <button
+              onClick={() => setShowNavDrawer(true)}
+              aria-label="Open menu"
+              style={{
+                background: 'transparent',
+                border: 'none',
+                color: t.headerText,
+                cursor: 'pointer',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                padding: '0.2rem',
+              }}
+            >
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="square">
+                <line x1="3" y1="12" x2="21" y2="12"></line>
+                <line x1="3" y1="6" x2="21" y2="6"></line>
+                <line x1="3" y1="18" x2="21" y2="18"></line>
+              </svg>
+            </button>
+
+            <span style={{ fontFamily: 'monospace', fontSize: '0.58rem', letterSpacing: '0.3em', color: t.headerText, textTransform: 'uppercase' }}>
+              Prithvi · Year End Goals
+            </span>
+          </div>
 
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.85rem' }}>
+            {/* Radar Stats */}
+            <button
+              onClick={() => handleTabChange('stats')}
+              aria-label="Stats"
+              style={{
+                background: 'transparent',
+                border: 'none',
+                color: tab === 'stats' ? ACCENT : t.headerText,
+                cursor: 'pointer',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                padding: '0.2rem',
+              }}
+            >
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="square">
+                <circle cx="12" cy="12" r="10"></circle>
+                <circle cx="12" cy="12" r="6"></circle>
+                <circle cx="12" cy="12" r="2"></circle>
+                <line x1="12" y1="12" x2="19" y2="5"></line>
+              </svg>
+            </button>
+
             <span style={{ fontFamily: 'monospace', fontSize: '0.58rem', color: ACCENT, letterSpacing: '0.1em' }}>
               {tab === 'daily'
                 ? `${dailyDone}/4 today`
                 : `${doneTargets}/${TOTAL_TARGETS} targets`}
             </span>
-
-            {/* Settings gear */}
-            <button
-              id="btn-settings"
-              onClick={() => setShowSettings(s => !s)}
-              aria-label={showSettings ? 'Close settings' : 'Open settings'}
-              style={{
-                width: 26, height: 26, borderRadius: '50%',
-                border: `1px solid rgba(247,243,236,0.25)`,
-                background: showSettings ? ACCENT : 'transparent',
-                color: t.headerText,
-                cursor: 'pointer',
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                fontSize: '0.65rem', padding: 0, lineHeight: 1,
-              }}
-            >
-              ⚙
-            </button>
           </div>
         </div>
 
@@ -437,32 +467,6 @@ export default function App() {
             borderRadius: 2,
           }} />
         </div>
-      </div>
-
-      {/* ── TAB BAR ─────────────────────────────────────────────────────────── */}
-      <div style={{ display: 'grid', gridTemplateColumns: `repeat(${TABS.length}, 1fr)`, borderBottom: `2px solid ${t.headerBg}` }}>
-        {TABS.map(({ id, label }) => (
-          <button
-            key={id}
-            id={`tab-${id}`}
-            onClick={() => handleTabChange(id)}
-            style={{
-              padding: '0.65rem 0.25rem',
-              background: tab === id && !showSettings ? t.headerBg : 'transparent',
-              color:      tab === id && !showSettings ? t.headerText : t.tabInactive,
-              border: 'none',
-              cursor: 'pointer',
-              fontFamily: 'monospace',
-              fontSize: '0.46rem',
-              letterSpacing: '0.12em',
-              textTransform: 'uppercase',
-              transition: 'all 0.2s',
-              whiteSpace: 'nowrap',
-            }}
-          >
-            {label}
-          </button>
-        ))}
       </div>
 
       {/* ── CONTENT ─────────────────────────────────────────────────────────── */}
@@ -574,6 +578,17 @@ export default function App() {
           }}
         />
       )}
+
+      {/* Nav Drawer Overlay */}
+      <NavDrawer
+        t={t}
+        isOpen={showNavDrawer}
+        onClose={() => setShowNavDrawer(false)}
+        tabs={TABS}
+        currentTab={tab}
+        onSelectTab={handleTabChange}
+        onOpenSettings={() => { setShowSettings(true); setTab('daily'); }}
+      />
     </div>
   );
 }
