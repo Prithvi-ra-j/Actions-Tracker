@@ -543,7 +543,6 @@ export default function App() {
             )}
           </>
         )}
-        )}
       </div>
 
       {/* ── Overlays (Phase 4) ──────────────────────────────────────────────── */}
