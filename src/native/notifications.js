@@ -31,9 +31,11 @@ export const NOTIFICATION_IDS = {
 async function getPlugin() {
   try {
     const mod = await import('@capacitor/local-notifications');
-    return mod.LocalNotifications;
+    // Wrap in an object to prevent async machinery from inspecting `.then`
+    // on the Capacitor proxy, which throws "not implemented on web".
+    return { api: mod.LocalNotifications };
   } catch {
-    return null;
+    return { api: null };
   }
 }
 
@@ -44,7 +46,7 @@ async function getPlugin() {
  * @returns {Promise<boolean>} true if granted
  */
 export async function requestNotificationPermission() {
-  const plugin = await getPlugin();
+  const { api: plugin } = await getPlugin();
   if (!plugin) return false;
   try {
     const { display } = await plugin.requestPermissions();
@@ -60,7 +62,7 @@ export async function requestNotificationPermission() {
  * @returns {Promise<'granted'|'denied'|'prompt'|'unavailable'>}
  */
 export async function checkNotificationPermission() {
-  const plugin = await getPlugin();
+  const { api: plugin } = await getPlugin();
   if (!plugin) return 'unavailable';
   try {
     const { display } = await plugin.checkPermissions();
@@ -83,7 +85,7 @@ export async function checkNotificationPermission() {
  * @param {number} weekday Capacitor weekday (1=Sunday, 2=Monday, ... 7=Saturday). If null, repeats every day.
  */
 export async function scheduleReminder(id, title, body, time, weekday = null) {
-  const plugin = await getPlugin();
+  const { api: plugin } = await getPlugin();
   if (!plugin) return;
 
   const [hourStr, minuteStr] = time.split(':');
@@ -129,7 +131,7 @@ export async function scheduleReminder(id, title, body, time, weekday = null) {
  * @param {number} id
  */
 export async function cancelReminder(id) {
-  const plugin = await getPlugin();
+  const { api: plugin } = await getPlugin();
   if (!plugin) return;
   try {
     await plugin.cancel({ notifications: [{ id }] });

@@ -92,6 +92,11 @@ export default function SettingsTab({ t, dark, setDark, reminders, setReminders,
             Settings
           </div>
           <div style={{ fontSize: '1.8rem', fontWeight: 900, lineHeight: 1.1 }}>Configure</div>
+          {typeof __APP_VERSION__ !== 'undefined' && (
+            <div style={{ fontFamily: 'monospace', fontSize: '0.65rem', color: t.muted, marginTop: '0.4rem', letterSpacing: '0.1em' }}>
+              v{__APP_VERSION__}
+            </div>
+          )}
         </div>
         {onClose && (
           <button
