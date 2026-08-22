@@ -51,18 +51,6 @@ function AxisCard({ t, dark, axisInfo, stat, details, quests }) {
   const title = getThresholdTitle(key, Math.round(stat));
   const val = Math.round(stat);
 
-  // Calculate expected progress based on Aug 17 - Dec 31 (136 days)
-  const aug17 = new Date('2026-08-17T00:00:00').getTime();
-  const dec31 = new Date('2026-12-31T23:59:59').getTime();
-  const timeProgress = Math.max(0, Math.min(1, (Date.now() - aug17) / (dec31 - aug17)));
-  
-  const questsWithPace = quests.map(q => {
-    const expected = q.targetValue * timeProgress;
-    return { ...q, isLagging: !q.done && (q.currentValue < expected * 0.9) }; // 10% buffer
-  });
-  
-  const axisLagging = questsWithPace.some(q => q.isLagging);
-
   return (
     <div style={{
       padding: '1rem',
@@ -71,18 +59,14 @@ function AxisCard({ t, dark, axisInfo, stat, details, quests }) {
       borderTop: `1px solid ${t.borderFaint}`,
       borderRight: `1px solid ${t.borderFaint}`,
       borderBottom: `1px solid ${t.borderFaint}`,
-      position: 'relative'
     }}>
-      {axisLagging && (
-        <div style={{ position: 'absolute', top: -5, right: -5, width: 12, height: 12, borderRadius: '50%', background: '#c1442c', border: `2px solid ${t.pageBg}` }} title="Lagging pace" />
-      )}
       {/* Header */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '0.5rem' }}>
         <div>
-          <div style={{ fontFamily: 'monospace', fontSize: '0.65rem', letterSpacing: '0.18em', color, textTransform: 'uppercase', marginBottom: '0.15rem' }}>
+          <div style={{ fontFamily: 'monospace', fontSize: '0.42rem', letterSpacing: '0.18em', color, textTransform: 'uppercase', marginBottom: '0.15rem' }}>
             {icon} {label}
           </div>
-          <div style={{ fontFamily: 'monospace', fontSize: '0.65rem', color: t.muted, textTransform: 'uppercase' }}>
+          <div style={{ fontFamily: 'monospace', fontSize: '0.38rem', color: t.muted, textTransform: 'uppercase' }}>
             {title}
           </div>
         </div>
@@ -103,7 +87,7 @@ function AxisCard({ t, dark, axisInfo, stat, details, quests }) {
         ].map(({ lbl, val: v, skip }) => (
           !skip && (
             <div key={lbl} style={{ textAlign: 'center' }}>
-              <div style={{ fontFamily: 'monospace', fontSize: '0.65rem', color: t.muted, letterSpacing: '0.12em' }}>{lbl}</div>
+              <div style={{ fontFamily: 'monospace', fontSize: '0.38rem', color: t.muted, letterSpacing: '0.12em' }}>{lbl}</div>
               <div style={{ fontFamily: 'monospace', fontSize: '0.65rem', fontWeight: 700, color: t.pageText }}>
                 {v == null ? '—' : `${Math.round(v)}`}
               </div>
@@ -114,22 +98,22 @@ function AxisCard({ t, dark, axisInfo, stat, details, quests }) {
       </div>
 
       {/* Quests */}
-      {questsWithPace.length > 0 && (
+      {quests.length > 0 && (
         <div style={{ marginTop: '0.65rem', borderTop: `1px solid ${t.borderFaint}`, paddingTop: '0.5rem' }}>
-          {questsWithPace.map(q => (
+          {quests.map(q => (
             <div key={q.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.3rem' }}>
               <span style={{
-                fontSize: '0.65rem',
+                fontSize: '0.62rem',
                 color: q.done ? ACCENT : t.muted,
                 overflow: 'hidden',
                 textOverflow: 'ellipsis',
                 whiteSpace: 'nowrap',
-                maxWidth: '65%',
+                maxWidth: '72%',
               }}>
                 {q.done ? '✓ ' : ''}{q.title}
               </span>
-              <span style={{ fontFamily: 'monospace', fontSize: '0.65rem', color: q.isLagging ? '#c1442c' : (q.done ? ACCENT : t.muted), flexShrink: 0, marginLeft: '0.4rem', textAlign: 'right' }}>
-                {q.done ? 'done' : `${Math.round(q.currentValue)}/${q.targetValue}`}
+              <span style={{ fontFamily: 'monospace', fontSize: '0.55rem', color: q.done ? ACCENT : t.muted, flexShrink: 0, marginLeft: '0.4rem' }}>
+                {q.done ? 'done' : `${Math.round(q.currentValue)}/${q.targetValue} ${q.unit}`}
               </span>
             </div>
           ))}
@@ -154,7 +138,7 @@ export default function StatsTab({ t, dark, stats = {}, axisDetails = {}, snapsh
     <>
       {/* ── Header ──────────────────────────────────────────────────────────── */}
       <div style={{ marginBottom: '1.5rem' }}>
-        <div style={{ fontFamily: 'monospace', fontSize: '0.65rem', letterSpacing: '0.25em', color: ACCENT, textTransform: 'uppercase', marginBottom: '0.4rem' }}>
+        <div style={{ fontFamily: 'monospace', fontSize: '0.52rem', letterSpacing: '0.25em', color: ACCENT, textTransform: 'uppercase', marginBottom: '0.4rem' }}>
           Character Sheet
         </div>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
@@ -165,7 +149,7 @@ export default function StatsTab({ t, dark, stats = {}, axisDetails = {}, snapsh
             <div style={{ fontFamily: 'monospace', fontSize: '1.4rem', fontWeight: 900, color: ACCENT, lineHeight: 1 }}>
               {totalStat}
             </div>
-            <div style={{ fontFamily: 'monospace', fontSize: '0.65rem', color: t.muted, letterSpacing: '0.1em' }}>
+            <div style={{ fontFamily: 'monospace', fontSize: '0.4rem', color: t.muted, letterSpacing: '0.1em' }}>
               AVG STAT
             </div>
           </div>
@@ -176,19 +160,19 @@ export default function StatsTab({ t, dark, stats = {}, axisDetails = {}, snapsh
       <div style={{ display: 'flex', gap: '1rem', marginBottom: '0.75rem', flexWrap: 'wrap' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
           <div style={{ width: 16, height: 2, background: ACCENT, opacity: 0.8 }} />
-          <span style={{ fontFamily: 'monospace', fontSize: '0.65rem', color: t.muted }}>Current</span>
+          <span style={{ fontFamily: 'monospace', fontSize: '0.42rem', color: t.muted }}>Current</span>
         </div>
         {snapshotStats && (
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
             <div style={{ width: 16, height: 1, background: t.muted, opacity: 0.6, borderTop: '1px dashed' }} />
-            <span style={{ fontFamily: 'monospace', fontSize: '0.65rem', color: t.muted }}>
+            <span style={{ fontFamily: 'monospace', fontSize: '0.42rem', color: t.muted }}>
               {snapshotLabel ?? 'Last snapshot'}
             </span>
           </div>
         )}
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
           <div style={{ width: 16, height: 1, borderTop: `1px dashed ${ACCENT}`, opacity: 0.5 }} />
-          <span style={{ fontFamily: 'monospace', fontSize: '0.65rem', color: t.muted }}>Year-end target</span>
+          <span style={{ fontFamily: 'monospace', fontSize: '0.42rem', color: t.muted }}>Year-end target</span>
         </div>
       </div>
 
@@ -225,7 +209,7 @@ export default function StatsTab({ t, dark, stats = {}, axisDetails = {}, snapsh
 
       {/* ── Snapshot note ─────────────────────────────────────────────────────── */}
       <p style={{ marginTop: '1.5rem', fontSize: '0.65rem', color: t.muted, lineHeight: 1.6, fontStyle: 'italic', textAlign: 'center' }}>
-        Snapshot taken weekly. Dashed amber line = your year-end target if all quests are completed. Red badge indicates lagging pace.
+        Snapshot taken weekly. Dashed amber line = your year-end target if all quests are completed.
       </p>
     </>
   );

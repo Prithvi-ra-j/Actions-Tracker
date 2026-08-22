@@ -79,7 +79,7 @@ export default function LevelUpCeremony({ levelUp, onDismiss }) {
         {/* Label */}
         <div style={{
           fontFamily: 'monospace',
-          fontSize: '0.65rem',
+          fontSize: '0.45rem',
           letterSpacing: '0.4em',
           color: color,
           textTransform: 'uppercase',
@@ -96,7 +96,7 @@ export default function LevelUpCeremony({ levelUp, onDismiss }) {
         {/* Axis name */}
         <div style={{
           fontFamily: 'monospace',
-          fontSize: '0.65rem',
+          fontSize: '0.5rem',
           letterSpacing: '0.3em',
           color: color,
           textTransform: 'uppercase',
@@ -134,7 +134,7 @@ export default function LevelUpCeremony({ levelUp, onDismiss }) {
         {/* Dismiss hint */}
         <div style={{
           fontFamily: 'monospace',
-          fontSize: '0.65rem',
+          fontSize: '0.4rem',
           color: 'rgba(255,255,255,0.25)',
           letterSpacing: '0.2em',
           textTransform: 'uppercase',

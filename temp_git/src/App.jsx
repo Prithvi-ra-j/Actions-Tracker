@@ -25,6 +25,7 @@ import { registerBackHandler, setupStatusBar } from './native/backButton.js';
 import TodayTab      from './components/TodayTab.jsx';
 import GoalsTab      from './components/GoalsTab.jsx';
 import MilestonesTab from './components/MilestonesTab.jsx';
+import CalendarTab   from './components/CalendarTab.jsx';
 import PersonaTab    from './components/PersonaTab.jsx';
 import SettingsTab   from './components/SettingsTab.jsx';
 import OnboardingScreen  from './components/OnboardingScreen.jsx';
@@ -276,11 +277,6 @@ export default function App() {
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   // ── Handlers ──────────────────────────────────────────────────────────────
-  const triggerHaptic = () => {
-    try {
-      Haptics.impact({ style: ImpactStyle.Light }).catch(() => {});
-    } catch (e) {}
-  };
 
   const handleDailyToggle = useCallback(async (id) => {
     const newRecord = { ...todayRecord, [id]: !todayRecord[id] };
@@ -411,7 +407,7 @@ export default function App() {
                 color: t.headerText,
                 cursor: 'pointer',
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
-                fontSize: '0.65rem', padding: 0, lineHeight: 1,
+                fontSize: '0.75rem', padding: 0, lineHeight: 1,
               }}
             >
               ⚙
