@@ -26,7 +26,9 @@ import TodayTab      from './components/TodayTab.jsx';
 import GoalsTab      from './components/GoalsTab.jsx';
 import MilestonesTab from './components/MilestonesTab.jsx';
 import PersonaTab    from './components/PersonaTab.jsx';
+import CalendarTab from './components/CalendarTab.jsx';
 import SettingsTab   from './components/SettingsTab.jsx';
+import { Haptics, ImpactStyle } from '@capacitor/haptics';
 import OnboardingScreen  from './components/OnboardingScreen.jsx';
 import StatsTab          from './components/StatsTab.jsx';
 import LevelUpCeremony   from './components/LevelUpCeremony.jsx';
@@ -88,7 +90,9 @@ export default function App() {
 
   // ── UI state ───────────────────────────────────────────────────────────────
   const [tab,          setTab]          = useState('daily');
-  const [dark,         setDark]         = useState(false);
+  const [dark, setDark] = useState(() => {
+    return window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+  });
   const [showSettings, setShowSettings] = useState(false);
   const [expanded,     setExpanded]     = useState(null); // expanded goal index
 
@@ -283,6 +287,7 @@ export default function App() {
   };
 
   const handleDailyToggle = useCallback(async (id) => {
+    triggerHaptic();
     const newRecord = { ...todayRecord, [id]: !todayRecord[id] };
     // Optimistic UI update
     setAllDailyRecords(prev => ({ ...prev, [today]: newRecord }));
@@ -299,6 +304,7 @@ export default function App() {
   }, [todayRecord, today, reminders, recomputeStats]);
 
   const handleGoalToggle = useCallback(async (key) => {
+    triggerHaptic();
     const newValue = !goalChecks[key];
     setGoalChecks(prev => ({ ...prev, [key]: newValue }));
     try {
@@ -309,6 +315,7 @@ export default function App() {
   }, [goalChecks]);
 
   const handleMilestoneToggle = useCallback(async (key) => {
+    triggerHaptic();
     const newValue = !milestoneChecks[key];
     setMilestoneChecks(prev => ({ ...prev, [key]: newValue }));
     try {
@@ -335,9 +342,10 @@ export default function App() {
   // ── Loading screen ─────────────────────────────────────────────────────────
   if (!dbReady) {
     return (
-      <div style={{ background: '#1c1916', minHeight: '100dvh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-        <div style={{ fontFamily: 'monospace', fontSize: '0.55rem', letterSpacing: '0.3em', color: ACCENT, textTransform: 'uppercase' }}>
-          Loading…
+      <div style={{ background: '#1c1916', minHeight: '100dvh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
+        <img src="/icon.svg" alt="App Icon" style={{ width: 64, height: 64, marginBottom: '1rem', opacity: 0.8 }} />
+        <div style={{ fontFamily: 'monospace', fontSize: '0.65rem', letterSpacing: '0.3em', color: ACCENT, textTransform: 'uppercase' }}>
+          Year End Goals
         </div>
       </div>
     );
@@ -481,6 +489,7 @@ export default function App() {
             setReminders={setReminders}
             onSaveReminders={handleSaveReminders}
             todayRecord={todayRecord}
+            onClose={() => setShowSettings(false)}
           />
         ) : (
           <>

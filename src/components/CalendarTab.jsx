@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { DAILY_ITEMS, ACCENT } from '../constants.js';
+import { getDailyItems, ACCENT } from '../constants.js';
 import {
   localDateStr,
   formatDisplayDate,
@@ -178,7 +178,7 @@ export default function CalendarTab({ t, allDailyRecords }) {
               <div style={{ fontFamily: 'monospace', fontSize: '0.5rem', letterSpacing: '0.1em', color: t.muted, marginBottom: '0.75rem' }}>
                 {getDayScore(selectedRecord)}/4 tasks complete
               </div>
-              {DAILY_ITEMS.map(item => {
+              {getDailyItems(selectedDate).map(item => {
                 const done = !!selectedRecord[item.id];
                 return (
                   <div key={item.id} style={{
