@@ -45,6 +45,21 @@ function countInRange(logs, startDate, endDate) {
   ).length;
 }
 
+/**
+ * Reads the onboarding_assessment log value for an axis (0–100).
+ * Returns null if no assessment was ever recorded.
+ */
+function getOnboardingValue(axisLogs) {
+  const log = axisLogs.find(l => l.type === 'onboarding_assessment');
+  return log != null ? Number(log.value) : null;
+}
+
+/**
+ * How many real (non-onboarding) log entries are needed before the onboarding
+ * baseline fades to zero influence. 30 ≈ one month of daily activity.
+ */
+const ONBOARDING_FADE_THRESHOLD = 30;
+
 // ── Layer 2 Components ─────────────────────────────────────────────────────────
 
 /**
@@ -152,13 +167,29 @@ export function calcAxisStat(axis, axisLogs, axisConfig, axisQuests, today) {
   const V = calcVolume(axisQuests);
   const M = calcMomentum(axisLogs, today);
 
+  let computed;
   if (!axisConfig.hasConsistencyTerm) {
     // Wisdom (§4.4) — drop Consistency entirely
-    return clamp((0.55 * V) + (0.45 * M), 0, 99);
+    computed = clamp((0.55 * V) + (0.45 * M), 0, 99);
+  } else {
+    const C = calcConsistency(axis, axisLogs, axisConfig, today);
+    computed = clamp((0.45 * C) + (0.40 * V) + (0.15 * M), 0, 99);
   }
 
-  const C = calcConsistency(axis, axisLogs, axisConfig, today);
-  return clamp((0.45 * C) + (0.40 * V) + (0.15 * M), 0, 99);
+  // ── Onboarding blend ────────────────────────────────────────────────────────
+  // The onboarding_assessment log sets an honest non-zero starting value on day
+  // one. It fades to zero influence linearly as real log entries accumulate.
+  // Once ONBOARDING_FADE_THRESHOLD real logs exist, computed stat is used as-is.
+  const onboardingVal = getOnboardingValue(axisLogs);
+  if (onboardingVal !== null) {
+    const realLogCount = axisLogs.filter(l => l.type !== 'onboarding_assessment').length;
+    const w = Math.max(0, 1 - realLogCount / ONBOARDING_FADE_THRESHOLD);
+    if (w > 0) {
+      return clamp((1 - w) * computed + w * onboardingVal, 0, 99);
+    }
+  }
+
+  return computed;
 }
 
 /**
