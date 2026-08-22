@@ -1,5 +1,5 @@
-import React, { useMemo } from 'react';
-import { DAILY_ITEMS, ACCENT } from '../constants.js';
+import React, { useMemo, useState, useEffect } from 'react';
+import { getDailyItems, ACCENT } from '../constants.js';
 import { localDateStr, formatDisplayDate, getCurrentWeekDates, WEEK_LABELS } from '../helpers/dateHelpers.js';
 import {
   isDayPerfect, getDayScore,
@@ -7,6 +7,7 @@ import {
   calcPerfectDays, calcTotalTasks,
   calcWeeklyStats, calcMonthlyStats,
 } from '../helpers/statsHelpers.js';
+import SundayReflection from './SundayReflection.jsx';
 
 /**
  * Today tab — daily task checklist, streak display, weekly row, and stats grid.
@@ -17,12 +18,14 @@ import {
  *   onToggle(id)    — called when user taps a task
  *   onGoToGoals()   — called when user taps the "Open full goals" button
  */
-export default function TodayTab({ t, allDailyRecords, onToggle, onGoToGoals }) {
+export default function TodayTab({ t, allDailyRecords, onToggle, onGoToGoals, hasSundayReflection, onSundayReflection }) {
   const today = localDateStr();
   const todayRecord = allDailyRecords[today] ?? { body: false, philosophy: false, art: false, history: false };
   const dailyDone  = getDayScore(todayRecord);
   const isComplete = dailyDone === 4;
-  const pct        = Math.round((dailyDone / DAILY_ITEMS.length) * 100);
+  const pct        = Math.round((dailyDone / 4) * 100);
+
+  const dailyItems = useMemo(() => getDailyItems(today), [today]);
 
   // ── Streak / stats — memoised so they don't recompute on every render ────────
   const currentStreak = useMemo(() => calcCurrentStreak(allDailyRecords), [allDailyRecords]);
@@ -38,6 +41,14 @@ export default function TodayTab({ t, allDailyRecords, onToggle, onGoToGoals }) 
   );
 
   const weekDates = getCurrentWeekDates();
+
+  // Streak warning (after 7 PM, incomplete, and having an active streak)
+  const [currentHour, setCurrentHour] = useState(new Date().getHours());
+  useEffect(() => {
+    const interval = setInterval(() => setCurrentHour(new Date().getHours()), 60000);
+    return () => clearInterval(interval);
+  }, []);
+  const showStreakWarning = currentStreak > 0 && dailyDone < 4 && currentHour >= 19;
 
   return (
     <>
@@ -62,7 +73,7 @@ export default function TodayTab({ t, allDailyRecords, onToggle, onGoToGoals }) 
               DAILY SCORE
             </div>
             <div style={{ fontSize: '2rem', fontWeight: 900, lineHeight: 1, color: isComplete ? ACCENT : t.invertText }}>
-              {dailyDone}/{DAILY_ITEMS.length}
+              {dailyDone}/{dailyItems.length}
             </div>
             <div style={{ fontFamily: 'monospace', fontSize: '0.48rem', letterSpacing: '0.1em', color: t.invertMuted50, marginTop: '0.15rem' }}>
               {pct}% COMPLETE
@@ -92,8 +103,30 @@ export default function TodayTab({ t, allDailyRecords, onToggle, onGoToGoals }) 
         </div>
       </div>
 
+      {/* ── Streak Warning ────────────────────────────────────────────────────── */}
+      {showStreakWarning && (
+        <div style={{
+          padding: '1rem',
+          background: 'rgba(193, 68, 44, 0.15)', // transparent red
+          borderLeft: '4px solid #c1442c',
+          marginBottom: '1.25rem',
+        }}>
+          <div style={{ fontFamily: 'monospace', fontSize: '0.45rem', letterSpacing: '0.15em', color: '#c1442c', textTransform: 'uppercase', marginBottom: '0.25rem' }}>
+            Warning
+          </div>
+          <div style={{ fontSize: '0.85rem', color: t.pageText }}>
+            Your <strong>{currentStreak} day streak</strong> is at risk. Finish today's work.
+          </div>
+        </div>
+      )}
+
+      {/* ── Sunday Reflection ─────────────────────────────────────────────────── */}
+      {now.getDay() === 0 && !hasSundayReflection && (
+        <SundayReflection t={t} onSubmit={onSundayReflection} />
+      )}
+
       {/* ── Task list ────────────────────────────────────────────────────────── */}
-      {DAILY_ITEMS.map(item => {
+      {dailyItems.map(item => {
         const done = !!todayRecord[item.id];
         return (
           <div

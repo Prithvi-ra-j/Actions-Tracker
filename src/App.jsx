@@ -109,10 +109,11 @@ export default function App() {
   const [allQuests,        setAllQuests]          = useState([]);
   const [latestSnapshot,   setLatestSnapshot]     = useState(null);
 
-  // ── Phase 4 engagement state ────────────────────────────────────────────────────
+  // ── Phase 4/5 engagement state ────────────────────────────────────────────────────
   // levelUpQueue: array of { axis, value, newTitle, color } — shown one at a time
   const [levelUpQueue,     setLevelUpQueue]       = useState([]);
   const [showCheckin,      setShowCheckin]        = useState(false);
+  const [hasSundayReflection, setHasSundayReflection] = useState(false);
 
   // ── Derived values ─────────────────────────────────────────────────────────
   const t          = dark ? THEMES.dark : THEMES.light;
@@ -179,6 +180,9 @@ export default function App() {
           currentTitles[axis] = getThresholdTitle(axis, Math.round(initialStats[axis] ?? 0));
         }
         await setSetting('lastStatTitles', JSON.stringify(currentTitles));
+
+        // ── Phase 5: Sunday Reflection state ──────────────────────────────────
+        setHasSundayReflection(allLogs.some(l => l.type === 'journal_entry' && l.date === today));
 
         // ── Monthly proof/fear check-in (spec §12) ────────────────────────────
         // Due if no check-in ever, or 30+ days since last one
@@ -258,6 +262,8 @@ export default function App() {
         currentTitles[axis] = getThresholdTitle(axis, Math.round(newStats[axis] ?? 0));
       }
       await setSetting('lastStatTitles', JSON.stringify(currentTitles));
+
+      setHasSundayReflection(freshLogs.some(l => l.type === 'journal_entry' && l.date === today));
     } catch (err) {
       console.error('[App] recomputeStats failed:', err);
     }
@@ -476,6 +482,18 @@ export default function App() {
                 allDailyRecords={allDailyRecords}
                 onToggle={handleDailyToggle}
                 onGoToGoals={() => handleTabChange('stats')}
+                hasSundayReflection={hasSundayReflection}
+                onSundayReflection={async (text) => {
+                  const { addLog } = await import('./database/logsRepository.js');
+                  await addLog({
+                    axis: 'wisdom',
+                    type: 'journal_entry',
+                    value: 1,
+                    date: localDateStr(),
+                    meta: { text }
+                  });
+                  await recomputeStats();
+                }}
               />
             )}
 

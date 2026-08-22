@@ -169,12 +169,29 @@ export const ACCENT = "#c4821a";
 
 // ─── Daily task definitions ────────────────────────────────────────────────────
 
-export const DAILY_ITEMS = [
-  { id: "body",       domain: "BODY",              icon: "⚔", color: "#c1442c", text: "Train / complete today's physical work" },
-  { id: "philosophy", domain: "PHILOSOPHY",         icon: "∞", color: "#4a7ba6", text: "Read 10 pages or write in your commonplace book" },
-  { id: "art",        domain: "ART",                icon: "◈", color: "#d99a2b", text: "20-minute drawing session — Thursday focus" },
-  { id: "history",    domain: "HISTORY & STRATEGY", icon: "♟", color: "#4f8a5f", text: "Read / study history or The 48 Laws of Power" },
-];
+export function getDailyItems(dateStr = new Date().toISOString()) {
+  const date = new Date(dateStr);
+  const day = date.getDay(); // 0 = Sun, 1 = Mon, ..., 6 = Sat
+  
+  // Body logic (Mon/Wed/Fri/Sat = Train, Tue/Thu/Sun = Active recovery)
+  const isTrainDay = [1, 3, 5, 6].includes(day);
+  const bodyText = isTrainDay ? "Train / complete today's physical work" : "Active recovery / rest";
+
+  // Art logic (Thu = 20-min draw, others = sketch/creative thought)
+  const isArtDay = day === 4; // Thursday
+  const artText = isArtDay ? "20-minute drawing session — Thursday focus" : "Sketch / creative thought";
+
+  // History/Strategy logic (Sun = Review, others = 48 Laws / History)
+  const isReviewDay = day === 0; // Sunday
+  const historyText = isReviewDay ? "Sunday weekly review and reflection" : "Read / study history or The 48 Laws of Power";
+
+  return [
+    { id: "body",       domain: "BODY",              icon: "⚔", color: "#c1442c", text: bodyText },
+    { id: "philosophy", domain: "PHILOSOPHY",         icon: "∞", color: "#4a7ba6", text: "Read 10 pages or write in your commonplace book" },
+    { id: "art",        domain: "ART",                icon: "◈", color: "#d99a2b", text: artText },
+    { id: "history",    domain: "HISTORY & STRATEGY", icon: "♟", color: "#4f8a5f", text: historyText },
+  ];
+}
 
 // ─── Utility ──────────────────────────────────────────────────────────────────
 
