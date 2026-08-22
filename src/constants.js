@@ -120,7 +120,7 @@ export const THEMES = {
   light: {
     pageBg: "#f7f3ec",
     pageText: "#1c1916",
-    muted: "#7a7065",
+    muted: "#62594e",
     headerBg: "#1c1916",
     headerText: "#f7f3ec",
     border: "rgba(28,25,22,0.12)",

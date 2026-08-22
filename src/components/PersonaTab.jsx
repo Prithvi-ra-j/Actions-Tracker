@@ -25,7 +25,7 @@ export default function PersonaTab({ t, stats = {}, allQuests = [] }) {
   return (
     <>
       <div style={{ marginBottom: '2rem' }}>
-        <div style={{ fontFamily: 'monospace', fontSize: '0.52rem', letterSpacing: '0.3em', color: '#c1442c', textTransform: 'uppercase', marginBottom: '0.75rem' }}>
+        <div style={{ fontFamily: 'monospace', fontSize: '0.72rem', letterSpacing: '0.3em', color: '#c1442c', textTransform: 'uppercase', marginBottom: '0.75rem' }}>
           December 31, 2026
         </div>
         <div style={{ fontSize: 'clamp(2rem, 8vw, 3.5rem)', fontWeight: 900, lineHeight: 0.95, letterSpacing: '-0.02em', marginBottom: '1.5rem' }}>
@@ -43,7 +43,7 @@ export default function PersonaTab({ t, stats = {}, allQuests = [] }) {
           gap: '1rem',
           alignItems: 'start',
         }}>
-          <span style={{ fontFamily: 'monospace', fontSize: '0.55rem', color: ACCENT, paddingTop: '0.35rem' }}>
+          <span style={{ fontFamily: 'monospace', fontSize: '0.75rem', color: ACCENT, paddingTop: '0.35rem' }}>
             {String(i + 1).padStart(2, '0')}
           </span>
           <p style={{ fontSize: '1rem', lineHeight: 1.75 }}>{p}</p>
@@ -51,7 +51,7 @@ export default function PersonaTab({ t, stats = {}, allQuests = [] }) {
       ))}
 
       <div style={{ marginTop: '2rem', background: t.invertBg, color: t.invertText, padding: '1.5rem' }}>
-        <div style={{ fontFamily: 'monospace', fontSize: '0.5rem', letterSpacing: '0.25em', color: ACCENT, textTransform: 'uppercase', marginBottom: '0.75rem' }}>
+        <div style={{ fontFamily: 'monospace', fontSize: '0.7rem', letterSpacing: '0.25em', color: ACCENT, textTransform: 'uppercase', marginBottom: '0.75rem' }}>
           The Question You Will Answer In December
         </div>
         <p style={{ fontSize: '0.95rem', fontStyle: 'italic', lineHeight: 1.75, color: t.invertMuted85 }}>
@@ -64,7 +64,7 @@ export default function PersonaTab({ t, stats = {}, allQuests = [] }) {
       </div>
 
       <div style={{ marginTop: '1.5rem', padding: '1.1rem', border: `1px solid ${t.border}`, borderLeft: `4px solid ${ACCENT}` }}>
-        <div style={{ fontFamily: 'monospace', fontSize: '0.5rem', letterSpacing: '0.25em', color: t.muted, textTransform: 'uppercase', marginBottom: '0.5rem' }}>
+        <div style={{ fontFamily: 'monospace', fontSize: '0.7rem', letterSpacing: '0.25em', color: t.muted, textTransform: 'uppercase', marginBottom: '0.5rem' }}>
           What You Want People To Feel
         </div>
         <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', marginTop: '0.25rem' }}>
@@ -86,7 +86,7 @@ export default function PersonaTab({ t, stats = {}, allQuests = [] }) {
       </div>
 
       <div style={{ marginTop: '3rem' }}>
-        <div style={{ fontFamily: 'monospace', fontSize: '0.52rem', letterSpacing: '0.25em', color: ACCENT, textTransform: 'uppercase', marginBottom: '1rem' }}>
+        <div style={{ fontFamily: 'monospace', fontSize: '0.72rem', letterSpacing: '0.25em', color: ACCENT, textTransform: 'uppercase', marginBottom: '1rem' }}>
           Character Stats · Phase 2 Preview
         </div>
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.6rem', marginBottom: '1.5rem' }}>
@@ -96,12 +96,12 @@ export default function PersonaTab({ t, stats = {}, allQuests = [] }) {
             const axisQuests = allQuests.filter(q => q.axis === axis);
             return (
               <div key={axis} style={{ padding: '0.85rem', background: t.subtleBg, borderLeft: `3px solid ${meta.color}` }}>
-                <div style={{ fontFamily: 'monospace', fontSize: '0.42rem', letterSpacing: '0.15em', color: meta.color, textTransform: 'uppercase', marginBottom: '0.2rem' }}>
+                <div style={{ fontFamily: 'monospace', fontSize: '0.62rem', letterSpacing: '0.15em', color: meta.color, textTransform: 'uppercase', marginBottom: '0.2rem' }}>
                   {meta.label}
                 </div>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
                   <span style={{ fontFamily: 'monospace', fontSize: '1.6rem', fontWeight: 900, color: t.pageText }}>{val}</span>
-                  <span style={{ fontFamily: 'monospace', fontSize: '0.42rem', color: t.muted }}>{title}</span>
+                  <span style={{ fontFamily: 'monospace', fontSize: '0.62rem', color: t.muted }}>{title}</span>
                 </div>
                 {/* stat bar */}
                 <div style={{ marginTop: '0.4rem', height: 3, background: t.trackBg2, borderRadius: 3 }}>
@@ -120,7 +120,7 @@ export default function PersonaTab({ t, stats = {}, allQuests = [] }) {
             );
           })}
         </div>
-        <div style={{ fontFamily: 'monospace', fontSize: '0.52rem', color: ACCENT, textTransform: 'uppercase', marginBottom: '1rem' }}>
+        <div style={{ fontFamily: 'monospace', fontSize: '0.72rem', color: ACCENT, textTransform: 'uppercase', marginBottom: '1rem' }}>
           Data Entry (Phase 1 Testing)
         </div>
         <BookTracker t={t} />

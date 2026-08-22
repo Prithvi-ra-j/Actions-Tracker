@@ -20,12 +20,12 @@ import { computeAllStats, computeAxisDetails, getThresholdTitle } from './helper
 // ── Native ────────────────────────────────────────────────────────────────────
 import { scheduleAllReminders } from './native/notifications.js';
 import { registerBackHandler, setupStatusBar } from './native/backButton.js';
+import { Haptics, ImpactStyle } from '@capacitor/haptics';
 
 // ── Components ────────────────────────────────────────────────────────────────
 import TodayTab      from './components/TodayTab.jsx';
 import GoalsTab      from './components/GoalsTab.jsx';
 import MilestonesTab from './components/MilestonesTab.jsx';
-import CalendarTab   from './components/CalendarTab.jsx';
 import PersonaTab    from './components/PersonaTab.jsx';
 import SettingsTab   from './components/SettingsTab.jsx';
 import OnboardingScreen  from './components/OnboardingScreen.jsx';
@@ -89,7 +89,7 @@ export default function App() {
 
   // ── UI state ───────────────────────────────────────────────────────────────
   const [tab,          setTab]          = useState('daily');
-  const [dark,         setDark]         = useState(false);
+  const [dark,         setDark]         = useState(() => window.matchMedia('(prefers-color-scheme: dark)').matches);
   const [showSettings, setShowSettings] = useState(false);
   const [expanded,     setExpanded]     = useState(null); // expanded goal index
 
@@ -157,7 +157,11 @@ export default function App() {
         setGoalChecks(goals);
         setMilestoneChecks(milestones);
         setAllQuests(syncedQuests);
-        if (darkPref === 'true') setDark(true);
+        if (darkPref === 'true') {
+          setDark(true);
+        } else if (darkPref === 'false') {
+          setDark(false);
+        }
         if (savedReminders?.length) {
           setReminders(savedReminders);
           // Phase 6: Sync schedules to reset any stale "Completed" messages from previous weeks
@@ -279,6 +283,7 @@ export default function App() {
   // ── Handlers ──────────────────────────────────────────────────────────────
 
   const handleDailyToggle = useCallback(async (id) => {
+    Haptics.impact({ style: ImpactStyle.Light }).catch(() => {});
     const newRecord = { ...todayRecord, [id]: !todayRecord[id] };
     // Optimistic UI update
     setAllDailyRecords(prev => ({ ...prev, [today]: newRecord }));
@@ -286,7 +291,7 @@ export default function App() {
     try {
       await saveDailyRecord(today, newRecord);
       // Reschedule all reminders to inject the fresh score / completion state (Phase 6)
-      await scheduleAllReminders(reminders, newRecord);
+      await scheduleAllReminders(reminders, newRecord, true);
       // Recompute stats after any daily checkbox change
       await recomputeStats();
     } catch (err) {
@@ -295,6 +300,7 @@ export default function App() {
   }, [todayRecord, today, reminders, recomputeStats]);
 
   const handleGoalToggle = useCallback(async (key) => {
+    Haptics.impact({ style: ImpactStyle.Light }).catch(() => {});
     const newValue = !goalChecks[key];
     setGoalChecks(prev => ({ ...prev, [key]: newValue }));
     try {
@@ -305,6 +311,7 @@ export default function App() {
   }, [goalChecks]);
 
   const handleMilestoneToggle = useCallback(async (key) => {
+    Haptics.impact({ style: ImpactStyle.Light }).catch(() => {});
     const newValue = !milestoneChecks[key];
     setMilestoneChecks(prev => ({ ...prev, [key]: newValue }));
     try {
@@ -326,15 +333,18 @@ export default function App() {
   function handleTabChange(id) {
     setTab(id);
     setShowSettings(false);
+    setExpanded(null);
   }
 
   // ── Loading screen ─────────────────────────────────────────────────────────
   if (!dbReady) {
     return (
-      <div style={{ background: '#1c1916', minHeight: '100dvh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-        <div style={{ fontFamily: 'monospace', fontSize: '0.55rem', letterSpacing: '0.3em', color: ACCENT, textTransform: 'uppercase' }}>
-          Loading…
+      <div style={{ background: '#1c1916', minHeight: '100dvh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
+        <img src="/icon.svg" alt="Year End Goals" style={{ width: 80, height: 80, marginBottom: '1.5rem', opacity: 0.9 }} />
+        <div style={{ fontFamily: 'monospace', fontSize: '0.75rem', letterSpacing: '0.3em', color: ACCENT, textTransform: 'uppercase', animation: 'pulse 2s infinite' }}>
+          Year End Goals
         </div>
+        <style>{`@keyframes pulse { 0%, 100% { opacity: 0.5; } 50% { opacity: 1; } }`}</style>
       </div>
     );
   }
@@ -384,12 +394,12 @@ export default function App() {
         transition: 'background 0.2s',
       }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.5rem' }}>
-          <span style={{ fontFamily: 'monospace', fontSize: '0.58rem', letterSpacing: '0.3em', color: t.headerText, textTransform: 'uppercase' }}>
+          <span style={{ fontFamily: 'monospace', fontSize: '0.78rem', letterSpacing: '0.3em', color: t.headerText, textTransform: 'uppercase' }}>
             Prithvi · Year End Goals · 2026
           </span>
 
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.85rem' }}>
-            <span style={{ fontFamily: 'monospace', fontSize: '0.58rem', color: ACCENT, letterSpacing: '0.1em' }}>
+            <span style={{ fontFamily: 'monospace', fontSize: '0.78rem', color: ACCENT, letterSpacing: '0.1em' }}>
               {tab === 'daily'
                 ? `${dailyDone}/4 today`
                 : `${doneTargets}/${TOTAL_TARGETS} targets`}
@@ -441,7 +451,7 @@ export default function App() {
               border: 'none',
               cursor: 'pointer',
               fontFamily: 'monospace',
-              fontSize: '0.46rem',
+              fontSize: '0.66rem',
               letterSpacing: '0.12em',
               textTransform: 'uppercase',
               transition: 'all 0.2s',
@@ -461,7 +471,7 @@ export default function App() {
           <div style={{
             padding: '0.75rem', marginBottom: '1rem',
             background: 'rgba(193,68,44,0.1)', border: '1px solid #c1442c',
-            fontFamily: 'monospace', fontSize: '0.48rem', color: '#c1442c', lineHeight: 1.5,
+            fontFamily: 'monospace', fontSize: '0.68rem', color: '#c1442c', lineHeight: 1.5,
           }}>
             ⚠ Storage warning: {dbError}. Changes may not persist across restarts.
           </div>
@@ -477,6 +487,7 @@ export default function App() {
             setReminders={setReminders}
             onSaveReminders={handleSaveReminders}
             todayRecord={todayRecord}
+            onClose={() => setShowSettings(false)}
           />
         ) : (
           <>

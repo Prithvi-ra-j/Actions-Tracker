@@ -150,13 +150,17 @@ export async function cancelReminder(id) {
  * @param {Array<{id: number, label: string, time: string, enabled: boolean}>} reminders
  * @param {{ body: boolean, philosophy: boolean, art: boolean, history: boolean }} todayRecord
  */
-export async function scheduleAllReminders(reminders, todayRecord = {}) {
+export async function scheduleAllReminders(reminders, todayRecord = {}, onlyToday = false) {
   const jsToday = new Date().getDay(); // 0 = Sunday, 1 = Monday ... 6 = Saturday
 
   for (const reminder of reminders) {
     // For each reminder, loop over all 7 days of the week.
     // jsDay = 0 (Sun) .. 6 (Sat)
     for (let jsDay = 0; jsDay <= 6; jsDay++) {
+      if (onlyToday && jsDay !== jsToday) {
+        continue; // Skip native calls for future/past days when we only need to update today
+      }
+
       const capWeekday = jsDay + 1; // 1 = Sunday .. 7 = Saturday
       // Generate a distinct ID for each weekday: e.g. Body (1) -> 101 for Monday
       const notifId = (reminder.id * 100) + jsDay;

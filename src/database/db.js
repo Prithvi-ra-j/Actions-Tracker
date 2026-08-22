@@ -182,3 +182,43 @@ export function dbGetAllByIndex(storeName, indexName, key) {
     req.onerror = () => reject(req.error);
   });
 }
+
+// ─── Data Safety (Phase 7) ───────────────────────────────────────────────────
+
+export async function exportDatabase() {
+  const stores = ['daily', 'goals', 'milestones', 'settings', 'logs', 'axis_config', 'books', 'gymSessions', 'questBoard', 'statSnapshots'];
+  const data = {};
+  for (const store of stores) {
+    try {
+      data[store] = await dbGetAll(store);
+    } catch {
+      data[store] = [];
+    }
+  }
+  return JSON.stringify(data);
+}
+
+export function importDatabase(jsonString) {
+  return new Promise((resolve, reject) => {
+    try {
+      const data = JSON.parse(jsonString);
+      const stores = ['daily', 'goals', 'milestones', 'settings', 'logs', 'axis_config', 'books', 'gymSessions', 'questBoard', 'statSnapshots'];
+      const tx = getDB().transaction(stores, 'readwrite');
+      
+      tx.oncomplete = () => resolve();
+      tx.onerror = () => reject(tx.error);
+
+      stores.forEach(store => {
+        if (data[store]) {
+          const os = tx.objectStore(store);
+          os.clear(); // Clear existing
+          data[store].forEach(item => {
+            os.put(item); // Insert new
+          });
+        }
+      });
+    } catch (err) {
+      reject(err);
+    }
+  });
+}

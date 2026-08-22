@@ -22,7 +22,7 @@ export default function SundayReflection({ t, onSubmit }) {
     }}>
       <div style={{
         fontFamily: 'monospace',
-        fontSize: '0.45rem',
+        fontSize: '0.65rem',
         letterSpacing: '0.2em',
         color: ACCENT,
         textTransform: 'uppercase',
@@ -66,7 +66,7 @@ export default function SundayReflection({ t, onSubmit }) {
             border: 'none',
             padding: '0.6rem 1.25rem',
             fontFamily: 'monospace',
-            fontSize: '0.5rem',
+            fontSize: '0.7rem',
             letterSpacing: '0.15em',
             textTransform: 'uppercase',
             cursor: text.trim() ? 'pointer' : 'default',
