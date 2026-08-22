@@ -15,7 +15,7 @@ import { getSetting, setSetting, getReminders, saveReminders } from './database/
 import { checkAndWriteWeeklySnapshot, getLatestSnapshot } from './database/statSnapshotsRepository.js';
 
 // ── Helpers ─────────────────────────────────────────────────────────────────────────────
-import { computeAllStats, computeAxisDetails } from './helpers/statsEngine.js';
+import { computeAllStats, computeAxisDetails, getThresholdTitle } from './helpers/statsEngine.js';
 
 // ── Native ────────────────────────────────────────────────────────────────────
 import { rescheduleDailyCheck } from './native/notifications.js';
@@ -28,8 +28,10 @@ import MilestonesTab from './components/MilestonesTab.jsx';
 import CalendarTab   from './components/CalendarTab.jsx';
 import PersonaTab    from './components/PersonaTab.jsx';
 import SettingsTab   from './components/SettingsTab.jsx';
-import OnboardingScreen from './components/OnboardingScreen.jsx';
-import StatsTab         from './components/StatsTab.jsx';
+import OnboardingScreen  from './components/OnboardingScreen.jsx';
+import StatsTab          from './components/StatsTab.jsx';
+import LevelUpCeremony   from './components/LevelUpCeremony.jsx';
+import ProofFearCheckin  from './components/ProofFearCheckin.jsx';
 
 // ─────────────────────────────────────────────────────────────────────────────
 
@@ -44,6 +46,38 @@ const TABS = [
 
 // Total possible goal targets (4 goals × 4 targets each)
 const TOTAL_TARGETS = 16;
+
+// ── Phase 4 helpers ───────────────────────────────────────────────────────────
+
+const AXIS_COLORS = {
+  strength:   '#c1442c',
+  discipline: '#c1442c',
+  knowledge:  '#4a7ba6',
+  wisdom:     '#4a7ba6',
+  creativity: '#d99a2b',
+  strategy:   '#4f8a5f',
+};
+
+/**
+ * Compares old threshold titles to new ones and returns an array of level-up
+ * events. Only fires when the title changed AND the value went up.
+ * @param {{ [axis]: string }} oldTitles  — persisted titles from settings
+ * @param {{ [axis]: number }} newStats
+ */
+function detectLevelUps(oldTitles, newStats) {
+  const AXES = ['strength', 'discipline', 'knowledge', 'wisdom', 'creativity', 'strategy'];
+  const events = [];
+  for (const axis of AXES) {
+    const newVal   = Math.round(newStats[axis] ?? 0);
+    const newTitle = getThresholdTitle(axis, newVal);
+    const oldTitle = oldTitles[axis] ?? getThresholdTitle(axis, 0);
+    // Only fire if the title is different AND value increased (not an onboarding artifact)
+    if (newTitle !== oldTitle && newVal > 0) {
+      events.push({ axis, value: newVal, newTitle, color: AXIS_COLORS[axis] });
+    }
+  }
+  return events;
+}
 
 // ─────────────────────────────────────────────────────────────────────────────
 
@@ -74,6 +108,11 @@ export default function App() {
   const [axisDetails,      setAxisDetails]        = useState({});
   const [allQuests,        setAllQuests]          = useState([]);
   const [latestSnapshot,   setLatestSnapshot]     = useState(null);
+
+  // ── Phase 4 engagement state ────────────────────────────────────────────────────
+  // levelUpQueue: array of { axis, value, newTitle, color } — shown one at a time
+  const [levelUpQueue,     setLevelUpQueue]       = useState([]);
+  const [showCheckin,      setShowCheckin]        = useState(false);
 
   // ── Derived values ─────────────────────────────────────────────────────────
   const t          = dark ? THEMES.dark : THEMES.light;
@@ -127,6 +166,39 @@ export default function App() {
         setStats(initialStats);
         setAxisDetails(details);
 
+        // ── Level-up detection (spec §11) ─────────────────────────────────────
+        const savedTitlesRaw = await getSetting('lastStatTitles');
+        const savedTitles = savedTitlesRaw ? JSON.parse(savedTitlesRaw) : {};
+        const newLevelUps = detectLevelUps(savedTitles, initialStats);
+        if (newLevelUps.length > 0) {
+          setLevelUpQueue(newLevelUps);
+        }
+        // Always persist current titles so next comparison is accurate
+        const currentTitles = {};
+        for (const axis of ['strength', 'discipline', 'knowledge', 'wisdom', 'creativity', 'strategy']) {
+          currentTitles[axis] = getThresholdTitle(axis, Math.round(initialStats[axis] ?? 0));
+        }
+        await setSetting('lastStatTitles', JSON.stringify(currentTitles));
+
+        // ── Monthly proof/fear check-in (spec §12) ────────────────────────────
+        // Due if no check-in ever, or 30+ days since last one
+        const lastCheckin = allLogs
+          .filter(l => l.type === 'proof_check_in')
+          .sort((a, b) => b.date.localeCompare(a.date))[0];
+        if (!lastCheckin) {
+          // Never done — schedule it but not on the very first session (user just onboarded)
+          const hasRealActivity = allLogs.some(l =>
+            l.type !== 'onboarding_assessment' && l.type !== 'proof_check_in'
+          );
+          if (hasRealActivity) setShowCheckin(true);
+        } else {
+          const daysSince = Math.round(
+            (new Date(today + 'T00:00:00') - new Date(lastCheckin.date + 'T00:00:00'))
+            / (1000 * 60 * 60 * 24)
+          );
+          if (daysSince >= 30) setShowCheckin(true);
+        }
+
         // Weekly auto-snapshot (spec §10) — write if 7+ days since last
         await checkAndWriteWeeklySnapshot(initialStats, today);
         const snap = await getLatestSnapshot();
@@ -172,6 +244,20 @@ export default function App() {
       const newDetails = computeAxisDetails(freshLogs, freshConfigs, freshQuests, today);
       setStats(newStats);
       setAxisDetails(newDetails);
+
+      // ── Level-up detection (spec §11) ─────────────────────────────────────
+      const savedTitlesRaw = await getSetting('lastStatTitles');
+      const savedTitles = savedTitlesRaw ? JSON.parse(savedTitlesRaw) : {};
+      const newLevelUps = detectLevelUps(savedTitles, newStats);
+      if (newLevelUps.length > 0) {
+        setLevelUpQueue(q => [...q, ...newLevelUps]);
+      }
+      // Always persist current titles
+      const currentTitles = {};
+      for (const axis of ['strength', 'discipline', 'knowledge', 'wisdom', 'creativity', 'strategy']) {
+        currentTitles[axis] = getThresholdTitle(axis, Math.round(newStats[axis] ?? 0));
+      }
+      await setSetting('lastStatTitles', JSON.stringify(currentTitles));
     } catch (err) {
       console.error('[App] recomputeStats failed:', err);
     }
@@ -413,7 +499,25 @@ export default function App() {
             )}
           </>
         )}
+        )}
       </div>
+
+      {/* ── Overlays (Phase 4) ──────────────────────────────────────────────── */}
+      {levelUpQueue.length > 0 && (
+        <LevelUpCeremony
+          levelUp={levelUpQueue[0]}
+          onDismiss={() => setLevelUpQueue(q => q.slice(1))}
+        />
+      )}
+
+      {showCheckin && (
+        <ProofFearCheckin
+          onComplete={async () => {
+            setShowCheckin(false);
+            await recomputeStats();
+          }}
+        />
+      )}
     </div>
   );
 }
