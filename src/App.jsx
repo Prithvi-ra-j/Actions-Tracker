@@ -331,7 +331,18 @@ export default function App() {
 
   // ── Main render ────────────────────────────────────────────────────────────
   if (needsOnboarding) {
-    return <OnboardingScreen t={t} onComplete={() => setNeedsOnboarding(false)} />;
+    return (
+      <OnboardingScreen 
+        t={t} 
+        onComplete={async () => {
+          setNeedsOnboarding(false);
+          // Recompute stats immediately so the new onboarding logs are ingested,
+          // AND so recomputeStats seeds the first set of lastStatTitles.
+          // This prevents level-up ceremonies from firing instantly due to onboarding.
+          await recomputeStats();
+        }} 
+      />
+    );
   }
 
   return (

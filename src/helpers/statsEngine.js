@@ -41,7 +41,7 @@ function clamp(val, min, max) {
  */
 function countInRange(logs, startDate, endDate) {
   return logs.filter(
-    l => l.type !== 'onboarding_assessment' && l.date >= startDate && l.date <= endDate
+    l => l.type !== 'onboarding_assessment' && l.type !== 'proof_check_in' && l.date >= startDate && l.date <= endDate
   ).length;
 }
 
@@ -182,7 +182,9 @@ export function calcAxisStat(axis, axisLogs, axisConfig, axisQuests, today) {
   // Once ONBOARDING_FADE_THRESHOLD real logs exist, computed stat is used as-is.
   const onboardingVal = getOnboardingValue(axisLogs);
   if (onboardingVal !== null) {
-    const realLogCount = axisLogs.filter(l => l.type !== 'onboarding_assessment').length;
+    const realLogCount = axisLogs.filter(
+      l => l.type !== 'onboarding_assessment' && l.type !== 'proof_check_in'
+    ).length;
     const w = Math.max(0, 1 - realLogCount / ONBOARDING_FADE_THRESHOLD);
     if (w > 0) {
       return clamp((1 - w) * computed + w * onboardingVal, 0, 99);
