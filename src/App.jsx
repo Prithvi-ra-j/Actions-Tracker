@@ -12,9 +12,10 @@ import { getAllDailyRecords, saveDailyRecord } from './database/dailyRepository.
 import { getAllGoalChecks,   setGoalCheck }    from './database/goalsRepository.js';
 import { getAllMilestoneChecks, setMilestoneCheck } from './database/milestonesRepository.js';
 import { getSetting, setSetting, getReminders, saveReminders } from './database/settingsRepository.js';
+import { checkAndWriteWeeklySnapshot, getLatestSnapshot } from './database/statSnapshotsRepository.js';
 
 // ── Helpers ─────────────────────────────────────────────────────────────────────────────
-import { computeAllStats } from './helpers/statsEngine.js';
+import { computeAllStats, computeAxisDetails } from './helpers/statsEngine.js';
 
 // ── Native ────────────────────────────────────────────────────────────────────
 import { rescheduleDailyCheck } from './native/notifications.js';
@@ -28,14 +29,15 @@ import CalendarTab   from './components/CalendarTab.jsx';
 import PersonaTab    from './components/PersonaTab.jsx';
 import SettingsTab   from './components/SettingsTab.jsx';
 import OnboardingScreen from './components/OnboardingScreen.jsx';
+import StatsTab         from './components/StatsTab.jsx';
 
 // ─────────────────────────────────────────────────────────────────────────────
 
 const TABS = [
   { id: 'daily',      label: 'Today'    },
+  { id: 'stats',      label: 'Stats'    },
   { id: 'goals',      label: 'Goals'    },
   { id: 'milestones', label: 'Timeline' },
-  { id: 'calendar',   label: 'Calendar' },
   { id: 'persona',    label: 'The Man'  },
 ];
 
@@ -68,7 +70,9 @@ export default function App() {
 
   // ── Stat engine state ─────────────────────────────────────────────────────────
   const [stats,            setStats]             = useState({ strength: 0, discipline: 0, knowledge: 0, wisdom: 0, creativity: 0, strategy: 0 });
+  const [axisDetails,      setAxisDetails]        = useState({});
   const [allQuests,        setAllQuests]          = useState([]);
+  const [latestSnapshot,   setLatestSnapshot]     = useState(null);
 
   // ── Derived values ─────────────────────────────────────────────────────────
   const t          = dark ? THEMES.dark : THEMES.light;
@@ -115,9 +119,17 @@ export default function App() {
         if (darkPref === 'true') setDark(true);
         if (savedReminders?.length) setReminders(savedReminders);
 
-        // Compute initial stats
-        const initialStats = computeAllStats(allLogs, axisConfigs, syncedQuests, localDateStr());
+        // Compute stats + per-axis details
+        const today = localDateStr();
+        const initialStats = computeAllStats(allLogs, axisConfigs, syncedQuests, today);
+        const details = computeAxisDetails(allLogs, axisConfigs, syncedQuests, today);
         setStats(initialStats);
+        setAxisDetails(details);
+
+        // Weekly auto-snapshot (spec §10) — write if 7+ days since last
+        await checkAndWriteWeeklySnapshot(initialStats, today);
+        const snap = await getLatestSnapshot();
+        setLatestSnapshot(snap);
       } catch (err) {
         console.error('[App] Bootstrap error:', err);
         setDbError(String(err?.message ?? err));
@@ -153,9 +165,12 @@ export default function App() {
       const [freshLogs, freshConfigs] = await Promise.all([getAllLogs(), getAllAxisConfigs()]);
       await syncQuestProgress(freshLogs);
       const freshQuests = await getAllQuests();
+      const today = localDateStr();
       setAllQuests(freshQuests);
-      const newStats = computeAllStats(freshLogs, freshConfigs, freshQuests, localDateStr());
+      const newStats   = computeAllStats(freshLogs, freshConfigs, freshQuests, today);
+      const newDetails = computeAxisDetails(freshLogs, freshConfigs, freshQuests, today);
       setStats(newStats);
+      setAxisDetails(newDetails);
     } catch (err) {
       console.error('[App] recomputeStats failed:', err);
     }
@@ -351,7 +366,18 @@ export default function App() {
                 t={t}
                 allDailyRecords={allDailyRecords}
                 onToggle={handleDailyToggle}
-                onGoToGoals={() => handleTabChange('goals')}
+                onGoToGoals={() => handleTabChange('stats')}
+              />
+            )}
+
+            {tab === 'stats' && (
+              <StatsTab
+                t={t}
+                dark={dark}
+                stats={stats}
+                axisDetails={axisDetails}
+                snapshot={latestSnapshot}
+                allQuests={allQuests}
               />
             )}
 
@@ -371,13 +397,6 @@ export default function App() {
                 t={t}
                 milestoneChecks={milestoneChecks}
                 onToggle={handleMilestoneToggle}
-              />
-            )}
-
-            {tab === 'calendar' && (
-              <CalendarTab
-                t={t}
-                allDailyRecords={allDailyRecords}
               />
             )}
 

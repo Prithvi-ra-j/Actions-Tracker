@@ -219,6 +219,35 @@ export function computeAllStats(allLogs, axisConfigs, questBoardItems, today) {
   return stats;
 }
 
+/**
+ * Returns per-axis computation details for display in the Stats UI.
+ * Each entry exposes the raw C/V/M values so the UI can render breakdowns.
+ *
+ * @returns {{ [axis]: { C: number|null, V: number, M: number, stat: number } }}
+ */
+export function computeAxisDetails(allLogs, axisConfigs, questBoardItems, today) {
+  const AXES = ['strength', 'discipline', 'knowledge', 'wisdom', 'creativity', 'strategy'];
+  const defaultConfig = { hasConsistencyTerm: true, expectedPerWeek: 7, paused: false };
+  const details = {};
+
+  for (const axis of AXES) {
+    const axisLogs   = allLogs.filter(l => l.axis === axis);
+    const axisConfig = axisConfigs.find(c => c.axis === axis) ?? defaultConfig;
+    const axisQuests = questBoardItems.filter(q => q.axis === axis);
+
+    const C = axisConfig.hasConsistencyTerm
+      ? calcConsistency(axis, axisLogs, axisConfig, today)
+      : null;
+    const V = calcVolume(axisQuests);
+    const M = calcMomentum(axisLogs, today);
+    const stat = calcAxisStat(axis, axisLogs, axisConfig, axisQuests, today);
+
+    details[axis] = { C, V, M, stat };
+  }
+
+  return details;
+}
+
 // ── Threshold title lookup (spec §9) ──────────────────────────────────────────
 // Read-only static map — not a system, just a display label.
 
