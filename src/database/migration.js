@@ -19,6 +19,8 @@ import { saveDailyRecord } from './dailyRepository.js';
 import { setGoalCheck } from './goalsRepository.js';
 import { setMilestoneCheck } from './milestonesRepository.js';
 import { getSetting, setSetting } from './settingsRepository.js';
+import { GOALS } from '../constants.js';
+import { upsertLifeObject } from './lifeObjectsRepository.js';
 
 /**
  * Attempts to migrate existing localStorage data into IndexedDB.
@@ -79,6 +81,7 @@ export async function migrateFromLocalStorage() {
   }
 }
 
+
 // ─── Helper ────────────────────────────────────────────────────────────────────
 
 function safeGet(key) {
@@ -86,5 +89,48 @@ function safeGet(key) {
     return typeof localStorage !== 'undefined' ? localStorage.getItem(key) : null;
   } catch {
     return null;
+  }
+}
+
+// ─── v1.2: Seed hardcoded goals as Life Objects ────────────────────────────────
+
+/**
+ * One-time migration: writes the 4 hardcoded goal definitions from constants.js
+ * into the `lifeObjects` store as real Goal records with stable, deterministic IDs.
+ *
+ * The IDs are derived from the domain name so they stay consistent across
+ * re-runs — this migration is idempotent (upsert, not insert-only).
+ *
+ * Migration flag: 'migrated_hardcoded_goals_v1' — set after all 4 goals written.
+ */
+export async function migrateHardcodedGoalsToLifeObjects() {
+  const alreadyDone = await getSetting('migrated_hardcoded_goals_v1');
+  if (alreadyDone === '1') return;
+
+  try {
+    for (const g of GOALS) {
+      // Stable ID derived from domain — consistent across re-runs
+      const id = `goal_hardcoded_${g.domain.toLowerCase().replace(/[^a-z0-9]/g, '_')}`;
+      await upsertLifeObject({
+        id,
+        type:      'goal',
+        status:    'active',
+        domain:    g.domain,
+        label:     g.label,
+        color:     g.color,
+        icon:      g.icon,
+        start:     g.start,
+        end:       g.end,
+        targets:   g.targets,
+        proof:     g.proof,
+        fear:      g.fear,
+        // Mark as seeded so UI can distinguish hardcoded vs user-created goals
+        _seededFromConstants: true,
+      });
+    }
+    await setSetting('migrated_hardcoded_goals_v1', '1');
+    console.log('[Migration] Hardcoded goals → Life Objects migration complete.');
+  } catch (err) {
+    console.error('[Migration] migrateHardcodedGoalsToLifeObjects failed (will retry):', err);
   }
 }

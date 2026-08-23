@@ -18,6 +18,19 @@ export function localDateStr(date = new Date()) {
 }
 
 /**
+ * Returns the IANA timezone string for the current environment.
+ * E.g., 'Asia/Kolkata', 'America/New_York'.
+ * Falls back to 'UTC' if the API is unavailable.
+ */
+export function getLocalTimezone() {
+  try {
+    return Intl.DateTimeFormat().resolvedOptions().timeZone ?? 'UTC';
+  } catch {
+    return 'UTC';
+  }
+}
+
+/**
  * Parses a "YYYY-MM-DD" string into a Date at local midnight.
  * Avoids UTC-shift bugs of new Date("YYYY-MM-DD") which is parsed as UTC.
  * @param {string} str

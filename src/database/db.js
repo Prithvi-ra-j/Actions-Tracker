@@ -13,8 +13,8 @@
  *   settings    — arbitrary key/value pairs
  */
 
-const DB_NAME = 'yearendgoals';
-const DB_VERSION = 4;
+const DB_NAME = 'actions-tracker';
+const DB_VERSION = 5;
 
 /** @type {IDBDatabase|null} */
 let _db = null;
@@ -84,6 +84,21 @@ export function initDB() {
       if (!db.objectStoreNames.contains('statSnapshots')) {
         const ss = db.createObjectStore('statSnapshots', { keyPath: 'id' });
         ss.createIndex('date', 'date', { unique: false });
+      }
+
+      // v1.1: Fact/Event Ledger (§30 Facts, §31 Event Ledger)
+      if (!db.objectStoreNames.contains('facts')) {
+        const factsStore = db.createObjectStore('facts', { keyPath: 'id' });
+        factsStore.createIndex('objectId',  'objectId',  { unique: false });
+        factsStore.createIndex('type',      'type',      { unique: false });
+        factsStore.createIndex('localDate', 'localDate', { unique: false });
+      }
+
+      // v1.1: Life Object Model (§26 Life Object Model)
+      if (!db.objectStoreNames.contains('lifeObjects')) {
+        const loStore = db.createObjectStore('lifeObjects', { keyPath: 'id' });
+        loStore.createIndex('type',   'type',   { unique: false });
+        loStore.createIndex('status', 'status', { unique: false });
       }
     };
   });
@@ -183,39 +198,69 @@ export function dbGetAllByIndex(storeName, indexName, key) {
   });
 }
 
-// ─── Data Safety (Phase 7) ───────────────────────────────────────────────────
+// ─── Data Safety ─────────────────────────────────────────────────────────────
 
+// All stores included in export/import — add new stores here as they are created.
+const ALL_STORES = [
+  'daily', 'goals', 'milestones', 'settings',
+  'logs', 'axis_config', 'books', 'gymSessions',
+  'questBoard', 'statSnapshots',
+  'facts', 'lifeObjects',             // v1.1
+];
+
+/**
+ * Exports all stores to a JSON string with a _meta envelope.
+ * The _meta field carries export timestamp, app version, and schema version
+ * so imports can validate compatibility before overwriting data.
+ * @returns {Promise<string>} JSON string
+ */
 export async function exportDatabase() {
-  const stores = ['daily', 'goals', 'milestones', 'settings', 'logs', 'axis_config', 'books', 'gymSessions', 'questBoard', 'statSnapshots'];
   const data = {};
-  for (const store of stores) {
+  for (const store of ALL_STORES) {
     try {
       data[store] = await dbGetAll(store);
     } catch {
       data[store] = [];
     }
   }
-  return JSON.stringify(data);
+  return JSON.stringify({
+    _meta: {
+      exportedAt:    new Date().toISOString(),
+      appVersion:    '2.0.0',
+      schemaVersion: 1,
+      stores:        ALL_STORES,
+    },
+    ...data,
+  });
 }
 
+/**
+ * Imports all stores from a JSON string produced by exportDatabase().
+ * Strips the _meta envelope before processing.
+ * Clears each store and re-populates with the imported records so the
+ * result is an exact mirror of the exported state.
+ * @param {string} jsonString
+ * @returns {Promise<void>}
+ */
 export function importDatabase(jsonString) {
   return new Promise((resolve, reject) => {
     try {
-      const data = JSON.parse(jsonString);
-      const stores = ['daily', 'goals', 'milestones', 'settings', 'logs', 'axis_config', 'books', 'gymSessions', 'questBoard', 'statSnapshots'];
-      const tx = getDB().transaction(stores, 'readwrite');
-      
-      tx.oncomplete = () => resolve();
-      tx.onerror = () => reject(tx.error);
+      const parsed = JSON.parse(jsonString);
+      // Strip _meta if present — it's informational, not a store
+      const { _meta: _ignored, ...data } = parsed;
 
-      stores.forEach(store => {
+      // Only import stores that currently exist in the DB schema.
+      // Unknown stores from future versions are silently skipped.
+      const storesToImport = ALL_STORES.filter(s => s in data);
+      const tx = getDB().transaction(storesToImport, 'readwrite');
+
+      tx.oncomplete = () => resolve();
+      tx.onerror   = () => reject(tx.error);
+
+      storesToImport.forEach(store => {
         const os = tx.objectStore(store);
-        os.clear(); // Always clear to ensure exact mirror of imported backup
-        if (data[store]) {
-          data[store].forEach(item => {
-            os.put(item); // Insert new
-          });
-        }
+        os.clear(); // Exact mirror — wipe then repopulate
+        (data[store] ?? []).forEach(item => os.put(item));
       });
     } catch (err) {
       reject(err);

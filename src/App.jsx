@@ -4,7 +4,7 @@ import { localDateStr }   from './helpers/dateHelpers.js';
 
 // ── Database ──────────────────────────────────────────────────────────────────
 import { initDB }                from './database/db.js';
-import { migrateFromLocalStorage } from './database/migration.js';
+import { migrateFromLocalStorage, migrateHardcodedGoalsToLifeObjects } from './database/migration.js';
 import { initAxisConfigs, getAllAxisConfigs } from './database/axisConfigRepository.js';
 import { getAllLogs }              from './database/logsRepository.js';
 import { initQuestBoard, getAllQuests, syncQuestProgress } from './database/questBoardRepository.js';
@@ -133,6 +133,7 @@ export default function App() {
       try {
         await initDB();
         await migrateFromLocalStorage();
+        await migrateHardcodedGoalsToLifeObjects(); // v1.2: seed goals as Life Objects
         await initAxisConfigs();
         await initQuestBoard();
 
@@ -349,7 +350,7 @@ export default function App() {
       <div style={{ background: '#1c1916', minHeight: '100dvh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
         <img src="/icon.svg" alt="App Icon" style={{ width: 64, height: 64, marginBottom: '1rem', opacity: 0.8 }} />
         <div style={{ fontFamily: 'monospace', fontSize: '0.65rem', letterSpacing: '0.3em', color: ACCENT, textTransform: 'uppercase' }}>
-          Year End Goals
+          Actions-Tracker
         </div>
       </div>
     );
@@ -423,7 +424,7 @@ export default function App() {
             </button>
 
             <span style={{ fontFamily: 'monospace', fontSize: '0.58rem', letterSpacing: '0.3em', color: t.headerText, textTransform: 'uppercase' }}>
-              Prithvi · Year End Goals
+              Actions-Tracker
             </span>
           </div>
 

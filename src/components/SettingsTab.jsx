@@ -61,7 +61,7 @@ export default function SettingsTab({ t, dark, setDark, reminders, setReminders,
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = `year_end_goals_backup_${new Date().toISOString().slice(0, 10)}.json`;
+      a.download = `actions_tracker_backup_${new Date().toISOString().slice(0, 10)}.json`;
       a.click();
       URL.revokeObjectURL(url);
     });

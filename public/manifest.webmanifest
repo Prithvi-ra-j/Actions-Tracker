@@ -1,7 +1,7 @@
 {
-  "name": "Prithvi · Year End Goals · 2026",
-  "short_name": "Year End Goals",
-  "description": "Daily dashboard and year-end goals.",
+  "name": "Actions-Tracker",
+  "short_name": "Actions-Tracker",
+  "description": "Personal OS for daily habits, goals, and growth tracking.",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#f7f3ec",
