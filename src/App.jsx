@@ -25,7 +25,7 @@ import { registerBackHandler, setupStatusBar } from './native/backButton.js';
 import TodayTab      from './components/TodayTab.jsx';
 import GoalsTab      from './components/GoalsTab.jsx';
 import MilestonesTab from './components/MilestonesTab.jsx';
-import PersonaTab    from './components/PersonaTab.jsx';
+
 import CalendarTab from './components/CalendarTab.jsx';
 import SettingsTab   from './components/SettingsTab.jsx';
 import NavDrawer     from './components/NavDrawer.jsx';
@@ -43,7 +43,7 @@ const TABS = [
   { id: 'goals',      label: 'Goals'    },
   { id: 'milestones', label: 'Timeline' },
   { id: 'calendar',   label: 'Calendar' },
-  { id: 'persona',    label: 'The Man'  },
+
 ];
 
 // Total possible goal targets (4 goals × 4 targets each)
@@ -555,9 +555,7 @@ export default function App() {
               />
             )}
 
-            {tab === 'persona' && (
-              <PersonaTab t={t} stats={stats} allQuests={allQuests} />
-            )}
+
           </>
         )}
       </div>

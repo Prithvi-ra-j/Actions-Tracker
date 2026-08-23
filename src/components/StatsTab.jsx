@@ -209,7 +209,7 @@ export default function StatsTab({ t, dark, stats = {}, axisDetails = {}, snapsh
       </div>
 
       {/* ── Per-axis stat cards ──────────────────────────────────────────────── */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.6rem' }}>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
         {AXES.map(axisInfo => (
           <AxisCard
             key={axisInfo.key}
