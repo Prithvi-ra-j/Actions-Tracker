@@ -1,6 +1,6 @@
 {
-  "appId": "com.prithvi.yearendgoals",
-  "appName": "Year End Goals",
+  "appId": "com.actionstracker.app",
+  "appName": "Actions-Tracker",
   "webDir": "dist",
   "android": {
     "backgroundColor": "#1c1916"
