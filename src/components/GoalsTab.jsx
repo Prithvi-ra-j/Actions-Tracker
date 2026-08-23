@@ -1,6 +1,7 @@
 import React from 'react';
 import { GOALS, ACCENT, hexRgb } from '../constants.js';
 import { getDaysUntilYearEnd } from '../helpers/dateHelpers.js';
+import BookTracker from './BookTracker.jsx';
 
 /**
  * Goals tab — existing four goal domains with expandable target checklists.
@@ -26,7 +27,7 @@ export default function GoalsTab({ t, dark, goalChecks, onToggle, expanded, setE
           Your Starting Point
         </div>
         <p style={{ fontSize: '0.85rem', fontStyle: 'italic', color: t.muted, lineHeight: 1.7 }}>
-          August 23, 2026. Inconsistent body. Creative dormant since school. Rarely reads. Narrowly specialized at work.{' '}
+          August 24, 2026. Inconsistent body. Creative dormant since school. Rarely reads. Narrowly specialized at work.{' '}
           <strong style={{ fontStyle: 'normal', color: t.pageText }}>{getDaysUntilYearEnd()} days until December 31.</strong>
         </p>
       </div>
@@ -154,6 +155,9 @@ export default function GoalsTab({ t, dark, goalChecks, onToggle, expanded, setE
           </div>
         );
       })}
+
+      {/* ── Book Tracker ───────────────────────────────────────────────────────── */}
+      <BookTracker t={t} />
     </>
   );
 }
