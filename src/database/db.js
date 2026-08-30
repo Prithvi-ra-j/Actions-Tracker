@@ -13,6 +13,8 @@
  *   settings    — arbitrary key/value pairs
  */
 
+import { APP_VERSION, SCHEMA_VERSION } from '../version.js';
+
 const DB_NAME = 'actions-tracker';
 const DB_VERSION = 6;
 
@@ -233,8 +235,8 @@ export async function exportDatabase() {
   return JSON.stringify({
     _meta: {
       exportedAt:    new Date().toISOString(),
-      appVersion:    '2.0.0',
-      schemaVersion: 1,
+      appVersion:    APP_VERSION,
+      schemaVersion: SCHEMA_VERSION,
       stores:        ALL_STORES,
     },
     ...data,
@@ -243,34 +245,98 @@ export async function exportDatabase() {
 
 /**
  * Imports all stores from a JSON string produced by exportDatabase().
- * Strips the _meta envelope before processing.
- * Clears each store and re-populates with the imported records so the
- * result is an exact mirror of the exported state.
+ *
+ * Safety protocol (§4.6/§4.7):
+ *   1. Parse — fail loudly if JSON is malformed.
+ *   2. Validate _meta — reject if schemaVersion > current SCHEMA_VERSION
+ *      (a future build's export cannot be safely loaded into an older schema).
+ *   3. Dry-run count — count records per store from the parsed data without
+ *      touching the live DB. This is the "pre-flight" check.
+ *   4. Destructive write — only if all stores pass validation, open a single
+ *      readwrite transaction, clear each store, and bulk-write the records.
+ *      If the transaction fails, the error is thrown with full detail.
+ *
+ * Throws a descriptive Error on any validation failure so the caller
+ * (SettingsTab) can show an actionable message instead of a silent failure.
+ *
  * @param {string} jsonString
- * @returns {Promise<void>}
+ * @returns {Promise<{ counts: { [store]: number } }>} Record counts written per store
  */
-export function importDatabase(jsonString) {
-  return new Promise((resolve, reject) => {
-    try {
-      const parsed = JSON.parse(jsonString);
-      // Strip _meta if present — it's informational, not a store
-      const { _meta: _ignored, ...data } = parsed;
+export async function importDatabase(jsonString) {
+  // ─── 1. Parse — fail loudly ─────────────────────────────────────────────
+  let parsed;
+  try {
+    parsed = JSON.parse(jsonString);
+  } catch (e) {
+    throw new Error(`[Import] JSON parse failed: ${e.message}`);
+  }
 
-      // Only import stores that currently exist in the DB schema.
-      // Unknown stores from future versions are silently skipped.
-      const storesToImport = ALL_STORES.filter(s => s in data);
-      const tx = getDB().transaction(storesToImport, 'readwrite');
+  if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
+    throw new Error('[Import] Backup file is not a JSON object. Aborting.');
+  }
 
-      tx.oncomplete = () => resolve();
-      tx.onerror   = () => reject(tx.error);
-
-      storesToImport.forEach(store => {
-        const os = tx.objectStore(store);
-        os.clear(); // Exact mirror — wipe then repopulate
-        (data[store] ?? []).forEach(item => os.put(item));
-      });
-    } catch (err) {
-      reject(err);
+  // ─── 2. Validate _meta ────────────────────────────────────────────
+  const meta = parsed._meta;
+  if (meta) {
+    const exportedSchema = meta.schemaVersion ?? 1;
+    if (exportedSchema > SCHEMA_VERSION) {
+      throw new Error(
+        `[Import] Schema version mismatch: backup was made with schema v${exportedSchema}, ` +
+        `but this build only understands schema v${SCHEMA_VERSION}. ` +
+        `Update the app before importing this backup.`
+      );
     }
+    // Log the source version for debugging, but don't block on it
+    console.log(
+      `[Import] Importing backup from app v${meta.appVersion ?? 'unknown'} ` +
+      `(schema v${exportedSchema}), exported at ${meta.exportedAt ?? 'unknown'}`
+    );
+  } else {
+    // No _meta: this is a pre-v1.5 export. Accept it but warn.
+    console.warn('[Import] Backup has no _meta envelope — treating as legacy schema v1. Proceeding.');
+  }
+
+  // Strip _meta — it's informational, not a store
+  const { _meta: _ignored, ...data } = parsed;
+
+  // ─── 3. Dry-run count ────────────────────────────────────────────
+  // Only import stores that currently exist in the DB schema.
+  // Unknown stores from future versions are silently skipped — logged, not thrown.
+  const storesToImport = ALL_STORES.filter(s => s in data);
+  const skippedInExport = ALL_STORES.filter(s => !(s in data));
+  if (skippedInExport.length > 0) {
+    console.warn(`[Import] Stores not found in backup (will be left empty): ${skippedInExport.join(', ')}`);
+  }
+
+  // Count records in each store from the parsed data (pure in-memory, no DB touch)
+  const dryCounts = {};
+  for (const store of storesToImport) {
+    const records = data[store];
+    if (!Array.isArray(records)) {
+      throw new Error(
+        `[Import] Store "${store}" in backup is not an array (got ${typeof records}). ` +
+        `Backup may be corrupt. Aborting before any data was changed.`
+      );
+    }
+    dryCounts[store] = records.length;
+  }
+
+  console.log('[Import] Dry-run counts:', dryCounts);
+
+  // ─── 4. Destructive write ─────────────────────────────────────────
+  // All validations passed. Now open the transaction and write.
+  await new Promise((resolve, reject) => {
+    const tx = getDB().transaction(storesToImport, 'readwrite');
+    tx.oncomplete = () => resolve();
+    tx.onerror   = () => reject(new Error(`[Import] Transaction failed: ${tx.error?.message ?? 'unknown error'}`));
+    tx.onabort   = () => reject(new Error(`[Import] Transaction aborted: ${tx.error?.message ?? 'unknown reason'}`));
+
+    storesToImport.forEach(store => {
+      const os = tx.objectStore(store);
+      os.clear(); // Exact mirror — wipe then repopulate
+      data[store].forEach(item => os.put(item));
+    });
   });
+
+  return { counts: dryCounts };
 }

@@ -73,14 +73,18 @@ export default function SettingsTab({ t, dark, setDark, reminders, setReminders,
     const reader = new FileReader();
     reader.onload = async (ev) => {
       try {
-        await importDatabase(ev.target.result);
-        alert('Import successful. The app will now reload.');
+        const result = await importDatabase(ev.target.result);
+        const totalRecords = Object.values(result.counts).reduce((s, n) => s + n, 0);
+        const storeCount   = Object.keys(result.counts).length;
+        alert(`Import successful — ${totalRecords} records restored across ${storeCount} stores.\nThe app will now reload.`);
         window.location.reload();
       } catch (err) {
-        alert('Import failed: ' + err.message);
+        alert('Import failed:\n\n' + err.message);
       }
     };
     reader.readAsText(file);
+    // Reset input so the same file can be re-selected if needed
+    e.target.value = '';
   }
 
   return (
