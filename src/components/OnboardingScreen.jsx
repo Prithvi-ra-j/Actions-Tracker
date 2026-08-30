@@ -511,7 +511,7 @@ export default function OnboardingScreen({ t, onComplete }) {
 
   return (
     <div style={containerStyle}>
-      {import.meta.env.DEV && (
+      {(import.meta.env.DEV || import.meta.env.VITE_SHOW_DEV_TOOLS === 'true') && (
         <button
           onClick={handleLoadDummyData}
           style={{
