@@ -13,6 +13,7 @@ import { getAllGoalChecks,   setGoalCheck }    from './database/goalsRepository.
 import { getAllMilestoneChecks, setMilestoneCheck } from './database/milestonesRepository.js';
 import { getSetting, setSetting, getReminders, saveReminders } from './database/settingsRepository.js';
 import { checkAndWriteWeeklySnapshot, getLatestSnapshot } from './database/statSnapshotsRepository.js';
+import { isOnboardingComplete } from './database/selfModelRepository.js';
 
 // ── Helpers ─────────────────────────────────────────────────────────────────────────────
 import { computeAllStats, computeAxisDetails, getThresholdTitle } from './helpers/statsEngine.js';
@@ -34,16 +35,17 @@ import OnboardingScreen  from './components/OnboardingScreen.jsx';
 import StatsTab          from './components/StatsTab.jsx';
 import LevelUpCeremony   from './components/LevelUpCeremony.jsx';
 import ProofFearCheckin  from './components/ProofFearCheckin.jsx';
+import SelfTab           from './components/SelfTab.jsx';
 
 // ─────────────────────────────────────────────────────────────────────────────
 
 const TABS = [
   { id: 'daily',      label: 'Today'    },
   { id: 'stats',      label: 'Stats'    },
+  { id: 'self',       label: 'Self'     },
   { id: 'goals',      label: 'Goals'    },
   { id: 'milestones', label: 'Timeline' },
   { id: 'calendar',   label: 'Calendar' },
-
 ];
 
 // Total possible goal targets (4 goals × 4 targets each)
@@ -153,9 +155,11 @@ export default function App() {
         await syncQuestProgress(allLogs);
         const syncedQuests = await getAllQuests();
 
-        if (allLogs.filter(l => l.type !== 'daily_checkbox').length === 0) {
-          // Only show onboarding if there are no meaningful logs yet
-          // (daily checkboxes alone don't count as "onboarded")
+        // Use selfModelRepository to check onboarding completion (v2).
+        // Fall back to the old log-count check for users who completed v1 onboarding.
+        const onboardingDone = await isOnboardingComplete();
+        const hasOldBaseline = allLogs.filter(l => l.type !== 'daily_checkbox').length > 0;
+        if (!onboardingDone && !hasOldBaseline) {
           setNeedsOnboarding(true);
         }
 
@@ -554,6 +558,10 @@ export default function App() {
                 t={t}
                 allDailyRecords={allDailyRecords}
               />
+            )}
+
+            {tab === 'self' && (
+              <SelfTab t={t} dark={dark} />
             )}
 
 
