@@ -14,7 +14,7 @@
  */
 
 const DB_NAME = 'actions-tracker';
-const DB_VERSION = 5;
+const DB_VERSION = 6;
 
 /** @type {IDBDatabase|null} */
 let _db = null;
@@ -99,6 +99,12 @@ export function initDB() {
         const loStore = db.createObjectStore('lifeObjects', { keyPath: 'id' });
         loStore.createIndex('type',   'type',   { unique: false });
         loStore.createIndex('status', 'status', { unique: false });
+      }
+
+      // v2.1: Self Model (§3–§6 Self/Current/Desired/Gap Models)
+      // Singleton store — one record keyed 'primary' per user.
+      if (!db.objectStoreNames.contains('selfModel')) {
+        db.createObjectStore('selfModel', { keyPath: 'id' });
       }
     };
   });
@@ -206,6 +212,7 @@ const ALL_STORES = [
   'logs', 'axis_config', 'books', 'gymSessions',
   'questBoard', 'statSnapshots',
   'facts', 'lifeObjects',             // v1.1
+  'selfModel',                        // v2.1
 ];
 
 /**
