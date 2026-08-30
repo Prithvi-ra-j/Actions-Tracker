@@ -8,6 +8,7 @@ import {
   calcWeeklyStats, calcMonthlyStats,
 } from '../helpers/statsHelpers.js';
 import SundayReflection from './SundayReflection.jsx';
+import EvidencePrompt from './EvidencePrompt.jsx';
 
 /**
  * Today tab — daily task checklist, streak display, weekly row, and stats grid.
@@ -15,15 +16,19 @@ import SundayReflection from './SundayReflection.jsx';
  * Props:
  *   t               — current theme object
  *   allDailyRecords — { "YYYY-MM-DD": { body, philosophy, art, history } }
+ *   evaluations     — map of targetRef -> fact
  *   onToggle(id)    — called when user taps a task
+ *   onEvaluate      — (targetRef, data) => Promise<void>
  *   onGoToGoals()   — called when user taps the "Open full goals" button
  */
-export default function TodayTab({ t, allDailyRecords, onToggle, onGoToGoals, hasSundayReflection, onSundayReflection }) {
+export default function TodayTab({ t, allDailyRecords, evaluations, onToggle, onEvaluate, onGoToGoals, hasSundayReflection, onSundayReflection }) {
   const today = localDateStr();
   const todayRecord = allDailyRecords[today] ?? { body: false, philosophy: false, art: false, history: false };
   const dailyDone  = getDayScore(todayRecord);
   const isComplete = dailyDone === 4;
   const pct        = Math.round((dailyDone / 4) * 100);
+
+  const [evaluatingId, setEvaluatingId] = useState(null);
 
   const dailyItems = useMemo(() => getDailyItems(today), [today]);
 
@@ -155,54 +160,97 @@ export default function TodayTab({ t, allDailyRecords, onToggle, onGoToGoals, ha
       {/* ── Task list ────────────────────────────────────────────────────────── */}
       {dailyItems.map(item => {
         const done = !!todayRecord[item.id];
+        const targetRef = `daily:${today}:${item.id}`;
+        const evaluation = evaluations?.[targetRef];
+
         return (
-          <div
-            key={item.id}
-            id={`daily-task-${item.id}`}
-            onClick={() => onToggle(item.id)}
-            style={{
-              borderLeft:   `4px solid ${item.color}`,
-              borderTop:    `1px solid ${t.borderSoft}`,
-              borderRight:  `1px solid ${t.borderSoft}`,
-              borderBottom: `1px solid ${t.borderSoft}`,
-              padding:      '1rem',
-              marginBottom: '0.7rem',
-              display:      'grid',
-              gridTemplateColumns: 'auto 1fr',
-              gap:          '0.85rem',
-              alignItems:   'center',
-              cursor:       'pointer',
-              background:   done ? t.subtleBg2 : 'transparent',
-              transition:   'background 0.2s',
-            }}
-          >
-            {/* Checkbox */}
-            <div style={{
-              minWidth: 44, minHeight: 44, flexShrink: 0,
-              display: 'flex', alignItems: 'center', justifyContent: 'center'
-            }}>
+          <div key={item.id} style={{ marginBottom: '0.7rem' }}>
+            <div
+              id={`daily-task-${item.id}`}
+              onClick={() => {
+                if (evaluatingId === item.id) return;
+                onToggle(item.id);
+              }}
+              style={{
+                borderLeft:   `4px solid ${item.color}`,
+                borderTop:    `1px solid ${t.borderSoft}`,
+                borderRight:  `1px solid ${t.borderSoft}`,
+                borderBottom: `1px solid ${t.borderSoft}`,
+                padding:      '1rem',
+                display:      'grid',
+                gridTemplateColumns: 'auto 1fr auto',
+                gap:          '0.85rem',
+                alignItems:   'center',
+                cursor:       evaluatingId === item.id ? 'default' : 'pointer',
+                background:   done ? t.subtleBg2 : 'transparent',
+                transition:   'background 0.2s',
+              }}
+            >
+              {/* Checkbox */}
               <div style={{
-                width: 24, height: 24,
-                border: `2px solid ${done ? item.color : t.checkboxBorder2}`,
-                borderRadius: 4,
-                background: done ? item.color : 'transparent',
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
-                transform: done ? 'scale(1.15)' : 'scale(1)',
+                minWidth: 44, minHeight: 44, flexShrink: 0,
+                display: 'flex', alignItems: 'center', justifyContent: 'center'
               }}>
-                {done && <span style={{ color: 'white', fontSize: '0.85rem' }}>✓</span>}
+                <div style={{
+                  width: 24, height: 24,
+                  border: `2px solid ${done ? item.color : t.checkboxBorder2}`,
+                  borderRadius: 4,
+                  background: done ? item.color : 'transparent',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
+                  transform: done ? 'scale(1.15)' : 'scale(1)',
+                }}>
+                  {done && <span style={{ color: 'white', fontSize: '0.85rem' }}>✓</span>}
+                </div>
               </div>
+
+              {/* Label */}
+              <div>
+                <div style={{ fontFamily: 'monospace', fontSize: '0.65rem', letterSpacing: '0.18em', color: item.color, marginBottom: '0.25rem' }}>
+                  {item.icon} · {item.domain}
+                </div>
+                <div style={{ fontSize: '0.92rem', lineHeight: 1.5, textDecoration: done ? 'line-through' : 'none', color: done ? t.muted : t.pageText, transition: 'color 0.2s' }}>
+                  {item.text}
+                </div>
+              </div>
+
+              {/* Evaluation Badge / Action */}
+              {done && (
+                <div>
+                  {evaluation ? (
+                    <div style={{
+                      fontFamily: 'monospace', fontSize: '0.65rem', padding: '0.2rem 0.4rem',
+                      background: t.subtleBg, color: t.muted, borderRadius: '4px', border: `1px solid ${t.border}`
+                    }}>
+                      Impact: {evaluation.value > 0 ? '+1' : evaluation.value < 0 ? '-1' : '0'}
+                    </div>
+                  ) : evaluatingId !== item.id ? (
+                    <button
+                      onClick={(e) => { e.stopPropagation(); setEvaluatingId(item.id); }}
+                      style={{
+                        background: 'transparent', color: ACCENT, border: `1px solid ${ACCENT}`,
+                        padding: '0.3rem 0.6rem', borderRadius: '4px', fontSize: '0.65rem',
+                        fontFamily: 'monospace', cursor: 'pointer', textTransform: 'uppercase'
+                      }}
+                    >
+                      Rate
+                    </button>
+                  ) : null}
+                </div>
+              )}
             </div>
 
-            {/* Label */}
-            <div>
-              <div style={{ fontFamily: 'monospace', fontSize: '0.65rem', letterSpacing: '0.18em', color: item.color, marginBottom: '0.25rem' }}>
-                {item.icon} · {item.domain}
-              </div>
-              <div style={{ fontSize: '0.92rem', lineHeight: 1.5, textDecoration: done ? 'line-through' : 'none', color: done ? t.muted : t.pageText, transition: 'color 0.2s' }}>
-                {item.text}
-              </div>
-            </div>
+            {/* Inline Evaluation Prompt */}
+            {done && evaluatingId === item.id && !evaluation && (
+              <EvidencePrompt
+                t={t}
+                onCancel={() => setEvaluatingId(null)}
+                onSave={async (evalData) => {
+                  await onEvaluate(targetRef, evalData);
+                  setEvaluatingId(null);
+                }}
+              />
+            )}
           </div>
         );
       })}

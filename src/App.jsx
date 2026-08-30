@@ -115,6 +115,7 @@ export default function App() {
   const [axisDetails,      setAxisDetails]        = useState({});
   const [allQuests,        setAllQuests]          = useState([]);
   const [latestSnapshot,   setLatestSnapshot]     = useState(null);
+  const [evaluations,      setEvaluations]        = useState({});
 
   // ── Phase 4/5 engagement state ────────────────────────────────────────────────────
   // levelUpQueue: array of { axis, value, newTitle, color } — shown one at a time
@@ -139,7 +140,7 @@ export default function App() {
         await initAxisConfigs();
         await initQuestBoard();
 
-        const [records, goals, milestones, darkPref, savedReminders, allLogs, axisConfigs, quests] =
+        const [records, goals, milestones, darkPref, savedReminders, allLogs, axisConfigs, quests, facts] =
           await Promise.all([
             getAllDailyRecords(),
             getAllGoalChecks(),
@@ -149,7 +150,15 @@ export default function App() {
             getAllLogs(),
             getAllAxisConfigs(),
             getAllQuests(),
+            import('./database/factsRepository.js').then(m => m.getAllFacts()),
           ]);
+
+        // Build evaluations map from facts where type === 'evaluation'
+        const evals = {};
+        facts.filter(f => f.type === 'evaluation' && f.meta?.targetRef).forEach(f => {
+          evals[f.meta.targetRef] = f;
+        });
+        setEvaluations(evals);
 
         // Sync quest progress from logs, then re-fetch updated quests
         await syncQuestProgress(allLogs);
@@ -506,7 +515,19 @@ export default function App() {
               <TodayTab
                 t={t}
                 allDailyRecords={allDailyRecords}
+                evaluations={evaluations}
                 onToggle={handleDailyToggle}
+                onEvaluate={async (targetRef, evalData) => {
+                  const { addFact } = await import('./database/factsRepository.js');
+                  const fact = {
+                    type: 'evaluation',
+                    value: evalData.impact,
+                    meta: { targetRef, text: evalData.text, confidence: evalData.confidence },
+                    context: {}
+                  };
+                  await addFact(fact);
+                  setEvaluations(prev => ({ ...prev, [targetRef]: fact }));
+                }}
                 onGoToGoals={() => handleTabChange('goals')}
                 hasSundayReflection={hasSundayReflection}
                 onSundayReflection={async (text) => {

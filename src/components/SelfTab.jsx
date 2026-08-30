@@ -2,6 +2,9 @@ import React, { useEffect, useState } from 'react';
 import { ACCENT } from '../constants.js';
 import { getSelfModel, updateSelfModel, markOnboardingComplete } from '../database/selfModelRepository.js';
 import { computeGaps, sortedGaps } from '../helpers/gapEngine.js';
+import ArchetypeCompiler from './ArchetypeCompiler.jsx';
+import { computeGlobalRPG } from '../helpers/rpgEngine.js';
+import { getAllFacts } from '../database/factsRepository.js';
 
 /**
  * SelfTab — v2.7 Character Sheet (§3–§6, §10).
@@ -211,11 +214,17 @@ function EditableVision({ t, value, onSave }) {
 
 export default function SelfTab({ t, dark }) {
   const [model, setModel] = useState(null);
+  const [rpg, setRpg] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [showCompiler, setShowCompiler] = useState(false);
 
   useEffect(() => {
-    getSelfModel().then(m => {
+    Promise.all([
+      getSelfModel(),
+      getAllFacts().then(computeGlobalRPG)
+    ]).then(([m, rpgData]) => {
       setModel(m);
+      setRpg(rpgData);
       setLoading(false);
     });
   }, []);
@@ -228,6 +237,15 @@ export default function SelfTab({ t, dark }) {
   const saveVision = async (vision) => {
     await updateSelfModel({ desiredSelf: { vision } });
     await refresh();
+  };
+
+  const handleCompileVision = async (targets) => {
+    // targets is { body: { targetValue, why }, mind: ..., craft: ..., strategy: ... }
+    await updateSelfModel({
+      desiredSelf: { dimensions: targets }
+    });
+    await refresh();
+    setShowCompiler(false);
   };
 
   if (loading) {
@@ -253,10 +271,25 @@ export default function SelfTab({ t, dark }) {
     <>
       {/* ── Header ── */}
       <div style={{ marginBottom: '1.5rem' }}>
-        <div style={{ fontFamily: 'monospace', fontSize: '0.65rem', letterSpacing: '0.25em', color: ACCENT, textTransform: 'uppercase', marginBottom: '0.4rem' }}>
-          Self Model
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '0.4rem' }}>
+          <div style={{ fontFamily: 'monospace', fontSize: '0.65rem', letterSpacing: '0.25em', color: ACCENT, textTransform: 'uppercase' }}>
+            Self Model
+          </div>
+          {rpg && (
+            <div style={{ textAlign: 'right' }}>
+              <div style={{ fontFamily: 'monospace', fontSize: '0.75rem', fontWeight: 'bold', color: ACCENT }}>
+                LVL {rpg.level}
+              </div>
+              <div style={{ fontFamily: 'monospace', fontSize: '0.55rem', color: t.muted }}>
+                {rpg.totalXP} XP
+              </div>
+              <div style={{ width: '40px', height: '2px', background: t.border, marginTop: '2px', float: 'right' }}>
+                <div style={{ width: `${rpg.progressPct}%`, height: '100%', background: ACCENT }} />
+              </div>
+            </div>
+          )}
         </div>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', clear: 'both' }}>
           <div style={{ fontSize: '1.6rem', fontWeight: 900, lineHeight: 1 }}>
             {identity?.name ? identity.name : 'Who Am I'}
           </div>
@@ -327,8 +360,31 @@ export default function SelfTab({ t, dark }) {
             value={desiredSelf?.vision ?? ''}
             onSave={saveVision}
           />
+          {desiredSelf?.vision && (
+            <button
+              onClick={() => setShowCompiler(true)}
+              style={{
+                marginTop: '1rem', background: 'transparent', border: `1px solid ${ACCENT}`,
+                color: ACCENT, padding: '0.4rem 0.8rem', borderRadius: '4px',
+                fontFamily: 'monospace', fontSize: '0.65rem', textTransform: 'uppercase',
+                cursor: 'pointer', transition: 'all 0.2s', width: '100%'
+              }}
+            >
+              Compile Vision →
+            </button>
+          )}
           <Divider t={t} />
         </>
+      )}
+
+      {/* ── Archetype Compiler Overlay ── */}
+      {showCompiler && (
+        <ArchetypeCompiler
+          t={t}
+          vision={desiredSelf?.vision}
+          onSave={handleCompileVision}
+          onCancel={() => setShowCompiler(false)}
+        />
       )}
 
       {/* ── Dimensions (current state + gaps) ── */}
