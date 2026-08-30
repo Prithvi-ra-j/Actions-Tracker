@@ -469,6 +469,33 @@ export default function OnboardingScreen({ t, onComplete }) {
     }
   };
 
+  const handleLoadDummyData = () => {
+    setName('Jane Doe');
+    setIdentity({
+      oneLiner: 'I am someone who builds things and reads seriously.',
+      roles: ['athlete', 'builder', 'reader'],
+      values: ['discipline', 'honesty', 'craft'],
+      strengths: ['consistent', 'analytical', 'creative'],
+      constraints: ['limited mornings', 'high stress work'],
+      principles: [],
+    });
+    setCurrentState({
+      body: { value: 60, confidence: 0.8, evidence: 'Train 3x/week consistently' },
+      mind: { value: 70, confidence: 0.9, evidence: 'Read one book per week' },
+      craft: { value: 45, confidence: 0.6, evidence: 'Learning a new skill slowly' },
+      strategy: { value: 50, confidence: 0.7, evidence: 'Quarterly reviews established' },
+    });
+    setDesiredSelf({
+      vision: 'A person who trains seriously, reads widely, and builds systems that last.',
+      dimensions: {
+        body: { targetValue: 85, why: 'To have the energy for long deep-work sessions.', timeframe: '1 year' },
+        mind: { targetValue: 90, why: 'To compound knowledge faster.', timeframe: '1 year' },
+        craft: { targetValue: 80, why: 'To build things people actually use.', timeframe: '1 year' },
+        strategy: { targetValue: 75, why: 'To avoid working hard on the wrong things.', timeframe: '1 year' },
+      }
+    });
+  };
+
   const containerStyle = {
     background: t.pageBg,
     color: t.pageText,
@@ -479,10 +506,26 @@ export default function OnboardingScreen({ t, onComplete }) {
     display: 'flex',
     flexDirection: 'column',
     paddingTop: 'calc(env(safe-area-inset-top, 0px) + 2rem)',
+    position: 'relative',
   };
 
   return (
     <div style={containerStyle}>
+      {import.meta.env.DEV && (
+        <button
+          onClick={handleLoadDummyData}
+          style={{
+            position: 'absolute', top: '1rem', right: '1rem',
+            background: 'transparent', border: 'none', color: t.muted,
+            fontFamily: 'monospace', fontSize: '0.6rem', opacity: 0.6,
+            cursor: 'pointer', zIndex: 10
+          }}
+          title="Load Dummy Data (Dev Only)"
+        >
+          ⚡ Load Dummy Data
+        </button>
+      )}
+
       <ProgressDots total={PHASES.length} current={phase} t={t} />
 
       {phase === 0 && (
