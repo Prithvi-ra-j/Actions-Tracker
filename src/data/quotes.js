@@ -3350,5 +3350,1398 @@ export const GITA_QUOTES = [
     "source": "One Piece",
     "reference": "Chapter 144 / Episode 81",
     "theme": "Hope"
+  },
+  {
+    "id": "001",
+    "text": "You have power over your mind—not outside events. Realize this, and you will find strength.",
+    "speaker": "Marcus Aurelius",
+    "source": "Meditations",
+    "theme": "Control"
+  },
+  {
+    "id": "002",
+    "text": "Do not act as though you had ten thousand years to live.",
+    "speaker": "Marcus Aurelius",
+    "source": "Meditations",
+    "theme": "Mortality"
+  },
+  {
+    "id": "003",
+    "text": "The happiness of your life depends on the quality of your thoughts.",
+    "speaker": "Marcus Aurelius",
+    "source": "Meditations",
+    "theme": "Perspective"
+  },
+  {
+    "id": "004",
+    "text": "The impediment to action advances action. What stands in the way becomes the way.",
+    "speaker": "Marcus Aurelius",
+    "source": "Meditations",
+    "theme": "Adversity"
+  },
+  {
+    "id": "005",
+    "text": "Waste no more time arguing about what a good person should be. Be one.",
+    "speaker": "Marcus Aurelius",
+    "source": "Meditations",
+    "theme": "Character"
+  },
+  {
+    "id": "006",
+    "text": "How much more harmful are the consequences of anger than the causes of it.",
+    "speaker": "Marcus Aurelius",
+    "source": "Meditations",
+    "theme": "Anger"
+  },
+  {
+    "id": "007",
+    "text": "Very little is needed to make a happy life.",
+    "speaker": "Marcus Aurelius",
+    "source": "Meditations",
+    "theme": "Simplicity"
+  },
+  {
+    "id": "008",
+    "text": "Do every act of your life as though it were the last act of your life.",
+    "speaker": "Marcus Aurelius",
+    "source": "Meditations",
+    "theme": "Present"
+  },
+  {
+    "id": "009",
+    "text": "The universe is change; life is opinion.",
+    "speaker": "Marcus Aurelius",
+    "source": "Meditations",
+    "theme": "Change"
+  },
+  {
+    "id": "010",
+    "text": "Accept whatever comes to you woven into the pattern of your destiny.",
+    "speaker": "Marcus Aurelius",
+    "source": "Meditations",
+    "theme": "Acceptance"
+  },
+  {
+    "id": "011",
+    "text": "The soul becomes dyed with the color of its thoughts.",
+    "speaker": "Marcus Aurelius",
+    "source": "Meditations",
+    "theme": "Self-mastery"
+  },
+  {
+    "id": "012",
+    "text": "A ruler should be a servant of the common good.",
+    "speaker": "Marcus Aurelius",
+    "source": "Meditations",
+    "theme": "Leadership"
+  },
+  {
+    "id": "013",
+    "text": "The best revenge is to be unlike him who performed the injury.",
+    "speaker": "Marcus Aurelius",
+    "source": "Meditations",
+    "theme": "Compassion"
+  },
+  {
+    "id": "014",
+    "text": "Do what nature requires. Get on with it.",
+    "speaker": "Marcus Aurelius",
+    "source": "Meditations",
+    "theme": "Duty"
+  },
+  {
+    "id": "015",
+    "text": "Concentrate on doing what is in front of you.",
+    "speaker": "Marcus Aurelius",
+    "source": "Meditations",
+    "theme": "Attention"
+  },
+  {
+    "id": "016",
+    "text": "Soon you will have forgotten everything; soon everyone will have forgotten you.",
+    "speaker": "Marcus Aurelius",
+    "source": "Meditations",
+    "theme": "Ego"
+  },
+  {
+    "id": "017",
+    "text": "What is not good for the hive is not good for the bee.",
+    "speaker": "Marcus Aurelius",
+    "source": "Meditations",
+    "theme": "Service"
+  },
+  {
+    "id": "018",
+    "text": "If it is not right, do not do it; if it is not true, do not say it.",
+    "speaker": "Marcus Aurelius",
+    "source": "Meditations",
+    "theme": "Integrity"
+  },
+  {
+    "id": "019",
+    "text": "The mind adapts and converts to its purposes the obstacle to our acting.",
+    "speaker": "Marcus Aurelius",
+    "source": "Meditations",
+    "theme": "Inner freedom"
+  },
+  {
+    "id": "020",
+    "text": "Nowhere can man find a quieter or more untroubled retreat than in his own soul.",
+    "speaker": "Marcus Aurelius",
+    "source": "Meditations",
+    "theme": "Calm"
+  },
+  {
+    "id": "021",
+    "text": "Think of yourself as dead. You have lived your life. Now take what is left and live it properly.",
+    "speaker": "Marcus Aurelius",
+    "source": "Meditations",
+    "theme": "Death"
+  },
+  {
+    "id": "022",
+    "text": "Look beneath the surface and consider the nature and worth of a thing itself.",
+    "speaker": "Marcus Aurelius",
+    "source": "Meditations",
+    "theme": "Perspective"
+  },
+  {
+    "id": "023",
+    "text": "You have control over your judgment even when circumstances are outside you.",
+    "speaker": "Marcus Aurelius",
+    "source": "Meditations",
+    "theme": "Resilience"
+  },
+  {
+    "id": "024",
+    "text": "Your mind will take on the character of your habitual thoughts.",
+    "speaker": "Marcus Aurelius",
+    "source": "Meditations",
+    "theme": "Character"
+  },
+  {
+    "id": "025",
+    "text": "Do not be proud of what is temporary.",
+    "speaker": "Marcus Aurelius",
+    "source": "Meditations",
+    "theme": "Humility"
+  },
+  {
+    "id": "026",
+    "text": "Do not let another person’s fault make you become worse.",
+    "speaker": "Marcus Aurelius",
+    "source": "Meditations",
+    "theme": "Compassion"
+  },
+  {
+    "id": "027",
+    "text": "The mind that is trained can turn obstacles into material for virtue.",
+    "speaker": "Marcus Aurelius",
+    "source": "Meditations",
+    "theme": "Discipline"
+  },
+  {
+    "id": "028",
+    "text": "Whatever happens to you has been waiting to happen within the order of nature.",
+    "speaker": "Marcus Aurelius",
+    "source": "Meditations",
+    "theme": "Fate"
+  },
+  {
+    "id": "029",
+    "text": "Life is short, and there is little time to live badly.",
+    "speaker": "Marcus Aurelius",
+    "source": "Meditations",
+    "theme": "Mortality"
+  },
+  {
+    "id": "030",
+    "text": "What matters is to do the work required by your nature.",
+    "speaker": "Marcus Aurelius",
+    "source": "Meditations",
+    "theme": "Duty"
+  },
+  {
+    "id": "031",
+    "text": "Receive success and failure with the same steady mind.",
+    "speaker": "Marcus Aurelius",
+    "source": "Meditations",
+    "theme": "Equanimity"
+  },
+  {
+    "id": "032",
+    "text": "Remove the desire for unnecessary things and life becomes lighter.",
+    "speaker": "Marcus Aurelius",
+    "source": "Meditations",
+    "theme": "Simplicity"
+  },
+  {
+    "id": "033",
+    "text": "A good ruler should make justice visible through his own conduct.",
+    "speaker": "Marcus Aurelius",
+    "source": "Meditations",
+    "theme": "Leadership"
+  },
+  {
+    "id": "034",
+    "text": "Know what kind of person you are trying to become.",
+    "speaker": "Marcus Aurelius",
+    "source": "Meditations",
+    "theme": "Self-knowledge"
+  },
+  {
+    "id": "035",
+    "text": "Do not let your mind run ahead of what is actually happening now.",
+    "speaker": "Marcus Aurelius",
+    "source": "Meditations",
+    "theme": "Mindfulness"
+  },
+  {
+    "id": "036",
+    "text": "The best answer to anger is not to become angry in return.",
+    "speaker": "Marcus Aurelius",
+    "source": "Meditations",
+    "theme": "Anger"
+  },
+  {
+    "id": "037",
+    "text": "Remember how small personal fame becomes when viewed across time.",
+    "speaker": "Marcus Aurelius",
+    "source": "Meditations",
+    "theme": "Ego"
+  },
+  {
+    "id": "038",
+    "text": "Everything changes, so cling less tightly to what cannot stay.",
+    "speaker": "Marcus Aurelius",
+    "source": "Meditations",
+    "theme": "Change"
+  },
+  {
+    "id": "039",
+    "text": "Freedom begins when you stop demanding that reality obey your preferences.",
+    "speaker": "Marcus Aurelius",
+    "source": "Meditations",
+    "theme": "Freedom"
+  },
+  {
+    "id": "040",
+    "text": "Live in accordance with nature and let your actions express your principles.",
+    "speaker": "Marcus Aurelius",
+    "source": "Meditations",
+    "theme": "Purpose"
+  },
+  {
+    "id": "041",
+    "text": "Some things are under our control and some are not.",
+    "speaker": "Epictetus",
+    "source": "Enchiridion / Discourses",
+    "theme": "Control"
+  },
+  {
+    "id": "042",
+    "text": "It is not things that trouble us, but our judgments about things.",
+    "speaker": "Epictetus",
+    "source": "Enchiridion / Discourses",
+    "theme": "Judgment"
+  },
+  {
+    "id": "043",
+    "text": "Do not demand that things happen as you wish; wish that they happen as they do happen.",
+    "speaker": "Epictetus",
+    "source": "Enchiridion / Discourses",
+    "theme": "Acceptance"
+  },
+  {
+    "id": "044",
+    "text": "No man is free who is not master of himself.",
+    "speaker": "Epictetus",
+    "source": "Enchiridion / Discourses",
+    "theme": "Freedom"
+  },
+  {
+    "id": "045",
+    "text": "First say to yourself what you would be; then do what you have to do.",
+    "speaker": "Epictetus",
+    "source": "Enchiridion / Discourses",
+    "theme": "Character"
+  },
+  {
+    "id": "046",
+    "text": "No great thing is created suddenly.",
+    "speaker": "Epictetus",
+    "source": "Enchiridion / Discourses",
+    "theme": "Practice"
+  },
+  {
+    "id": "047",
+    "text": "Difficulties are things that show what men are.",
+    "speaker": "Epictetus",
+    "source": "Enchiridion / Discourses",
+    "theme": "Resilience"
+  },
+  {
+    "id": "048",
+    "text": "If you want to improve, be content to be thought foolish in irrelevant things.",
+    "speaker": "Epictetus",
+    "source": "Enchiridion / Discourses",
+    "theme": "Self-control"
+  },
+  {
+    "id": "049",
+    "text": "Never say of anything, “I have lost it”; say, “I have given it back.”",
+    "speaker": "Epictetus",
+    "source": "Enchiridion / Discourses",
+    "theme": "Loss"
+  },
+  {
+    "id": "050",
+    "text": "Remember that you are an actor in a play, and the author assigns the part.",
+    "speaker": "Epictetus",
+    "source": "Enchiridion / Discourses",
+    "theme": "Role"
+  },
+  {
+    "id": "051",
+    "text": "When you are offended by another person, examine your own judgments.",
+    "speaker": "Epictetus",
+    "source": "Enchiridion / Discourses",
+    "theme": "Anger"
+  },
+  {
+    "id": "052",
+    "text": "You can control your response even when you cannot control the event.",
+    "speaker": "Epictetus",
+    "source": "Enchiridion / Discourses",
+    "theme": "Choice"
+  },
+  {
+    "id": "053",
+    "text": "We improve a faculty by using it repeatedly.",
+    "speaker": "Epictetus",
+    "source": "Enchiridion / Discourses",
+    "theme": "Discipline"
+  },
+  {
+    "id": "054",
+    "text": "Do not explain your philosophy. Embody it.",
+    "speaker": "Epictetus",
+    "source": "Enchiridion / Discourses",
+    "theme": "Courage"
+  },
+  {
+    "id": "055",
+    "text": "Keep silence for the most part and speak only when necessary.",
+    "speaker": "Epictetus",
+    "source": "Enchiridion / Discourses",
+    "theme": "Focus"
+  },
+  {
+    "id": "056",
+    "text": "Know first who you are, and then act accordingly.",
+    "speaker": "Epictetus",
+    "source": "Enchiridion / Discourses",
+    "theme": "Humility"
+  },
+  {
+    "id": "057",
+    "text": "Whatever your role is, perform it well.",
+    "speaker": "Epictetus",
+    "source": "Enchiridion / Discourses",
+    "theme": "Duty"
+  },
+  {
+    "id": "058",
+    "text": "It is not death or pain that should be feared, but the judgment about them.",
+    "speaker": "Epictetus",
+    "source": "Enchiridion / Discourses",
+    "theme": "Fear"
+  },
+  {
+    "id": "059",
+    "text": "Only the educated are free.",
+    "speaker": "Epictetus",
+    "source": "Enchiridion / Discourses",
+    "theme": "Responsibility"
+  },
+  {
+    "id": "060",
+    "text": "If you want something good, get it from yourself.",
+    "speaker": "Epictetus",
+    "source": "Enchiridion / Discourses",
+    "theme": "Self-reliance"
+  },
+  {
+    "id": "061",
+    "text": "You may be bound in body while your will remains free.",
+    "speaker": "Epictetus",
+    "source": "Enchiridion / Discourses",
+    "theme": "Freedom"
+  },
+  {
+    "id": "062",
+    "text": "Circumstances do not make the person; they reveal them.",
+    "speaker": "Epictetus",
+    "source": "Enchiridion / Discourses",
+    "theme": "Preparation"
+  },
+  {
+    "id": "063",
+    "text": "Do not seek to appear wise; seek to become wise.",
+    "speaker": "Epictetus",
+    "source": "Enchiridion / Discourses",
+    "theme": "Improvement"
+  },
+  {
+    "id": "064",
+    "text": "Peace comes from wanting reality to be what it is.",
+    "speaker": "Epictetus",
+    "source": "Enchiridion / Discourses",
+    "theme": "Peace"
+  },
+  {
+    "id": "065",
+    "text": "Do not make your happiness depend on what another person can take away.",
+    "speaker": "Epictetus",
+    "source": "Enchiridion / Discourses",
+    "theme": "Desire"
+  },
+  {
+    "id": "066",
+    "text": "Be present to the task that is actually yours.",
+    "speaker": "Epictetus",
+    "source": "Enchiridion / Discourses",
+    "theme": "Attention"
+  },
+  {
+    "id": "067",
+    "text": "Do not let praise or blame change your principles.",
+    "speaker": "Epictetus",
+    "source": "Enchiridion / Discourses",
+    "theme": "Integrity"
+  },
+  {
+    "id": "068",
+    "text": "A disciplined person waits without surrendering their purpose.",
+    "speaker": "Epictetus",
+    "source": "Enchiridion / Discourses",
+    "theme": "Patience"
+  },
+  {
+    "id": "069",
+    "text": "Know what depends on you before deciding how to act.",
+    "speaker": "Epictetus",
+    "source": "Enchiridion / Discourses",
+    "theme": "Wisdom"
+  },
+  {
+    "id": "070",
+    "text": "You become free by mastering your own reactions.",
+    "speaker": "Epictetus",
+    "source": "Enchiridion / Discourses",
+    "theme": "Mastery"
+  },
+  {
+    "id": "071",
+    "text": "It is not that we have a short time to live, but that we waste a lot of it.",
+    "speaker": "Seneca",
+    "source": "Letters / Moral Essays",
+    "theme": "Time"
+  },
+  {
+    "id": "072",
+    "text": "Difficulties strengthen the mind, as labor does the body.",
+    "speaker": "Seneca",
+    "source": "Letters / Moral Essays",
+    "theme": "Adversity"
+  },
+  {
+    "id": "073",
+    "text": "We suffer more often in imagination than in reality.",
+    "speaker": "Seneca",
+    "source": "Letters / Moral Essays",
+    "theme": "Fear"
+  },
+  {
+    "id": "074",
+    "text": "The greatest remedy for anger is delay.",
+    "speaker": "Seneca",
+    "source": "Letters / Moral Essays",
+    "theme": "Anger"
+  },
+  {
+    "id": "075",
+    "text": "Associate with people likely to improve you.",
+    "speaker": "Seneca",
+    "source": "Letters / Moral Essays",
+    "theme": "Character"
+  },
+  {
+    "id": "076",
+    "text": "It is not the man who has too little, but the man who craves more, that is poor.",
+    "speaker": "Seneca",
+    "source": "Letters / Moral Essays",
+    "theme": "Wealth"
+  },
+  {
+    "id": "077",
+    "text": "While we teach, we learn.",
+    "speaker": "Seneca",
+    "source": "Letters / Moral Essays",
+    "theme": "Learning"
+  },
+  {
+    "id": "078",
+    "text": "Fire is the test of gold; adversity, of strong men.",
+    "speaker": "Seneca",
+    "source": "Letters / Moral Essays",
+    "theme": "Resilience"
+  },
+  {
+    "id": "079",
+    "text": "He who is contented is rich.",
+    "speaker": "Seneca",
+    "source": "Letters / Moral Essays",
+    "theme": "Contentment"
+  },
+  {
+    "id": "080",
+    "text": "He who is brave is free.",
+    "speaker": "Seneca",
+    "source": "Letters / Moral Essays",
+    "theme": "Courage"
+  },
+  {
+    "id": "081",
+    "text": "He who has great power should use it lightly.",
+    "speaker": "Seneca",
+    "source": "Letters / Moral Essays",
+    "theme": "Power"
+  },
+  {
+    "id": "082",
+    "text": "A man who suffers before it is necessary suffers more than necessary.",
+    "speaker": "Seneca",
+    "source": "Letters / Moral Essays",
+    "theme": "Self-knowledge"
+  },
+  {
+    "id": "083",
+    "text": "Luck never made a man wise.",
+    "speaker": "Seneca",
+    "source": "Letters / Moral Essays",
+    "theme": "Purpose"
+  },
+  {
+    "id": "084",
+    "text": "One of the most beautiful qualities of true friendship is to understand and be understood.",
+    "speaker": "Seneca",
+    "source": "Letters / Moral Essays",
+    "theme": "Friendship"
+  },
+  {
+    "id": "085",
+    "text": "Live immediately; the whole future lies in uncertainty.",
+    "speaker": "Seneca",
+    "source": "Letters / Moral Essays",
+    "theme": "Perspective"
+  },
+  {
+    "id": "086",
+    "text": "No man is more unhappy than he who never faces himself.",
+    "speaker": "Seneca",
+    "source": "Letters / Moral Essays",
+    "theme": "Discipline"
+  },
+  {
+    "id": "087",
+    "text": "Reduce your needs and you reduce the number of things that can control you.",
+    "speaker": "Seneca",
+    "source": "Letters / Moral Essays",
+    "theme": "Simplicity"
+  },
+  {
+    "id": "088",
+    "text": "We are all travelling toward the same end.",
+    "speaker": "Seneca",
+    "source": "Letters / Moral Essays",
+    "theme": "Death"
+  },
+  {
+    "id": "089",
+    "text": "No one can be said to have wisdom who has not learned how to live.",
+    "speaker": "Seneca",
+    "source": "Letters / Moral Essays",
+    "theme": "Wisdom"
+  },
+  {
+    "id": "090",
+    "text": "The person who can wait without surrendering their purpose has strength.",
+    "speaker": "Seneca",
+    "source": "Letters / Moral Essays",
+    "theme": "Patience"
+  },
+  {
+    "id": "001",
+    "text": "He who has a why to live can bear almost any how.",
+    "speaker": "Friedrich Nietzsche",
+    "source": "Twilight of the Idols / related formulation",
+    "theme": "Purpose"
+  },
+  {
+    "id": "002",
+    "text": "What does not kill me makes me stronger.",
+    "speaker": "Friedrich Nietzsche",
+    "source": "Twilight of the Idols",
+    "theme": "Strength"
+  },
+  {
+    "id": "003",
+    "text": "Become who you are.",
+    "speaker": "Friedrich Nietzsche",
+    "source": "Ecce Homo",
+    "theme": "Becoming"
+  },
+  {
+    "id": "004",
+    "text": "What is great in man is that he is a bridge and not a goal.",
+    "speaker": "Friedrich Nietzsche",
+    "source": "Thus Spoke Zarathustra",
+    "theme": "Self-overcoming"
+  },
+  {
+    "id": "005",
+    "text": "One must still have chaos in oneself to give birth to a dancing star.",
+    "speaker": "Friedrich Nietzsche",
+    "source": "Thus Spoke Zarathustra",
+    "theme": "Creation"
+  },
+  {
+    "id": "006",
+    "text": "Convictions are more dangerous foes of truth than lies.",
+    "speaker": "Friedrich Nietzsche",
+    "source": "Human, All Too Human",
+    "theme": "Truth"
+  },
+  {
+    "id": "007",
+    "text": "There are no moral facts, but only a moral interpretation of phenomena.",
+    "speaker": "Friedrich Nietzsche",
+    "source": "Beyond Good and Evil",
+    "theme": "Morality"
+  },
+  {
+    "id": "008",
+    "text": "There are no facts, only interpretations.",
+    "speaker": "Friedrich Nietzsche",
+    "source": "Notebooks / later formulation",
+    "theme": "Perspective"
+  },
+  {
+    "id": "009",
+    "text": "He who fights with monsters should look to it that he himself does not become a monster.",
+    "speaker": "Friedrich Nietzsche",
+    "source": "Beyond Good and Evil",
+    "theme": "Resentment"
+  },
+  {
+    "id": "010",
+    "text": "And if you gaze long into an abyss, the abyss also gazes into you.",
+    "speaker": "Friedrich Nietzsche",
+    "source": "Beyond Good and Evil",
+    "theme": "Depth"
+  },
+  {
+    "id": "011",
+    "text": "Without music, life would be a mistake.",
+    "speaker": "Friedrich Nietzsche",
+    "source": "Twilight of the Idols",
+    "theme": "Music"
+  },
+  {
+    "id": "012",
+    "text": "My formula for greatness is amor fati: that one wants nothing to be different.",
+    "speaker": "Friedrich Nietzsche",
+    "source": "Ecce Homo",
+    "theme": "Amor fati"
+  },
+  {
+    "id": "013",
+    "text": "The secret of the greatest fruitfulness and greatest enjoyment from life is to live dangerously.",
+    "speaker": "Friedrich Nietzsche",
+    "source": "The Gay Science",
+    "theme": "Danger"
+  },
+  {
+    "id": "014",
+    "text": "The discipline of suffering has created great enhancement in humanity.",
+    "speaker": "Friedrich Nietzsche",
+    "source": "Beyond Good and Evil",
+    "theme": "Suffering"
+  },
+  {
+    "id": "015",
+    "text": "What if this life had to be lived again, endlessly?",
+    "speaker": "Friedrich Nietzsche",
+    "source": "The Gay Science",
+    "theme": "Eternal recurrence"
+  },
+  {
+    "id": "016",
+    "text": "That which is done out of love always takes place beyond good and evil.",
+    "speaker": "Friedrich Nietzsche",
+    "source": "Beyond Good and Evil",
+    "theme": "Love"
+  },
+  {
+    "id": "017",
+    "text": "He who cannot obey himself will be commanded.",
+    "speaker": "Friedrich Nietzsche",
+    "source": "Thus Spoke Zarathustra",
+    "theme": "Independence"
+  },
+  {
+    "id": "018",
+    "text": "To own yourself is harder than to criticize the world.",
+    "speaker": "Friedrich Nietzsche",
+    "source": "Nietzschean theme",
+    "theme": "Freedom"
+  },
+  {
+    "id": "019",
+    "text": "The individual must struggle not to be swallowed by the collective.",
+    "speaker": "Friedrich Nietzsche",
+    "source": "Nietzschean theme",
+    "theme": "Individuality"
+  },
+  {
+    "id": "020",
+    "text": "A person should become the creator of their values, not merely inherit them.",
+    "speaker": "Friedrich Nietzsche",
+    "source": "Nietzschean theme",
+    "theme": "Self-creation"
+  },
+  {
+    "id": "021",
+    "text": "One must learn to love oneself with a healthy love.",
+    "speaker": "Friedrich Nietzsche",
+    "source": "Thus Spoke Zarathustra",
+    "theme": "Life"
+  },
+  {
+    "id": "022",
+    "text": "In solitude the solitary devours himself; in a crowd he is devoured by many.",
+    "speaker": "Friedrich Nietzsche",
+    "source": "Daybreak / related formulation",
+    "theme": "Solitude"
+  },
+  {
+    "id": "023",
+    "text": "Higher people continually create themselves through overcoming.",
+    "speaker": "Friedrich Nietzsche",
+    "source": "Nietzschean theme",
+    "theme": "Ambition"
+  },
+  {
+    "id": "024",
+    "text": "The herd has its values; the creator must choose their own.",
+    "speaker": "Friedrich Nietzsche",
+    "source": "Nietzschean theme",
+    "theme": "Conformity"
+  },
+  {
+    "id": "025",
+    "text": "Man is something that shall be overcome.",
+    "speaker": "Friedrich Nietzsche",
+    "source": "Thus Spoke Zarathustra",
+    "theme": "Identity"
+  },
+  {
+    "id": "026",
+    "text": "The higher we soar, the smaller we appear to those who cannot fly.",
+    "speaker": "Friedrich Nietzsche",
+    "source": "Beyond Good and Evil",
+    "theme": "Courage"
+  },
+  {
+    "id": "027",
+    "text": "The tree that would grow to heaven must send its roots to hell.",
+    "speaker": "Friedrich Nietzsche",
+    "source": "Commonly attributed Nietzschean saying",
+    "theme": "Growth"
+  },
+  {
+    "id": "028",
+    "text": "The worst enemy you can meet will always be yourself.",
+    "speaker": "Friedrich Nietzsche",
+    "source": "Nietzschean theme",
+    "theme": "Self-knowledge"
+  },
+  {
+    "id": "029",
+    "text": "A higher type of person turns strength into creation instead of domination.",
+    "speaker": "Friedrich Nietzsche",
+    "source": "Nietzschean theme",
+    "theme": "Power"
+  },
+  {
+    "id": "030",
+    "text": "Revaluation begins when inherited values are examined rather than obeyed automatically.",
+    "speaker": "Friedrich Nietzsche",
+    "source": "Nietzschean theme",
+    "theme": "Values"
+  },
+  {
+    "id": "031",
+    "text": "Hope is in truth the worst of evils because it prolongs the torments of man.",
+    "speaker": "Friedrich Nietzsche",
+    "source": "Human, All Too Human / related",
+    "theme": "Hope"
+  },
+  {
+    "id": "032",
+    "text": "One should have chaos in oneself to create something alive.",
+    "speaker": "Friedrich Nietzsche",
+    "source": "Thus Spoke Zarathustra",
+    "theme": "Beauty"
+  },
+  {
+    "id": "033",
+    "text": "The desire to know can become stronger than the desire to be comfortable.",
+    "speaker": "Friedrich Nietzsche",
+    "source": "Nietzschean theme",
+    "theme": "Knowledge"
+  },
+  {
+    "id": "034",
+    "text": "Pity can preserve weakness when what is needed is transformation.",
+    "speaker": "Friedrich Nietzsche",
+    "source": "Nietzschean theme",
+    "theme": "Pity"
+  },
+  {
+    "id": "035",
+    "text": "The higher person seeks companions who challenge growth, not followers who only agree.",
+    "speaker": "Friedrich Nietzsche",
+    "source": "Thus Spoke Zarathustra",
+    "theme": "Friendship"
+  },
+  {
+    "id": "036",
+    "text": "The creator seeks companions, not believers.",
+    "speaker": "Friedrich Nietzsche",
+    "source": "Thus Spoke Zarathustra",
+    "theme": "Leadership"
+  },
+  {
+    "id": "037",
+    "text": "A fall can become useful when it reveals what still needs to be overcome.",
+    "speaker": "Friedrich Nietzsche",
+    "source": "Nietzschean theme",
+    "theme": "Failure"
+  },
+  {
+    "id": "038",
+    "text": "Greatness requires the strength to impose form on chaotic impulses.",
+    "speaker": "Friedrich Nietzsche",
+    "source": "Nietzschean theme",
+    "theme": "Discipline"
+  },
+  {
+    "id": "039",
+    "text": "Say yes to life even when it contains suffering and uncertainty.",
+    "speaker": "Friedrich Nietzsche",
+    "source": "Nietzschean theme",
+    "theme": "Life-affirmation"
+  },
+  {
+    "id": "040",
+    "text": "The price of independence is learning to stand alone.",
+    "speaker": "Friedrich Nietzsche",
+    "source": "Nietzschean theme",
+    "theme": "Freedom"
+  },
+  {
+    "id": "041",
+    "text": "Courage is willingness to face what threatens your inherited identity.",
+    "speaker": "Friedrich Nietzsche",
+    "source": "Nietzschean theme",
+    "theme": "Fear"
+  },
+  {
+    "id": "042",
+    "text": "Meaning is something a person creates through chosen values.",
+    "speaker": "Friedrich Nietzsche",
+    "source": "Nietzschean theme",
+    "theme": "Meaning"
+  },
+  {
+    "id": "043",
+    "text": "Do not stop at becoming good at what you already are; become someone stronger.",
+    "speaker": "Friedrich Nietzsche",
+    "source": "Nietzschean theme",
+    "theme": "Self-overcoming"
+  },
+  {
+    "id": "044",
+    "text": "A person should be suspicious of the need to be admired.",
+    "speaker": "Friedrich Nietzsche",
+    "source": "Nietzschean theme",
+    "theme": "Ego"
+  },
+  {
+    "id": "045",
+    "text": "The interpretation you live by can transform what a fact means to you.",
+    "speaker": "Friedrich Nietzsche",
+    "source": "Nietzschean theme",
+    "theme": "Perspective"
+  },
+  {
+    "id": "046",
+    "text": "Suffering can become formative when it is given a purpose instead of merely endured.",
+    "speaker": "Friedrich Nietzsche",
+    "source": "Nietzschean theme",
+    "theme": "Suffering"
+  },
+  {
+    "id": "047",
+    "text": "The highest joy can contain the acceptance of difficulty rather than escape from it.",
+    "speaker": "Friedrich Nietzsche",
+    "source": "Nietzschean theme",
+    "theme": "Joy"
+  },
+  {
+    "id": "048",
+    "text": "Honesty requires the courage to examine the values by which you judge yourself.",
+    "speaker": "Friedrich Nietzsche",
+    "source": "Nietzschean theme",
+    "theme": "Truth / Courage"
+  },
+  {
+    "id": "049",
+    "text": "The strongest person is not necessarily the one who controls others, but the one who can command themselves.",
+    "speaker": "Friedrich Nietzsche",
+    "source": "Nietzschean theme",
+    "theme": "Power"
+  },
+  {
+    "id": "050",
+    "text": "Do not become a copy of the crowd merely because the crowd is safer.",
+    "speaker": "Friedrich Nietzsche",
+    "source": "Nietzschean theme",
+    "theme": "Individuality"
+  },
+  {
+    "id": "051",
+    "text": "A higher life is measured by what it creates, not only by what it rejects.",
+    "speaker": "Friedrich Nietzsche",
+    "source": "Nietzschean theme",
+    "theme": "Creation"
+  },
+  {
+    "id": "052",
+    "text": "A culture becomes stronger when it produces people capable of independent thought.",
+    "speaker": "Friedrich Nietzsche",
+    "source": "Nietzschean theme",
+    "theme": "Culture"
+  },
+  {
+    "id": "053",
+    "text": "Eternal recurrence asks whether you could honestly say yes to your life as it is.",
+    "speaker": "Friedrich Nietzsche",
+    "source": "The Gay Science",
+    "theme": "Time"
+  },
+  {
+    "id": "054",
+    "text": "Want nothing to be different—this is the deepest form of amor fati.",
+    "speaker": "Friedrich Nietzsche",
+    "source": "Ecce Homo",
+    "theme": "Acceptance"
+  },
+  {
+    "id": "055",
+    "text": "Become worthy of the future you claim to want.",
+    "speaker": "Friedrich Nietzsche",
+    "source": "Nietzschean theme",
+    "theme": "Ambition"
+  },
+  {
+    "id": "056",
+    "text": "No one can create your values for you without also limiting your freedom.",
+    "speaker": "Friedrich Nietzsche",
+    "source": "Nietzschean theme",
+    "theme": "Self-responsibility"
+  },
+  {
+    "id": "057",
+    "text": "Maturity is learning to carry contradiction without immediately escaping into certainty.",
+    "speaker": "Friedrich Nietzsche",
+    "source": "Nietzschean theme",
+    "theme": "Maturity"
+  },
+  {
+    "id": "058",
+    "text": "The higher standard is not comfort but continual self-overcoming.",
+    "speaker": "Friedrich Nietzsche",
+    "source": "Nietzschean theme",
+    "theme": "Excellence"
+  },
+  {
+    "id": "059",
+    "text": "Freedom is not the absence of constraint; it is the capacity to command yourself.",
+    "speaker": "Friedrich Nietzsche",
+    "source": "Nietzschean theme",
+    "theme": "Freedom"
+  },
+  {
+    "id": "060",
+    "text": "Do not ask only whether life is fair; ask what you can create from what life gives you.",
+    "speaker": "Friedrich Nietzsche",
+    "source": "Nietzschean theme",
+    "theme": "Life"
+  },
+  {
+    "id": "001",
+    "text": "The unexamined life is not worth living.",
+    "speaker": "Socrates",
+    "source": "Apology",
+    "theme": "Self-knowledge"
+  },
+  {
+    "id": "002",
+    "text": "I know that I know nothing.",
+    "speaker": "Socrates",
+    "source": "Socratic tradition",
+    "theme": "Ignorance"
+  },
+  {
+    "id": "003",
+    "text": "The way to gain a good reputation is to endeavor to be what you desire to appear.",
+    "speaker": "Socrates",
+    "source": "Socratic tradition",
+    "theme": "Character"
+  },
+  {
+    "id": "004",
+    "text": "Justice means each part doing its own work and not interfering with the work of another.",
+    "speaker": "Plato",
+    "source": "Republic",
+    "theme": "Justice"
+  },
+  {
+    "id": "005",
+    "text": "Education is the turning of the soul toward the good.",
+    "speaker": "Plato",
+    "source": "Republic",
+    "theme": "Education"
+  },
+  {
+    "id": "006",
+    "text": "The tyrant is enslaved to his own desires.",
+    "speaker": "Plato",
+    "source": "Republic",
+    "theme": "Desire"
+  },
+  {
+    "id": "007",
+    "text": "Opinion is the medium between knowledge and ignorance.",
+    "speaker": "Plato",
+    "source": "Republic",
+    "theme": "Knowledge"
+  },
+  {
+    "id": "008",
+    "text": "The best rulers are those who do not seek power for themselves.",
+    "speaker": "Plato",
+    "source": "Republic",
+    "theme": "Leadership"
+  },
+  {
+    "id": "009",
+    "text": "The greatest harm can be done to the soul by injustice.",
+    "speaker": "Plato",
+    "source": "Republic",
+    "theme": "Soul"
+  },
+  {
+    "id": "010",
+    "text": "The disciplined soul is ordered; the undisciplined soul is ruled by appetite.",
+    "speaker": "Plato",
+    "source": "Republic",
+    "theme": "Discipline"
+  },
+  {
+    "id": "011",
+    "text": "Justice is better for the soul than injustice, even when injustice appears profitable.",
+    "speaker": "Plato",
+    "source": "Republic",
+    "theme": "Character"
+  },
+  {
+    "id": "012",
+    "text": "Courage includes knowing what should and should not be feared.",
+    "speaker": "Plato",
+    "source": "Republic",
+    "theme": "Courage"
+  },
+  {
+    "id": "013",
+    "text": "Happiness depends upon ourselves.",
+    "speaker": "Aristotle",
+    "source": "Nicomachean Ethics",
+    "theme": "Happiness"
+  },
+  {
+    "id": "014",
+    "text": "Moral excellence comes from habit.",
+    "speaker": "Aristotle",
+    "source": "Nicomachean Ethics",
+    "theme": "Habit"
+  },
+  {
+    "id": "015",
+    "text": "The good of man is an activity of the soul in accordance with virtue.",
+    "speaker": "Aristotle",
+    "source": "Nicomachean Ethics",
+    "theme": "Virtue"
+  },
+  {
+    "id": "016",
+    "text": "Without friends no one would choose to live, though he had all other goods.",
+    "speaker": "Aristotle",
+    "source": "Nicomachean Ethics",
+    "theme": "Friendship"
+  },
+  {
+    "id": "017",
+    "text": "Courage is a mean between fear and confidence.",
+    "speaker": "Aristotle",
+    "source": "Nicomachean Ethics",
+    "theme": "Courage"
+  },
+  {
+    "id": "018",
+    "text": "Justice is complete virtue in relation to another.",
+    "speaker": "Aristotle",
+    "source": "Nicomachean Ethics",
+    "theme": "Justice"
+  },
+  {
+    "id": "019",
+    "text": "Every art and every inquiry aims at some good.",
+    "speaker": "Aristotle",
+    "source": "Nicomachean Ethics",
+    "theme": "Purpose"
+  },
+  {
+    "id": "020",
+    "text": "Knowing what is good is incomplete until it becomes action.",
+    "speaker": "Aristotle",
+    "source": "Nicomachean Ethics",
+    "theme": "Action"
+  },
+  {
+    "id": "021",
+    "text": "The self-controlled person follows reason even when appetite pulls the other way.",
+    "speaker": "Aristotle",
+    "source": "Nicomachean Ethics",
+    "theme": "Self-control"
+  },
+  {
+    "id": "022",
+    "text": "No man ever steps in the same river twice.",
+    "speaker": "Heraclitus",
+    "source": "Fragments",
+    "theme": "Change"
+  },
+  {
+    "id": "023",
+    "text": "Opposition brings concord; out of discord comes the fairest harmony.",
+    "speaker": "Heraclitus",
+    "source": "Fragments",
+    "theme": "Harmony"
+  },
+  {
+    "id": "024",
+    "text": "Character is destiny.",
+    "speaker": "Heraclitus",
+    "source": "Fragments",
+    "theme": "Character"
+  },
+  {
+    "id": "025",
+    "text": "Although the Logos is common, most people live as though they had private understanding.",
+    "speaker": "Heraclitus",
+    "source": "Fragments",
+    "theme": "Reason"
+  },
+  {
+    "id": "026",
+    "text": "All things are in flux.",
+    "speaker": "Heraclitus",
+    "source": "Fragments / traditional summary",
+    "theme": "Change"
+  },
+  {
+    "id": "027",
+    "text": "Death is nothing to us. When we exist, death is not present; when death is present, we do not exist.",
+    "speaker": "Epicurus",
+    "source": "Letter to Menoeceus",
+    "theme": "Death"
+  },
+  {
+    "id": "028",
+    "text": "Of all the things which wisdom provides for the happiness of the whole life, friendship is the greatest.",
+    "speaker": "Epicurus",
+    "source": "Vatican Sayings",
+    "theme": "Friendship"
+  },
+  {
+    "id": "029",
+    "text": "The wealth required by nature is limited and easy to obtain; vanity has no limit.",
+    "speaker": "Epicurus",
+    "source": "Vatican Sayings",
+    "theme": "Simplicity"
+  },
+  {
+    "id": "030",
+    "text": "The greatest fruit of self-sufficiency is freedom.",
+    "speaker": "Epicurus",
+    "source": "Letters",
+    "theme": "Freedom"
+  },
+  {
+    "id": "031",
+    "text": "Do not spoil what you have by desiring what you have not.",
+    "speaker": "Epicurus",
+    "source": "Traditional rendering",
+    "theme": "Desire"
+  },
+  {
+    "id": "032",
+    "text": "He has the most who is content with the least.",
+    "speaker": "Diogenes",
+    "source": "Cynic tradition",
+    "theme": "Freedom"
+  },
+  {
+    "id": "034",
+    "text": "The first duty of a human being is seeking and investigating truth.",
+    "speaker": "Cicero",
+    "source": "On Duties",
+    "theme": "Truth"
+  },
+  {
+    "id": "035",
+    "text": "Friendship can exist only between good people.",
+    "speaker": "Cicero",
+    "source": "On Friendship",
+    "theme": "Friendship"
+  },
+  {
+    "id": "036",
+    "text": "Justice is the foundation of enduring communities.",
+    "speaker": "Cicero",
+    "source": "On Duties",
+    "theme": "Justice"
+  },
+  {
+    "id": "037",
+    "text": "To practice death is to practice freedom.",
+    "speaker": "Montaigne",
+    "source": "Essays",
+    "theme": "Freedom"
+  },
+  {
+    "id": "038",
+    "text": "The greatest thing in the world is to know how to belong to oneself.",
+    "speaker": "Montaigne",
+    "source": "Essays",
+    "theme": "Self-knowledge"
+  },
+  {
+    "id": "039",
+    "text": "My life has been filled with terrible misfortune, most of which never happened.",
+    "speaker": "Montaigne",
+    "source": "Commonly attributed",
+    "theme": "Perspective"
+  },
+  {
+    "id": "040",
+    "text": "We run heedlessly into the abyss after putting something in front of us to stop us from seeing it.",
+    "speaker": "Pascal",
+    "source": "Pensées",
+    "theme": "Distraction"
+  },
+  {
+    "id": "041",
+    "text": "All of humanity’s problems stem from man’s inability to sit quietly in a room alone.",
+    "speaker": "Pascal",
+    "source": "Pensées / commonly rendered",
+    "theme": "Solitude"
+  },
+  {
+    "id": "042",
+    "text": "The free person thinks of nothing less than death; their wisdom is a meditation upon life.",
+    "speaker": "Spinoza",
+    "source": "Ethics",
+    "theme": "Freedom"
+  },
+  {
+    "id": "043",
+    "text": "An emotion ceases to be a passion when we form a clear and distinct idea of it.",
+    "speaker": "Spinoza",
+    "source": "Ethics",
+    "theme": "Emotion"
+  },
+  {
+    "id": "044",
+    "text": "Peace is not absence of war; it is a virtue born of strength of mind.",
+    "speaker": "Spinoza",
+    "source": "Political Treatise / thematic rendering",
+    "theme": "Power"
+  },
+  {
+    "id": "045",
+    "text": "Choose rather to be strong in character than rich in wealth.",
+    "speaker": "Pythagoras",
+    "source": "Pythagorean tradition",
+    "theme": "Character"
+  },
+  {
+    "id": "046",
+    "text": "Be silent or let your words be worth more than silence.",
+    "speaker": "Pythagoras",
+    "source": "Pythagorean tradition",
+    "theme": "Silence"
+  },
+  {
+    "id": "047",
+    "text": "As soon as laws are necessary for people, they are no longer fit for absolute freedom.",
+    "speaker": "Pythagoras",
+    "source": "Pythagorean tradition",
+    "theme": "Discipline"
+  },
+  {
+    "id": "048",
+    "text": "We have two ears and one mouth so that we can listen twice as much as we speak.",
+    "speaker": "Zeno",
+    "source": "Stoic tradition, commonly attributed",
+    "theme": "Resilience"
+  },
+  {
+    "id": "049",
+    "text": "The happiness of a free person depends on what is under their control.",
+    "speaker": "Zeno",
+    "source": "Stoic tradition",
+    "theme": "Control"
+  },
+  {
+    "id": "050",
+    "text": "Happiness does not reside in possessions or gold; it resides in the soul.",
+    "speaker": "Democritus",
+    "source": "Fragments",
+    "theme": "Contentment"
   }
 ];
