@@ -43,7 +43,7 @@ import SelfTab           from './components/SelfTab.jsx';
 const TABS = [
   { id: 'daily',      label: 'Today'    },
   { id: 'stats',      label: 'Stats'    },
-  { id: 'self',       label: 'Self'     },
+  { id: 'self',       label: 'Profile'  },
   { id: 'goals',      label: 'Goals'    },
   { id: 'milestones', label: 'Timeline' },
   { id: 'calendar',   label: 'Calendar' },
