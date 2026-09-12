@@ -28,9 +28,7 @@ import { registerBackHandler, setupStatusBar } from './native/backButton.js';
 // ── Components ────────────────────────────────────────────────────────────────
 import TodayTab      from './components/TodayTab.jsx';
 import GoalsTab      from './components/GoalsTab.jsx';
-import MilestonesTab from './components/MilestonesTab.jsx';
 
-import CalendarTab from './components/CalendarTab.jsx';
 import ReviewPrompt from './components/ReviewPrompt.jsx';
 import SettingsTab   from './components/SettingsTab.jsx';
 import NavDrawer     from './components/NavDrawer.jsx';
@@ -162,6 +160,10 @@ export default function App() {
         await initAxisConfigs();
         await initQuestBoard();
 
+        // Phase 16: Habit occurrence auto-generation
+        const { generateOccurrencesForDate } = await import('./core/occurrenceEngine.js');
+        await generateOccurrencesForDate(localDateStr());
+
         const [goals, milestones, darkPref, savedReminders, allLogs, axisConfigs, quests, facts] =
           await Promise.all([
             getAllGoals(),
@@ -201,6 +203,21 @@ export default function App() {
         setLifeGoals(goals);
         setMilestoneChecks(milestones);
         setAllQuests(syncedQuests);
+
+        // Load today's occurrences
+        const { getOccurrencesByDateRange } = await import('./database/habitOccurrenceRepository.js');
+        const { getHabit } = await import('./database/habitRepository.js');
+        const todayStr = localDateStr();
+        const occs = await getOccurrencesByDateRange(todayStr, todayStr);
+        
+        // Enrich occurrences with habit titles
+        const enrichedOccs = await Promise.all(occs.map(async (o) => {
+          const h = await getHabit(o.habitId);
+          return { ...o, habitTitle: h ? h.name : 'Unknown Habit' };
+        }));
+        
+        setTodayOccurrences(enrichedOccs);
+
         if (darkPref === 'true') setDark(true);
         if (savedReminders?.length) {
           setReminders(savedReminders);
@@ -676,31 +693,9 @@ export default function App() {
               <GoalsTab
                 t={t}
                 dark={dark}
-                goalChecks={goalChecks}
-                onToggle={handleGoalToggle}
-                expanded={expanded}
-                setExpanded={setExpanded}
-              />
-            )}
-
-            {tab === 'milestones' && (
-              <MilestonesTab
-                t={t}
-                milestoneChecks={milestoneChecks}
-                onToggle={handleMilestoneToggle}
+                allQuests={allQuests}
                 allLogs={allLogs}
               />
-            )}
-
-            {tab === 'calendar' && (
-              <CalendarTab
-                t={t}
-                allLogs={allLogs}
-              />
-            )}
-
-            {tab === 'self' && (
-              <SelfTab t={t} dark={dark} />
             )}
 
             {/* Phase 7: Learn tab */}

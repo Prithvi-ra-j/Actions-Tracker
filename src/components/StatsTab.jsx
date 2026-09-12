@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useState, useEffect } from 'react';
 import { ACCENT } from '../constants.js';
 import { getThresholdTitle } from '../helpers/statsEngine.js';
 import RadarChart from './RadarChart.jsx';
@@ -14,13 +14,15 @@ import StatHistoryModal from './StatHistoryModal.jsx';
  */
 
 // Architectural domains mapped to stats engine keys
+import { COLORS } from '../theme.js';
+
 const AXES = [
-  { key: 'strength',   label: 'Body',       color: '#c1442c' },
-  { key: 'discipline', label: 'Discipline', color: '#c1442c' },
-  { key: 'knowledge',  label: 'Knowledge',  color: '#4a7ba6' },
-  { key: 'wisdom',     label: 'Philosophy', color: '#4a7ba6' },
-  { key: 'creativity', label: 'Creativity', color: '#d99a2b' },
-  { key: 'strategy',   label: 'Strategy',   color: '#4f8a5f' },
+  { key: 'strength',   label: 'Body',       color: COLORS.domains.body },
+  { key: 'discipline', label: 'Discipline', color: COLORS.domains.discipline },
+  { key: 'knowledge',  label: 'Knowledge',  color: COLORS.domains.knowledge },
+  { key: 'wisdom',     label: 'Philosophy', color: COLORS.domains.philosophy },
+  { key: 'creativity', label: 'Creativity', color: COLORS.domains.creativity },
+  { key: 'strategy',   label: 'Strategy',   color: COLORS.domains.strategy },
 ];
 
 function MiniBar({ value, max = 100, color, dark }) {
@@ -93,6 +95,18 @@ export default function StatsTab({
     }));
   }, [stats]);
 
+  // Load Historical Snapshots for Trends
+  const [snapshots, setSnapshots] = useState([]);
+  useEffect(() => {
+    async function loadSnapshots() {
+      const { getAllSnapshots } = await import('../database/statSnapshotsRepository.js');
+      const snaps = await getAllSnapshots();
+      // Sort descending by date
+      setSnapshots(snaps.sort((a, b) => b.date.localeCompare(a.date)).slice(0, 10)); 
+    }
+    loadSnapshots();
+  }, []);
+
   const latestStatsDate = snapshot?.date ? new Date(snapshot.date).toLocaleDateString() : 'Live';
 
   return (
@@ -141,6 +155,39 @@ export default function StatsTab({
         <div style={{ fontFamily: 'monospace', fontSize: '0.6rem', color: t.muted, marginTop: '1rem', textAlign: 'center' }}>
           C: Consistency (Volume), V: Value (Quests/Milestones), M: Momentum (Recency)
         </div>
+      </div>
+
+      {/* Discipline Trends */}
+      <div>
+        <div style={{ fontFamily: 'monospace', fontSize: '0.65rem', letterSpacing: '0.1em', color: t.muted, textTransform: 'uppercase', marginBottom: '1rem' }}>
+          Discipline Trends
+        </div>
+        {snapshots.length === 0 ? (
+          <div style={{ fontSize: '0.85rem', color: t.muted, fontStyle: 'italic' }}>
+            Not enough historical data yet. Check back next week.
+          </div>
+        ) : (
+          <div style={{ border: `1px solid ${t.border}`, background: t.subtleBg, padding: '1.25rem' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+              {snapshots.map(snap => (
+                <div key={snap.date} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <div style={{ fontFamily: 'monospace', fontSize: '0.75rem', color: t.pageText }}>
+                    {snap.date}
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                    <div style={{ fontFamily: 'monospace', fontSize: '0.75rem', color: COLORS.domains.discipline }}>
+                      {Math.round(snap.stats.discipline || 0)} score
+                    </div>
+                    {/* Visual bar */}
+                    <div style={{ width: 100, height: 4, background: dark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)', borderRadius: 2 }}>
+                      <div style={{ height: '100%', width: `${Math.round(snap.stats.discipline || 0)}%`, background: COLORS.domains.discipline, borderRadius: 2 }} />
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
 
       {selectedAxis && (

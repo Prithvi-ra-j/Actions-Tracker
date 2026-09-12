@@ -1,0 +1,103 @@
+import { getAllHabits } from '../database/habitRepository.js';
+import { addOccurrence, getOccurrencesByDateRange, updateOccurrence } from '../database/habitOccurrenceRepository.js';
+import { localDateStr } from '../helpers/dateHelpers.js';
+import { addLog } from '../database/logsRepository.js';
+
+/**
+ * Sweeps the database for past 'expected' occurrences and marks them as 'missed'.
+ * This penalizes the discipline score, fulfilling architecture section 7 and 34.
+ */
+async function evaluatePastOccurrences(currentDateStr) {
+  try {
+    // Let's just look at the last 7 days for efficiency
+    const d = new Date(currentDateStr);
+    d.setDate(d.getDate() - 7);
+    const startStr = d.toISOString().split('T')[0];
+
+    const pastOccurrences = await getOccurrencesByDateRange(startStr, currentDateStr);
+    let missedCount = 0;
+
+    for (const occ of pastOccurrences) {
+      if (occ.scheduledFor < currentDateStr && occ.status === 'expected') {
+        // It's in the past and still 'expected' -> Mark as missed
+        await updateOccurrence(occ.id, { status: 'missed' });
+        
+        // Log a discipline penalty explicitly
+        await addLog({
+          axis: 'discipline',
+          type: 'habit_missed',
+          value: -1,
+          date: occ.scheduledFor,
+          meta: { habitId: occ.habitId }
+        });
+        
+        missedCount++;
+      }
+    }
+    
+    if (missedCount > 0) {
+      console.log(`[occurrenceEngine] Evaluated ${missedCount} past occurrences as missed.`);
+    }
+  } catch (err) {
+    console.error('[occurrenceEngine] Failed to evaluate past occurrences:', err);
+  }
+}
+
+/**
+ * Evaluates active habits and generates 'expected' occurrences for the given day.
+ * Idempotent: running multiple times for the same day will not create duplicates.
+ * 
+ * @param {string} dateStr - 'YYYY-MM-DD'
+ */
+export async function generateOccurrencesForDate(dateStr = localDateStr()) {
+  try {
+    // First, sweep for missed habits from yesterday
+    await evaluatePastOccurrences(dateStr);
+
+    const habits = await getAllHabits();
+    const activeHabits = habits.filter(h => h.status === 'active');
+
+    // Get existing occurrences for today to prevent duplicates
+    const existingOccurrences = await getOccurrencesByDateRange(dateStr, dateStr);
+    const existingHabitIds = new Set(existingOccurrences.map(o => o.habitId));
+
+    const dateObj = new Date(dateStr);
+    const dayOfWeek = dateObj.getDay(); // 0 = Sun, 1 = Mon, ..., 6 = Sat
+
+    let generatedCount = 0;
+
+    for (const habit of activeHabits) {
+      if (existingHabitIds.has(habit.id)) {
+        continue; // Already scheduled
+      }
+
+      const freq = habit.frequency || { type: 'daily' };
+      let isDue = false;
+
+      if (freq.type === 'daily') {
+        isDue = true;
+      } else if (freq.type === 'weekly' && Array.isArray(freq.days)) {
+        // days is an array of integers 0-6
+        isDue = freq.days.includes(dayOfWeek);
+      } else {
+        // Fallback for custom or missing
+        isDue = true; 
+      }
+
+      if (isDue) {
+        await addOccurrence({
+          habitId: habit.id,
+          scheduledFor: dateStr,
+          status: 'expected',
+        });
+        generatedCount++;
+      }
+    }
+
+    console.log(`[occurrenceEngine] Generated ${generatedCount} occurrences for ${dateStr}`);
+    return generatedCount;
+  } catch (err) {
+    console.error('[occurrenceEngine] Failed to generate occurrences:', err);
+    throw err;
+  }
+}

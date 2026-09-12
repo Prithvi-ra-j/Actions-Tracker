@@ -36,9 +36,17 @@ async function runScheduledAnalysis() {
       
       await setSetting('lastDailyAnalysisDate', today);
     } catch (err) {
-      // If the model fails or API key is not set, we don't throw to crash the app,
-      // we just skip and let it try again later.
       console.error('[AnalysisScheduler] Daily analysis failed:', err);
+      // §115 Recovery Strategy: Log failure explicitly, do not overwrite valid state.
+      const { addLog } = await import('../../database/logsRepository.js');
+      await addLog({
+        axis: 'system',
+        type: 'analysis_failure',
+        value: 1,
+        date: today,
+        meta: { error: err.message || 'Unknown LLM failure' }
+      });
+      // We do NOT set lastDailyAnalysisDate, meaning it will naturally retry on next boot.
     }
   }
 

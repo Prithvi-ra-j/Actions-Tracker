@@ -108,7 +108,7 @@ export async function resumeHabit(id) {
 // ─── Read ──────────────────────────────────────────────────────────────────────
 
 /**
- * Returns a single habit by ID, or null if not found.
+ * Gets a single habit by ID.
  * @param {string} id
  * @returns {Promise<object|null>}
  */
@@ -117,7 +117,7 @@ export async function getHabit(id) {
 }
 
 /**
- * Returns all habits (all statuses).
+ * Gets all habits.
  * @returns {Promise<object[]>}
  */
 export async function getAllHabits() {
