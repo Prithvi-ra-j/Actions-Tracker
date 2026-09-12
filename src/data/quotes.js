@@ -2398,5 +2398,485 @@ export const GITA_QUOTES = [
     "source": "Mahabharata",
     "reference": "Santi Parva, Section 85",
     "theme": "Leadership / Equality"
+  },
+  {
+    "id": "001",
+    "text": "Who is a person who is virtuous, brave, truthful, grateful, self-controlled, learned, compassionate and firm in their vows?",
+    "speaker": "Valmiki",
+    "source": "Valmiki Ramayana",
+    "reference": "Bala Kanda 1.1",
+    "theme": "Virtue / Character"
+  },
+  {
+    "id": "002",
+    "text": "As long as mountains and rivers remain on earth, the story of Rama will continue to be remembered.",
+    "speaker": "Brahma",
+    "source": "Valmiki Ramayana",
+    "reference": "Bala Kanda 1.3",
+    "theme": "Literature / Truth"
+  },
+  {
+    "id": "003",
+    "text": "The story of Rama is meant to preserve both the events themselves and the values shown by the people who lived them.",
+    "speaker": "Valmiki",
+    "source": "Valmiki Ramayana",
+    "reference": "Bala Kanda 1.4",
+    "theme": "Story / Memory"
+  },
+  {
+    "id": "004",
+    "text": "Ayodhya is described as a prosperous and well-protected city where people live with discipline, wealth and respect for one another.",
+    "speaker": "Valmiki",
+    "source": "Valmiki Ramayana",
+    "reference": "Bala Kanda 5",
+    "theme": "Ayodhya / Prosperity"
+  },
+  {
+    "id": "005",
+    "text": "Dasharatha rejoices when Rama is born and sees in his son the fulfillment of his deepest hopes.",
+    "speaker": "Dasharatha",
+    "source": "Valmiki Ramayana",
+    "reference": "Bala Kanda 18",
+    "theme": "Fatherhood / Love"
+  },
+  {
+    "id": "006",
+    "text": "When the sage asks for his help, Rama is ready to protect the sacrifice even though the task is dangerous.",
+    "speaker": "Rama",
+    "source": "Valmiki Ramayana",
+    "reference": "Bala Kanda 19",
+    "theme": "Duty"
+  },
+  {
+    "id": "007",
+    "text": "A person who wants to face powerful enemies must develop discipline, knowledge and control rather than relying only on strength.",
+    "speaker": "Vishvamitra",
+    "source": "Valmiki Ramayana",
+    "reference": "Bala Kanda 21",
+    "theme": "Discipline"
+  },
+  {
+    "id": "008",
+    "text": "True strength is not merely the ability to destroy; it also includes knowing when force is necessary and when it is not.",
+    "speaker": "Rama",
+    "source": "Valmiki Ramayana",
+    "reference": "Bala Kanda 25",
+    "theme": "Strength / Restraint"
+  },
+  {
+    "id": "009",
+    "text": "Fear should not stop a person from protecting what is right when they have the ability and duty to act.",
+    "speaker": "Vishvamitra",
+    "source": "Valmiki Ramayana",
+    "reference": "Bala Kanda 30",
+    "theme": "Courage"
+  },
+  {
+    "id": "010",
+    "text": "A person can possess great power and still remain respectful toward elders and teachers.",
+    "speaker": "Rama",
+    "source": "Valmiki Ramayana",
+    "reference": "Bala Kanda 51",
+    "theme": "Humility"
+  },
+  {
+    "id": "011",
+    "text": "Even when challenged by a fierce warrior, Rama does not lose control of his judgment or his respect.",
+    "speaker": "Rama",
+    "source": "Valmiki Ramayana",
+    "reference": "Bala Kanda 76",
+    "theme": "Self-control"
+  },
+  {
+    "id": "012",
+    "text": "If my father has given his word, I must protect that promise, even if it costs me comfort, power and the throne.",
+    "speaker": "Rama",
+    "source": "Valmiki Ramayana",
+    "reference": "Ayodhya Kanda 18",
+    "theme": "Duty / Sacrifice"
+  },
+  {
+    "id": "013",
+    "text": "I can leave the kingdom without resentment. My father's honor is more important to me than my own position.",
+    "speaker": "Rama",
+    "source": "Valmiki Ramayana",
+    "reference": "Ayodhya Kanda 20",
+    "theme": "Exile"
+  },
+  {
+    "id": "014",
+    "text": "Where you go, I will go. Your path is my path, and I do not want a life of comfort separated from you.",
+    "speaker": "Sita",
+    "source": "Valmiki Ramayana",
+    "reference": "Ayodhya Kanda 21",
+    "theme": "Loyalty"
+  },
+  {
+    "id": "015",
+    "text": "I will follow you into the forest because serving and protecting my brother matters more to me than comfort in the kingdom.",
+    "speaker": "Lakshmana",
+    "source": "Valmiki Ramayana",
+    "reference": "Ayodhya Kanda 24",
+    "theme": "Loyalty"
+  },
+  {
+    "id": "016",
+    "text": "A promise must be honored even when keeping it is painful, because a ruler's word becomes a responsibility to everyone.",
+    "speaker": "Rama",
+    "source": "Valmiki Ramayana",
+    "reference": "Ayodhya Kanda 25",
+    "theme": "Responsibility"
+  },
+  {
+    "id": "017",
+    "text": "Life in the forest may be difficult, but I would rather share hardship with you than enjoy comfort without you.",
+    "speaker": "Sita",
+    "source": "Valmiki Ramayana",
+    "reference": "Ayodhya Kanda 27",
+    "theme": "Courage"
+  },
+  {
+    "id": "018",
+    "text": "I do not want rewards or status. Let me serve you and make your difficult journey easier.",
+    "speaker": "Lakshmana",
+    "source": "Valmiki Ramayana",
+    "reference": "Ayodhya Kanda 31",
+    "theme": "Service"
+  },
+  {
+    "id": "019",
+    "text": "A desire can become destructive when a person becomes so attached to it that they stop seeing its consequences.",
+    "speaker": "Kaikeyi",
+    "source": "Valmiki Ramayana",
+    "reference": "Ayodhya Kanda 38",
+    "theme": "Desire / Consequences"
+  },
+  {
+    "id": "020",
+    "text": "I will go into exile without hatred, anger or revenge. A difficult duty does not become easier by becoming bitter.",
+    "speaker": "Rama",
+    "source": "Valmiki Ramayana",
+    "reference": "Ayodhya Kanda 46",
+    "theme": "Acceptance"
+  },
+  {
+    "id": "021",
+    "text": "Do not let grief destroy you. Remember that life changes, people separate and circumstances move beyond our control.",
+    "speaker": "Rama",
+    "source": "Valmiki Ramayana",
+    "reference": "Ayodhya Kanda 47",
+    "theme": "Compassion"
+  },
+  {
+    "id": "022",
+    "text": "I will not accept a kingdom gained through my mother's scheme if it violates what is right.",
+    "speaker": "Bharata",
+    "source": "Valmiki Ramayana",
+    "reference": "Ayodhya Kanda 56",
+    "theme": "Integrity"
+  },
+  {
+    "id": "023",
+    "text": "The throne belongs to Rama according to the rightful order. I will not take what should be his.",
+    "speaker": "Bharata",
+    "source": "Valmiki Ramayana",
+    "reference": "Ayodhya Kanda 73",
+    "theme": "Duty"
+  },
+  {
+    "id": "024",
+    "text": "A person should not enjoy a power that came through injustice, even when that power is offered to them.",
+    "speaker": "Bharata",
+    "source": "Valmiki Ramayana",
+    "reference": "Ayodhya Kanda 75",
+    "theme": "Humility"
+  },
+  {
+    "id": "025",
+    "text": "I will govern only as a caretaker for Rama, not as someone who believes the kingdom has become mine.",
+    "speaker": "Bharata",
+    "source": "Valmiki Ramayana",
+    "reference": "Ayodhya Kanda 90",
+    "theme": "Service"
+  },
+  {
+    "id": "026",
+    "text": "A ruler must protect the vulnerable, punish wrongdoing fairly, respect wise counsel and put the welfare of the people first.",
+    "speaker": "Rama",
+    "source": "Valmiki Ramayana",
+    "reference": "Ayodhya Kanda 112",
+    "theme": "Leadership"
+  },
+  {
+    "id": "027",
+    "text": "A person who has accepted the duty of protection cannot ignore those who depend on them.",
+    "speaker": "Rama",
+    "source": "Valmiki Ramayana",
+    "reference": "Aranya Kanda 10",
+    "theme": "Protection"
+  },
+  {
+    "id": "028",
+    "text": "Power must be used carefully; even a protector should examine whether violence is truly necessary.",
+    "speaker": "Sita",
+    "source": "Valmiki Ramayana",
+    "reference": "Aranya Kanda 10",
+    "theme": "Dharma / Nonviolence"
+  },
+  {
+    "id": "029",
+    "text": "Living simply does not mean abandoning duty. A person can remain disciplined and responsible anywhere.",
+    "speaker": "Rama",
+    "source": "Valmiki Ramayana",
+    "reference": "Aranya Kanda 16",
+    "theme": "Duty / Forest Life"
+  },
+  {
+    "id": "030",
+    "text": "Grief can overwhelm the mind, but a person must eventually recover enough clarity to act wisely.",
+    "speaker": "Rama",
+    "source": "Valmiki Ramayana",
+    "reference": "Aranya Kanda 30",
+    "theme": "Grief"
+  },
+  {
+    "id": "031",
+    "text": "Even after losing what I love, I will continue forward and do what must be done.",
+    "speaker": "Rama",
+    "source": "Valmiki Ramayana",
+    "reference": "Aranya Kanda 32",
+    "theme": "Resolve"
+  },
+  {
+    "id": "032",
+    "text": "The deepest bond is not created by luxury; it is built by remaining beside someone when life becomes difficult.",
+    "speaker": "Sita",
+    "source": "Valmiki Ramayana",
+    "reference": "Aranya Kanda 43",
+    "theme": "Trust / Love"
+  },
+  {
+    "id": "033",
+    "text": "Beautiful appearances can hide danger. A wise person should not let attraction destroy judgment.",
+    "speaker": "Rama",
+    "source": "Valmiki Ramayana",
+    "reference": "Aranya Kanda 45",
+    "theme": "Deception / Awareness"
+  },
+  {
+    "id": "034",
+    "text": "Uncontrolled desire can make a powerful person ignore warning signs, wise advice and the consequences of their own actions.",
+    "speaker": "Ravana",
+    "source": "Valmiki Ramayana",
+    "reference": "Aranya Kanda 47",
+    "theme": "Desire"
+  },
+  {
+    "id": "035",
+    "text": "Even when an enemy is stronger, it is worth risking oneself to defend a person who is being wronged.",
+    "speaker": "Jatayu",
+    "source": "Valmiki Ramayana",
+    "reference": "Aranya Kanda 56",
+    "theme": "Loyalty / Courage"
+  },
+  {
+    "id": "036",
+    "text": "A true friend is someone who remains loyal in danger and acts for your welfare without demanding repayment.",
+    "speaker": "Rama",
+    "source": "Valmiki Ramayana",
+    "reference": "Aranya Kanda 68",
+    "theme": "Friendship"
+  },
+  {
+    "id": "037",
+    "text": "Remember and honor those who help you when you are in your darkest moment.",
+    "speaker": "Rama",
+    "source": "Valmiki Ramayana",
+    "reference": "Aranya Kanda 68",
+    "theme": "Gratitude"
+  },
+  {
+    "id": "038",
+    "text": "A capable person should know how to speak according to the situation, audience and purpose.",
+    "speaker": "Hanuman",
+    "source": "Valmiki Ramayana",
+    "reference": "Kishkindha Kanda 4",
+    "theme": "Discrimination"
+  },
+  {
+    "id": "039",
+    "text": "A friendship becomes meaningful when both people openly share their burdens and make a commitment to help one another.",
+    "speaker": "Rama",
+    "source": "Valmiki Ramayana",
+    "reference": "Kishkindha Kanda 7",
+    "theme": "Friendship / Trust"
+  },
+  {
+    "id": "040",
+    "text": "Fear can make a person hide from responsibility, but support from a trustworthy ally can restore courage.",
+    "speaker": "Sugriva",
+    "source": "Valmiki Ramayana",
+    "reference": "Kishkindha Kanda 11",
+    "theme": "Fear / Action"
+  },
+  {
+    "id": "041",
+    "text": "A ruler has a responsibility to restrain destructive behavior even when the wrongdoer is powerful.",
+    "speaker": "Rama",
+    "source": "Valmiki Ramayana",
+    "reference": "Kishkindha Kanda 18",
+    "theme": "Leadership / Justice"
+  },
+  {
+    "id": "042",
+    "text": "When grief is overwhelming, the mind can become blind to reality; wisdom asks a person to accept what cannot be undone.",
+    "speaker": "Tara",
+    "source": "Valmiki Ramayana",
+    "reference": "Kishkindha Kanda 22",
+    "theme": "Grief / Wisdom"
+  },
+  {
+    "id": "043",
+    "text": "After receiving help, a person should repay it through action rather than allowing comfort to erase their obligation.",
+    "speaker": "Sugriva",
+    "source": "Valmiki Ramayana",
+    "reference": "Kishkindha Kanda 25",
+    "theme": "Responsibility"
+  },
+  {
+    "id": "044",
+    "text": "Even when disappointed by a friend, anger should be controlled long enough to judge the situation clearly.",
+    "speaker": "Rama",
+    "source": "Valmiki Ramayana",
+    "reference": "Kishkindha Kanda 34",
+    "theme": "Patience"
+  },
+  {
+    "id": "045",
+    "text": "A difficult search requires patience, teamwork and the refusal to give up when the first attempts fail.",
+    "speaker": "Hanuman",
+    "source": "Valmiki Ramayana",
+    "reference": "Kishkindha Kanda 40",
+    "theme": "Mission / Determination"
+  },
+  {
+    "id": "046",
+    "text": "A great task becomes possible when a person remembers their real strength and stops underestimating themselves.",
+    "speaker": "Hanuman",
+    "source": "Valmiki Ramayana",
+    "reference": "Sundara Kanda 1",
+    "theme": "Courage"
+  },
+  {
+    "id": "047",
+    "text": "Once the mission is clear, distractions should not be allowed to pull attention away from the goal.",
+    "speaker": "Hanuman",
+    "source": "Valmiki Ramayana",
+    "reference": "Sundara Kanda 4",
+    "theme": "Focus"
+  },
+  {
+    "id": "048",
+    "text": "Intelligence includes changing one's size, method and approach according to what the situation requires.",
+    "speaker": "Hanuman",
+    "source": "Valmiki Ramayana",
+    "reference": "Sundara Kanda 10",
+    "theme": "Adaptability"
+  },
+  {
+    "id": "049",
+    "text": "A person working in a hostile environment must know when to remain unseen and when to reveal themselves.",
+    "speaker": "Hanuman",
+    "source": "Valmiki Ramayana",
+    "reference": "Sundara Kanda 12",
+    "theme": "Discretion"
+  },
+  {
+    "id": "050",
+    "text": "Before acting, carefully inspect the environment and gather enough information to avoid a reckless mistake.",
+    "speaker": "Hanuman",
+    "source": "Valmiki Ramayana",
+    "reference": "Sundara Kanda 13",
+    "theme": "Observation"
+  },
+  {
+    "id": "051",
+    "text": "Even when surrounded by danger, hope can survive if a person remembers that help is still possible.",
+    "speaker": "Hanuman",
+    "source": "Valmiki Ramayana",
+    "reference": "Sundara Kanda 21",
+    "theme": "Hope"
+  },
+  {
+    "id": "052",
+    "text": "I will not give in to fear or pressure. My loyalty and principles are not for sale.",
+    "speaker": "Sita",
+    "source": "Valmiki Ramayana",
+    "reference": "Sundara Kanda 30",
+    "theme": "Integrity"
+  },
+  {
+    "id": "053",
+    "text": "When someone is suffering, a credible sign of truth and a promise of help can restore their courage.",
+    "speaker": "Hanuman",
+    "source": "Valmiki Ramayana",
+    "reference": "Sundara Kanda 36",
+    "theme": "Reassurance"
+  },
+  {
+    "id": "054",
+    "text": "Before destroying an enemy, a wise messenger first tries to communicate the truth and give them a chance to change.",
+    "speaker": "Hanuman",
+    "source": "Valmiki Ramayana",
+    "reference": "Sundara Kanda 51",
+    "theme": "Diplomacy"
+  },
+  {
+    "id": "055",
+    "text": "Strength without restraint can create unnecessary destruction. A powerful person must understand the consequences of their actions.",
+    "speaker": "Hanuman",
+    "source": "Valmiki Ramayana",
+    "reference": "Sundara Kanda 53",
+    "theme": "Courage / Consequences"
+  },
+  {
+    "id": "056",
+    "text": "When loyalty to family conflicts with righteousness, a person must be willing to stand with what is right.",
+    "speaker": "Vibhishana",
+    "source": "Valmiki Ramayana",
+    "reference": "Yuddha Kanda 18",
+    "theme": "Integrity"
+  },
+  {
+    "id": "057",
+    "text": "Anyone who sincerely comes seeking refuge should be protected, even if they were previously an enemy.",
+    "speaker": "Rama",
+    "source": "Valmiki Ramayana",
+    "reference": "Yuddha Kanda 18",
+    "theme": "Refuge"
+  },
+  {
+    "id": "058",
+    "text": "A battle should be approached with planning, knowledge of the opponent and disciplined use of resources.",
+    "speaker": "Rama",
+    "source": "Valmiki Ramayana",
+    "reference": "Yuddha Kanda 34",
+    "theme": "Strategy"
+  },
+  {
+    "id": "059",
+    "text": "A good messenger delivers difficult news honestly and acts quickly when the situation demands it.",
+    "speaker": "Hanuman",
+    "source": "Valmiki Ramayana",
+    "reference": "Yuddha Kanda 72",
+    "theme": "Service"
+  },
+  {
+    "id": "060",
+    "text": "Victory is meaningful only when it restores justice and protects the people who depend on it.",
+    "speaker": "Rama",
+    "source": "Valmiki Ramayana",
+    "reference": "Yuddha Kanda 101",
+    "theme": "Victory / Duty"
   }
 ];
