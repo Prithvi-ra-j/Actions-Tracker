@@ -597,6 +597,7 @@ export default function App() {
                 t={t}
                 milestoneChecks={milestoneChecks}
                 onToggle={handleMilestoneToggle}
+                allLogs={allLogs}
               />
             )}
 

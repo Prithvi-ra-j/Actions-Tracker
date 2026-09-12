@@ -75,44 +75,7 @@ export const GOALS = [
   },
 ];
 
-export const MILESTONES = [
-  {
-    period: "Now → Sep 30",
-    label: "Foundation",
-    color: "#c1442c",
-    tasks: [
-      "Buy the notebook. Label it. Today.",
-      "Begin training 4x/week. Miss nothing in the first 30 days.",
-      "Read Meditations — 10 pages per session, 3x per week.",
-      "Draw for 20 minutes every Thursday.",
-      "Start 48 Laws of Power.",
-    ],
-  },
-  {
-    period: "Oct → Nov 30",
-    label: "Production",
-    color: "#d99a2b",
-    tasks: [
-      "Physical benchmark attempt — 10K or 50 push-ups.",
-      "Complete your first biography (Caesar or Napoleon).",
-      "Finish the sketchbook.",
-      "Write your 10-entry personal Meditations.",
-      "Identify your finished creative piece and begin it.",
-    ],
-  },
-  {
-    period: "Dec → Dec 31",
-    label: "Proof",
-    color: "#4f8a5f",
-    tasks: [
-      "Share your creative piece. Publicly. No excuses.",
-      "Write your strategic self-analysis — one honest page.",
-      "Count your books. Count your training days. Count your notebook pages.",
-      "Speak about Stoicism — to one person, for five minutes.",
-      "Write one paragraph: who were you in August? Who are you now?",
-    ],
-  },
-];
+
 
 // ─── Themes ───────────────────────────────────────────────────────────────────
 

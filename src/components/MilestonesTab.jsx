@@ -1,29 +1,99 @@
-import React from 'react';
-import { MILESTONES, ACCENT } from '../constants.js';
-import { getDaysUntilYearEnd } from '../helpers/dateHelpers.js';
+import React, { useMemo } from 'react';
+import { ACCENT } from '../constants.js';
+import { localDateFromStr } from '../helpers/dateHelpers.js';
 
-/**
- * Milestones tab — existing three-phase timeline with persistent checkboxes.
- * Design is identical to original; state is now driven by IndexedDB via props.
- *
- * Props:
- *   t                  — current theme object
- *   milestoneChecks    — { "m-mi-ti": boolean }
- *   onToggle(key)      — called when a task checkbox is tapped
- */
-export default function MilestonesTab({ t, milestoneChecks, onToggle }) {
+export default function MilestonesTab({ t, milestoneChecks, onToggle, allLogs }) {
   const now = new Date();
-  const phaseEndDates = [
-    new Date('2026-09-30T23:59:59'),
-    new Date('2026-11-30T23:59:59'),
-    new Date('2026-12-31T23:59:59'),
-  ];
+
+  const { MILESTONES, phaseEndDates, daysRemaining } = useMemo(() => {
+    let startDate = new Date(); // default to today
+    if (allLogs && allLogs.length > 0) {
+      const earliest = allLogs.reduce((min, log) => (log.date < min ? log.date : min), allLogs[0].date);
+      startDate = localDateFromStr(earliest);
+    }
+    
+    // Normalize startDate to midnight
+    startDate.setHours(0,0,0,0);
+
+    const addDays = (d, days) => {
+      const res = new Date(d);
+      res.setDate(res.getDate() + days);
+      res.setHours(23, 59, 59, 999);
+      return res;
+    };
+
+    const formatPeriod = (start, end) => {
+      const s = start.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+      const e = end.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+      return `${s} → ${e}`;
+    };
+
+    const p1Start = startDate;
+    const p1End = addDays(p1Start, 29);
+    
+    const p2Start = new Date(p1End.getTime() + 1000); // next day
+    p2Start.setHours(0,0,0,0);
+    const p2End = addDays(p2Start, 29);
+    
+    const p3Start = new Date(p2End.getTime() + 1000);
+    p3Start.setHours(0,0,0,0);
+    const p3End = addDays(p3Start, 29);
+
+    const generatedEndDates = [p1End, p2End, p3End];
+
+    // Compute remaining days to the absolute end of the 90 day window
+    const nowMidnight = new Date();
+    nowMidnight.setHours(0,0,0,0);
+    const diffMs = p3End.getTime() - nowMidnight.getTime();
+    const remaining = Math.max(0, Math.round(diffMs / (1000 * 60 * 60 * 24)));
+
+    const generatedMilestones = [
+      {
+        period: formatPeriod(p1Start, p1End),
+        label: "Foundation",
+        color: "#c1442c",
+        tasks: [
+          "Buy the notebook. Label it. Today.",
+          "Begin training 4x/week. Miss nothing in the first 30 days.",
+          "Read Meditations — 10 pages per session, 3x per week.",
+          "Draw for 20 minutes every Thursday.",
+          "Start 48 Laws of Power.",
+        ],
+      },
+      {
+        period: formatPeriod(p2Start, p2End),
+        label: "Production",
+        color: "#d99a2b",
+        tasks: [
+          "Physical benchmark attempt — 10K or 50 push-ups.",
+          "Complete your first biography (Caesar or Napoleon).",
+          "Finish the sketchbook.",
+          "Write your 10-entry personal Meditations.",
+          "Identify your finished creative piece and begin it.",
+        ],
+      },
+      {
+        period: formatPeriod(p3Start, p3End),
+        label: "Proof",
+        color: "#4f8a5f",
+        tasks: [
+          "Share your creative piece. Publicly. No excuses.",
+          "Write your strategic self-analysis — one honest page.",
+          "Count your books. Count your training days. Count your notebook pages.",
+          "Speak about Stoicism — to one person, for five minutes.",
+          "Write one paragraph: who were you when you started? Who are you now?",
+        ],
+      },
+    ];
+
+    return { MILESTONES: generatedMilestones, phaseEndDates: generatedEndDates, daysRemaining: remaining };
+  }, [allLogs]);
 
   return (
     <>
       <div style={{ marginBottom: '1.5rem' }}>
         <div style={{ fontSize: '1.5rem', fontWeight: 900, fontStyle: 'italic', lineHeight: 1.1, marginBottom: '0.5rem' }}>
-          {getDaysUntilYearEnd()} Days.
+          {daysRemaining} Days.
         </div>
         <p style={{ fontSize: '0.88rem', fontStyle: 'italic', color: t.muted, lineHeight: 1.7 }}>
           Not enough time to become a different person. Exactly enough time to prove to yourself that you can.
@@ -108,10 +178,10 @@ export default function MilestonesTab({ t, milestoneChecks, onToggle }) {
 
       <div style={{ background: t.invertBg, color: t.invertText, padding: '1.25rem', marginTop: '1rem' }}>
         <div style={{ fontFamily: 'monospace', fontSize: '0.65rem', letterSpacing: '0.25em', color: ACCENT, textTransform: 'uppercase', marginBottom: '0.5rem' }}>
-          Dec 31 — The Only Question
+          Day 90 — The Only Question
         </div>
         <p style={{ fontSize: '0.9rem', fontStyle: 'italic', lineHeight: 1.7, color: t.invertMuted80 }}>
-          Did you become someone who cannot go back to who he was in August? That is the only metric that matters.
+          Did you become someone who cannot go back to who he was when you started? That is the only metric that matters.
         </p>
       </div>
     </>
