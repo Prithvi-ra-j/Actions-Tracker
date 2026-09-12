@@ -1598,5 +1598,805 @@ export const GITA_QUOTES = [
     "source": "Bhagavad Gita",
     "reference": "18.66",
     "theme": "Surrender / Liberation"
+  },
+  {
+    "id": "001",
+    "text": "Do not try to control people who cannot be controlled, chase what cannot be reached, or fight battles you have no strength to win.",
+    "speaker": "Vidura",
+    "source": "Mahabharata",
+    "reference": "Udyoga Parva, Section 37",
+    "theme": "Self-control"
+  },
+  {
+    "id": "002",
+    "text": "Treat another person according to how they treat you—but meet honesty with honesty and deceit with appropriate caution.",
+    "speaker": "Vidura",
+    "source": "Mahabharata",
+    "reference": "Udyoga Parva, Section 37",
+    "theme": "Reciprocity"
+  },
+  {
+    "id": "003",
+    "text": "Old age destroys beauty, anger destroys prosperity, pride destroys almost everything, and bad company destroys good conduct.",
+    "speaker": "Vidura",
+    "source": "Mahabharata",
+    "reference": "Udyoga Parva, Section 37",
+    "theme": "Character"
+  },
+  {
+    "id": "004",
+    "text": "Pride, excessive talking, overeating, anger, uncontrolled pleasure and internal conflict shorten a person's life.",
+    "speaker": "Vidura",
+    "source": "Mahabharata",
+    "reference": "Udyoga Parva, Section 37",
+    "theme": "Longevity"
+  },
+  {
+    "id": "005",
+    "text": "A wise person knows what should be done, what should not be done, what should be feared, and what should not be feared.",
+    "speaker": "Vidura",
+    "source": "Mahabharata",
+    "reference": "Udyoga Parva, Vidura Niti",
+    "theme": "Wisdom"
+  },
+  {
+    "id": "006",
+    "text": "A person who can forgive when they have the power to punish is stronger than one who cannot control anger.",
+    "speaker": "Vidura",
+    "source": "Mahabharata",
+    "reference": "Udyoga Parva, Vidura Niti",
+    "theme": "Patience"
+  },
+  {
+    "id": "007",
+    "text": "Words should be truthful, useful and pleasing. Truth spoken only to hurt another person is not the highest form of speech.",
+    "speaker": "Vidura",
+    "source": "Mahabharata",
+    "reference": "Udyoga Parva, Vidura Niti",
+    "theme": "Speech"
+  },
+  {
+    "id": "008",
+    "text": "A person should build wealth without destroying their character, relationships or future.",
+    "speaker": "Vidura",
+    "source": "Mahabharata",
+    "reference": "Udyoga Parva, Vidura Niti",
+    "theme": "Wealth"
+  },
+  {
+    "id": "009",
+    "text": "A ruler who cannot control desire, anger and greed will eventually lose control of the people he rules.",
+    "speaker": "Vidura",
+    "source": "Mahabharata",
+    "reference": "Udyoga Parva, Vidura Niti",
+    "theme": "Leadership"
+  },
+  {
+    "id": "010",
+    "text": "A wise person considers both the present gain and the future consequences before acting.",
+    "speaker": "Vidura",
+    "source": "Mahabharata",
+    "reference": "Udyoga Parva, Vidura Niti",
+    "theme": "Decision-making"
+  },
+  {
+    "id": "011",
+    "text": "The honest and forgiving person is ultimately stronger than the person ruled by anger.",
+    "speaker": "Yudhishthira",
+    "source": "Mahabharata",
+    "reference": "Vana Parva, Section 29",
+    "theme": "Forgiveness"
+  },
+  {
+    "id": "012",
+    "text": "An angry person loses the ability to see clearly, stops respecting others and can harm even people who do not deserve it.",
+    "speaker": "Yudhishthira",
+    "source": "Mahabharata",
+    "reference": "Vana Parva, Section 29",
+    "theme": "Anger"
+  },
+  {
+    "id": "013",
+    "text": "Forgiveness is described as the strength of the strong, the source of peace and a great form of discipline.",
+    "speaker": "Yudhishthira",
+    "source": "Mahabharata",
+    "reference": "Vana Parva, Section 29",
+    "theme": "Forgiveness"
+  },
+  {
+    "id": "014",
+    "text": "The person who can control rising anger has greater strength of character than the person who merely displays power.",
+    "speaker": "Yudhishthira",
+    "source": "Mahabharata",
+    "reference": "Vana Parva, Section 29",
+    "theme": "Self-mastery"
+  },
+  {
+    "id": "015",
+    "text": "When a crisis can still be settled peacefully, the wise should prefer peace over destruction.",
+    "speaker": "Yudhishthira",
+    "source": "Mahabharata",
+    "reference": "Vana Parva, Section 29",
+    "theme": "Peace"
+  },
+  {
+    "id": "016",
+    "text": "Truth and gentleness are better foundations for lasting strength than cruelty and uncontrolled anger.",
+    "speaker": "Yudhishthira",
+    "source": "Mahabharata",
+    "reference": "Vana Parva, Section 29",
+    "theme": "Gentleness"
+  },
+  {
+    "id": "017",
+    "text": "A person who remains calm even when provoked protects both their judgment and their future.",
+    "speaker": "Yudhishthira",
+    "source": "Mahabharata",
+    "reference": "Vana Parva, Section 29",
+    "theme": "Calmness"
+  },
+  {
+    "id": "018",
+    "text": "What is the greatest wonder? Every day people die, yet those who remain alive live as though they will never die.",
+    "speaker": "Yudhishthira",
+    "source": "Mahabharata",
+    "reference": "Vana Parva, Yaksha Prashna",
+    "theme": "Mortality"
+  },
+  {
+    "id": "019",
+    "text": "The path is difficult to identify simply by argument; when the great and wise differ, follow the path revealed through deep reflection and lived virtue.",
+    "speaker": "Yudhishthira",
+    "source": "Mahabharata",
+    "reference": "Vana Parva, Yaksha Prashna",
+    "theme": "Path / Wisdom"
+  },
+  {
+    "id": "020",
+    "text": "A person is truly happy who lives honestly, has no crushing debt, and stays at home peacefully with family.",
+    "speaker": "Yudhishthira",
+    "source": "Mahabharata",
+    "reference": "Vana Parva, Yaksha Prashna",
+    "theme": "Happiness"
+  },
+  {
+    "id": "021",
+    "text": "The person who acts with steady purpose, keeps good conduct and does not abandon their principles is considered successful.",
+    "speaker": "Yudhishthira",
+    "source": "Mahabharata",
+    "reference": "Vana Parva, Yaksha Prashna",
+    "theme": "Success"
+  },
+  {
+    "id": "022",
+    "text": "What gives a person real knowledge is not merely hearing many things, but understanding what should be done and living accordingly.",
+    "speaker": "Yudhishthira",
+    "source": "Mahabharata",
+    "reference": "Vana Parva, Yaksha Prashna",
+    "theme": "Knowledge"
+  },
+  {
+    "id": "023",
+    "text": "Good conduct is one of the strongest signs that a person truly understands what is right.",
+    "speaker": "Yudhishthira",
+    "source": "Mahabharata",
+    "reference": "Vana Parva, Yaksha Prashna",
+    "theme": "Character"
+  },
+  {
+    "id": "024",
+    "text": "The strength of a person who remains steady in difficult conditions is greater than the strength shown only in comfortable times.",
+    "speaker": "Yudhishthira",
+    "source": "Mahabharata",
+    "reference": "Vana Parva, Yaksha Prashna",
+    "theme": "Strength"
+  },
+  {
+    "id": "025",
+    "text": "Dharma is difficult to measure by appearances alone; intention, conduct and circumstances all matter.",
+    "speaker": "Yudhishthira",
+    "source": "Mahabharata",
+    "reference": "Vana Parva, Yaksha Prashna",
+    "theme": "Dharma"
+  },
+  {
+    "id": "026",
+    "text": "Suppress anger, speak truth, forgive, live cleanly, avoid needless conflict, act simply and support those who depend on you.",
+    "speaker": "Bhishma",
+    "source": "Mahabharata",
+    "reference": "Santi Parva, Section 60",
+    "theme": "Universal Duty"
+  },
+  {
+    "id": "027",
+    "text": "Self-restraint is one of the first duties of a person seeking a disciplined life.",
+    "speaker": "Bhishma",
+    "source": "Mahabharata",
+    "reference": "Santi Parva, Section 60",
+    "theme": "Self-control"
+  },
+  {
+    "id": "028",
+    "text": "A person who keeps their conduct peaceful and their mind controlled builds the foundation for every other virtue.",
+    "speaker": "Bhishma",
+    "source": "Mahabharata",
+    "reference": "Santi Parva, Section 60",
+    "theme": "Peace"
+  },
+  {
+    "id": "029",
+    "text": "Truthfulness without self-control is incomplete; character requires both what a person says and how they live.",
+    "speaker": "Bhishma",
+    "source": "Mahabharata",
+    "reference": "Santi Parva, Section 60",
+    "theme": "Integrity"
+  },
+  {
+    "id": "030",
+    "text": "A person should not use spiritual or social duties as an excuse to neglect the people who depend on them.",
+    "speaker": "Bhishma",
+    "source": "Mahabharata",
+    "reference": "Santi Parva, Section 60",
+    "theme": "Responsibility"
+  },
+  {
+    "id": "031",
+    "text": "Righteousness is marked by nonviolence, truth, forgiveness, compassion, self-control and sincerity.",
+    "speaker": "Bhishma",
+    "source": "Mahabharata",
+    "reference": "Anusasana Parva, Section 22",
+    "theme": "Dharma"
+  },
+  {
+    "id": "032",
+    "text": "Talking constantly about virtue while living badly does not make a person virtuous.",
+    "speaker": "Bhishma",
+    "source": "Mahabharata",
+    "reference": "Anusasana Parva, Section 22",
+    "theme": "Practice"
+  },
+  {
+    "id": "033",
+    "text": "A good life is not only about avoiding wrongdoing; it also requires active concern for other beings.",
+    "speaker": "Bhishma",
+    "source": "Mahabharata",
+    "reference": "Anusasana Parva, Section 22",
+    "theme": "Compassion"
+  },
+  {
+    "id": "034",
+    "text": "Fortitude is the quality that keeps a person steady through both happiness and suffering.",
+    "speaker": "Bhishma",
+    "source": "Mahabharata",
+    "reference": "Santi Parva, Section 161",
+    "theme": "Fortitude"
+  },
+  {
+    "id": "035",
+    "text": "Truth is described as the foundation of righteousness and as one of the highest duties.",
+    "speaker": "Bhishma",
+    "source": "Mahabharata",
+    "reference": "Santi Parva, Section 161",
+    "theme": "Truth"
+  },
+  {
+    "id": "036",
+    "text": "Kindness, generosity and avoiding harm in thought, speech and action support a truthful life.",
+    "speaker": "Bhishma",
+    "source": "Mahabharata",
+    "reference": "Santi Parva, Section 161",
+    "theme": "Kindness"
+  },
+  {
+    "id": "037",
+    "text": "A wise person becomes stronger by removing unnecessary fear, anger and emotional extremes.",
+    "speaker": "Bhishma",
+    "source": "Mahabharata",
+    "reference": "Santi Parva, Section 161",
+    "theme": "Fear / Anger"
+  },
+  {
+    "id": "038",
+    "text": "Forgiveness is not weakness; it is presented as a form of strength that protects the mind from being ruled by anger.",
+    "speaker": "Bhishma",
+    "source": "Mahabharata",
+    "reference": "Santi Parva, Section 161",
+    "theme": "Forgiveness"
+  },
+  {
+    "id": "039",
+    "text": "Whatever a person devotes themselves to can appear to be the highest goal; careful reflection reveals how temporary worldly objects really are.",
+    "speaker": "Bhishma",
+    "source": "Mahabharata",
+    "reference": "Santi Parva, Mokshadharma, Section 174",
+    "theme": "Purpose"
+  },
+  {
+    "id": "040",
+    "text": "Attachment to temporary things can make a person mistake what is small for what is truly valuable.",
+    "speaker": "Bhishma",
+    "source": "Mahabharata",
+    "reference": "Santi Parva, Mokshadharma, Section 174",
+    "theme": "Attachment"
+  },
+  {
+    "id": "041",
+    "text": "Serious reflection gradually purifies the heart and changes what a person considers worth pursuing.",
+    "speaker": "Bhishma",
+    "source": "Mahabharata",
+    "reference": "Santi Parva, Mokshadharma, Section 174",
+    "theme": "Reflection"
+  },
+  {
+    "id": "042",
+    "text": "Control desire and anger if you want to protect your own welfare; both can turn against the person who feeds them.",
+    "speaker": "Bhishma",
+    "source": "Mahabharata",
+    "reference": "Santi Parva, Mokshadharma, Section 330",
+    "theme": "Restraint"
+  },
+  {
+    "id": "043",
+    "text": "Protect your discipline from anger, your prosperity from pride, your knowledge from vanity and your inner self from confusion.",
+    "speaker": "Bhishma",
+    "source": "Mahabharata",
+    "reference": "Santi Parva, Mokshadharma, Section 330",
+    "theme": "Protection"
+  },
+  {
+    "id": "044",
+    "text": "Compassion is described as the highest virtue, while forgiveness is described as the highest strength.",
+    "speaker": "Bhishma",
+    "source": "Mahabharata",
+    "reference": "Santi Parva, Mokshadharma, Section 330",
+    "theme": "Compassion"
+  },
+  {
+    "id": "045",
+    "text": "The best kind of truth is truth that genuinely benefits living beings; speech is not made noble merely by being technically true.",
+    "speaker": "Bhishma",
+    "source": "Mahabharata",
+    "reference": "Santi Parva, Mokshadharma, Section 330",
+    "theme": "Useful Truth"
+  },
+  {
+    "id": "046",
+    "text": "Real wisdom includes giving up harmful actions and refusing to let desire and anger dictate behavior.",
+    "speaker": "Bhishma",
+    "source": "Mahabharata",
+    "reference": "Santi Parva, Mokshadharma, Section 330",
+    "theme": "Wisdom"
+  },
+  {
+    "id": "047",
+    "text": "Truth is a great virtue, but real morality sometimes requires judging how and when truth is spoken rather than following words mechanically.",
+    "speaker": "Krishna",
+    "source": "Mahabharata",
+    "reference": "Karna Parva, Section 69",
+    "theme": "Truth / Context"
+  },
+  {
+    "id": "048",
+    "text": "A person truly understands morality when they can distinguish between truth that serves righteousness and truth used to cause greater harm.",
+    "speaker": "Krishna",
+    "source": "Mahabharata",
+    "reference": "Karna Parva, Section 69",
+    "theme": "Moral Judgment"
+  },
+  {
+    "id": "049",
+    "text": "Moral wisdom cannot be reduced to one rule applied blindly in every circumstance.",
+    "speaker": "Krishna",
+    "source": "Mahabharata",
+    "reference": "Karna Parva, Section 69",
+    "theme": "Wisdom"
+  },
+  {
+    "id": "050",
+    "text": "The person who can control rising anger conquers a greater enemy than someone who merely defeats others.",
+    "speaker": "Sukra",
+    "source": "Mahabharata",
+    "reference": "Adi Parva, Sambhava Parva, Section 79",
+    "theme": "Anger"
+  },
+  {
+    "id": "051",
+    "text": "A person who does not let another person's cruel words control their emotions has already won an important battle.",
+    "speaker": "Sukra",
+    "source": "Mahabharata",
+    "reference": "Adi Parva, Sambhava Parva, Section 79",
+    "theme": "Insults"
+  },
+  {
+    "id": "052",
+    "text": "Calmly suppressing anger is a higher form of strength than retaliating whenever there is an opportunity.",
+    "speaker": "Sukra",
+    "source": "Mahabharata",
+    "reference": "Adi Parva, Sambhava Parva, Section 79",
+    "theme": "Patience"
+  },
+  {
+    "id": "053",
+    "text": "The person who can remain composed even when they have reason to be angry has mastered themselves.",
+    "speaker": "Sukra",
+    "source": "Mahabharata",
+    "reference": "Adi Parva, Sambhava Parva, Section 79",
+    "theme": "Self-mastery"
+  },
+  {
+    "id": "054",
+    "text": "A ruler earns lasting respect by protecting the people and governing with justice rather than personal desire.",
+    "speaker": "Bhishma",
+    "source": "Mahabharata",
+    "reference": "Santi Parva, Section 85",
+    "theme": "Kingship"
+  },
+  {
+    "id": "055",
+    "text": "Good qualities are difficult to gather in one person; leadership therefore requires continuous self-correction.",
+    "speaker": "Bhishma",
+    "source": "Mahabharata",
+    "reference": "Santi Parva, Section 85",
+    "theme": "Leadership"
+  },
+  {
+    "id": "056",
+    "text": "A king should govern without being controlled by lust or hatred and should try to look fairly upon all people.",
+    "speaker": "Bhishma",
+    "source": "Mahabharata",
+    "reference": "Santi Parva, Section 85",
+    "theme": "Justice"
+  },
+  {
+    "id": "057",
+    "text": "Power is valuable only when it is used to protect those who depend upon it.",
+    "speaker": "Bhishma",
+    "source": "Mahabharata",
+    "reference": "Santi Parva, Section 85",
+    "theme": "Responsibility"
+  },
+  {
+    "id": "058",
+    "text": "Happiness grows from avoiding injury, speaking truthfully, dealing honestly, forgiving others and remaining alert.",
+    "speaker": "Bhishma",
+    "source": "Mahabharata",
+    "reference": "Santi Parva, Mokshadharma, Section 42",
+    "theme": "Peace / Conduct"
+  },
+  {
+    "id": "059",
+    "text": "One should train the mind toward peace for all beings rather than constantly thinking about how to harm others.",
+    "speaker": "Bhishma",
+    "source": "Mahabharata",
+    "reference": "Santi Parva, Mokshadharma, Section 42",
+    "theme": "Compassion"
+  },
+  {
+    "id": "060",
+    "text": "Do not let yourself obsess over things far beyond your ability to attain; direct effort toward knowledge and what can genuinely be developed.",
+    "speaker": "Bhishma",
+    "source": "Mahabharata",
+    "reference": "Santi Parva, Mokshadharma, Section 42",
+    "theme": "Desire"
+  },
+  {
+    "id": "061",
+    "text": "Bad company can destroy good behavior, just as anger can destroy prosperity.",
+    "speaker": "Vidura",
+    "source": "Mahabharata",
+    "reference": "Udyoga Parva, Section 37",
+    "theme": "Company"
+  },
+  {
+    "id": "062",
+    "text": "Pride can destroy achievements that took a long time to build.",
+    "speaker": "Vidura",
+    "source": "Mahabharata",
+    "reference": "Udyoga Parva, Section 37",
+    "theme": "Pride"
+  },
+  {
+    "id": "063",
+    "text": "Too much pride, speech, food or pleasure can become destructive when there is no restraint.",
+    "speaker": "Vidura",
+    "source": "Mahabharata",
+    "reference": "Udyoga Parva, Section 37",
+    "theme": "Excess"
+  },
+  {
+    "id": "064",
+    "text": "Truth should be protected not only in speech but also through conduct, kindness and restraint.",
+    "speaker": "Bhishma",
+    "source": "Mahabharata",
+    "reference": "Santi Parva, Section 162",
+    "theme": "Truth / Conduct"
+  },
+  {
+    "id": "065",
+    "text": "Praising virtue is not enough; a person must actually practice what they praise.",
+    "speaker": "Bhishma",
+    "source": "Mahabharata",
+    "reference": "Anusasana Parva, Section 22",
+    "theme": "Humility"
+  },
+  {
+    "id": "066",
+    "text": "Sincere conduct matters more than public claims of righteousness.",
+    "speaker": "Bhishma",
+    "source": "Mahabharata",
+    "reference": "Anusasana Parva, Section 22",
+    "theme": "Sincerity"
+  },
+  {
+    "id": "067",
+    "text": "Desire and anger should be restrained, while pride should be watched closely because it can corrupt both success and judgment.",
+    "speaker": "Bhishma",
+    "source": "Mahabharata",
+    "reference": "Santi Parva, Mokshadharma, Section 330",
+    "theme": "Desire / Pride"
+  },
+  {
+    "id": "068",
+    "text": "Protect knowledge from vanity; understanding becomes weaker when a person becomes obsessed with praise or blame.",
+    "speaker": "Bhishma",
+    "source": "Mahabharata",
+    "reference": "Santi Parva, Mokshadharma, Section 330",
+    "theme": "Knowledge"
+  },
+  {
+    "id": "069",
+    "text": "A weak person should not provoke a much stronger enemy without understanding the consequences.",
+    "speaker": "Vidura",
+    "source": "Mahabharata",
+    "reference": "Udyoga Parva, Section 37",
+    "theme": "Enemies"
+  },
+  {
+    "id": "070",
+    "text": "Wanting something unattainable can turn into a source of needless suffering if judgment is ignored.",
+    "speaker": "Vidura",
+    "source": "Mahabharata",
+    "reference": "Udyoga Parva, Section 37",
+    "theme": "Ambition"
+  },
+  {
+    "id": "071",
+    "text": "Do not forget help received from others and then deny it when the time comes to repay your obligations.",
+    "speaker": "Vidura",
+    "source": "Mahabharata",
+    "reference": "Udyoga Parva, Section 37",
+    "theme": "Memory / Integrity"
+  },
+  {
+    "id": "072",
+    "text": "Worldly possessions lose their importance when viewed against the larger movement of life and death.",
+    "speaker": "Bhishma",
+    "source": "Mahabharata",
+    "reference": "Santi Parva, Mokshadharma, Section 174",
+    "theme": "Impermanence"
+  },
+  {
+    "id": "073",
+    "text": "What looks like the greatest achievement can become insignificant when examined with a calm and purified mind.",
+    "speaker": "Bhishma",
+    "source": "Mahabharata",
+    "reference": "Santi Parva, Mokshadharma, Section 174",
+    "theme": "Priorities"
+  },
+  {
+    "id": "074",
+    "text": "People witness death constantly, yet still imagine that they themselves will somehow escape it.",
+    "speaker": "Yudhishthira",
+    "source": "Mahabharata",
+    "reference": "Vana Parva, Yaksha Prashna",
+    "theme": "Death / Awareness"
+  },
+  {
+    "id": "075",
+    "text": "A peaceful life with honest work, manageable obligations and close relationships can be a deeper form of happiness than endless accumulation.",
+    "speaker": "Yudhishthira",
+    "source": "Mahabharata",
+    "reference": "Vana Parva, Yaksha Prashna",
+    "theme": "Contentment"
+  },
+  {
+    "id": "076",
+    "text": "Knowing what is right is incomplete until a person actually follows it in their conduct.",
+    "speaker": "Yudhishthira",
+    "source": "Mahabharata",
+    "reference": "Vana Parva, Yaksha Prashna",
+    "theme": "Wisdom / Action"
+  },
+  {
+    "id": "077",
+    "text": "Excessive speech can be as damaging as excessive food or anger; restraint protects both judgment and relationships.",
+    "speaker": "Vidura",
+    "source": "Mahabharata",
+    "reference": "Udyoga Parva, Section 37",
+    "theme": "Speech / Restraint"
+  },
+  {
+    "id": "078",
+    "text": "Internal conflict within a family or group can destroy people even when no external enemy is present.",
+    "speaker": "Vidura",
+    "source": "Mahabharata",
+    "reference": "Udyoga Parva, Section 37",
+    "theme": "Conflict"
+  },
+  {
+    "id": "079",
+    "text": "The primary duty of a ruler is protection; power exists to preserve order, not merely to display authority.",
+    "speaker": "Bhishma",
+    "source": "Mahabharata",
+    "reference": "Santi Parva, Section 85",
+    "theme": "Ruler's Duty"
+  },
+  {
+    "id": "080",
+    "text": "The person who controls anger is compared to the stronger warrior because they have defeated the impulse that can defeat others.",
+    "speaker": "Sukra",
+    "source": "Mahabharata",
+    "reference": "Adi Parva, Sambhava Parva, Section 79",
+    "theme": "Strength"
+  },
+  {
+    "id": "081",
+    "text": "Forgiveness can remove the cycle of anger before it turns a small insult into a lasting conflict.",
+    "speaker": "Sukra",
+    "source": "Mahabharata",
+    "reference": "Adi Parva, Sambhava Parva, Section 79",
+    "theme": "Peace"
+  },
+  {
+    "id": "082",
+    "text": "Avoiding harm in thought, speech and action is presented as part of the same discipline as truth and kindness.",
+    "speaker": "Bhishma",
+    "source": "Mahabharata",
+    "reference": "Santi Parva, Section 161",
+    "theme": "Nonviolence"
+  },
+  {
+    "id": "083",
+    "text": "Someone who can remain steady in happiness and suffering has developed a form of courage deeper than momentary excitement.",
+    "speaker": "Bhishma",
+    "source": "Mahabharata",
+    "reference": "Santi Parva, Section 161",
+    "theme": "Steadiness"
+  },
+  {
+    "id": "084",
+    "text": "Speaking what is beneficial can be better than speaking a technically accurate statement that only causes needless harm.",
+    "speaker": "Bhishma",
+    "source": "Mahabharata",
+    "reference": "Santi Parva, Mokshadharma, Section 330",
+    "theme": "Beneficial Speech"
+  },
+  {
+    "id": "085",
+    "text": "Truth and compassion should not be treated as enemies; the highest truth is expected to serve the welfare of beings.",
+    "speaker": "Bhishma",
+    "source": "Mahabharata",
+    "reference": "Santi Parva, Mokshadharma, Section 330",
+    "theme": "Truth / Compassion"
+  },
+  {
+    "id": "086",
+    "text": "Anger can make a person lose perspective so completely that they hurt teachers, allies or innocent people.",
+    "speaker": "Yudhishthira",
+    "source": "Mahabharata",
+    "reference": "Vana Parva, Section 29",
+    "theme": "Anger / Consequences"
+  },
+  {
+    "id": "087",
+    "text": "Forgiveness is especially meaningful when you have the power to punish but choose not to be ruled by anger.",
+    "speaker": "Yudhishthira",
+    "source": "Mahabharata",
+    "reference": "Vana Parva, Section 29",
+    "theme": "Forgiveness / Power"
+  },
+  {
+    "id": "088",
+    "text": "Truth, forgiveness, purity, avoiding needless quarrels and supporting dependants are presented as duties that apply broadly across society.",
+    "speaker": "Bhishma",
+    "source": "Mahabharata",
+    "reference": "Santi Parva, Section 60",
+    "theme": "Universal Ethics"
+  },
+  {
+    "id": "089",
+    "text": "The quality of a person's life depends heavily on self-restraint and patience, not only on external success.",
+    "speaker": "Bhishma",
+    "source": "Mahabharata",
+    "reference": "Santi Parva, Section 60",
+    "theme": "Personal Discipline"
+  },
+  {
+    "id": "090",
+    "text": "A wise person recognizes the limits of their own power instead of confusing confidence with invulnerability.",
+    "speaker": "Vidura",
+    "source": "Mahabharata",
+    "reference": "Udyoga Parva, Section 37",
+    "theme": "Self-awareness"
+  },
+  {
+    "id": "091",
+    "text": "Good judgment includes knowing when to act, when to compromise and when a goal is not worth the cost.",
+    "speaker": "Vidura",
+    "source": "Mahabharata",
+    "reference": "Udyoga Parva, Section 37",
+    "theme": "Practical Wisdom"
+  },
+  {
+    "id": "092",
+    "text": "Righteousness is described through concrete behaviors—truth, compassion, restraint and sincerity—not through identity or status alone.",
+    "speaker": "Bhishma",
+    "source": "Mahabharata",
+    "reference": "Anusasana Parva, Section 22",
+    "theme": "Ethics"
+  },
+  {
+    "id": "093",
+    "text": "A person cannot claim virtue while using virtue as a mask for harmful behavior.",
+    "speaker": "Bhishma",
+    "source": "Mahabharata",
+    "reference": "Anusasana Parva, Section 22",
+    "theme": "Integrity"
+  },
+  {
+    "id": "094",
+    "text": "A lasting kind of happiness comes from reducing harm, cultivating honesty, forgiveness and mental peace.",
+    "speaker": "Bhishma",
+    "source": "Mahabharata",
+    "reference": "Santi Parva, Mokshadharma, Section 42",
+    "theme": "Happiness"
+  },
+  {
+    "id": "095",
+    "text": "Train the mind toward peace deliberately; do not let it spend all its energy on revenge, greed or impossible desires.",
+    "speaker": "Bhishma",
+    "source": "Mahabharata",
+    "reference": "Santi Parva, Mokshadharma, Section 42",
+    "theme": "Mental Discipline"
+  },
+  {
+    "id": "096",
+    "text": "When a person reflects deeply, possessions and status can begin to look as temporary as straw compared with deeper aims.",
+    "speaker": "Bhishma",
+    "source": "Mahabharata",
+    "reference": "Santi Parva, Mokshadharma, Section 174",
+    "theme": "Spiritual Priority"
+  },
+  {
+    "id": "097",
+    "text": "The more clearly a person sees the temporary nature of worldly things, the less tightly they need to cling to them.",
+    "speaker": "Bhishma",
+    "source": "Mahabharata",
+    "reference": "Santi Parva, Mokshadharma, Section 174",
+    "theme": "Reflection / Detachment"
+  },
+  {
+    "id": "098",
+    "text": "Morality sometimes depends on circumstance; wise judgment is needed when simple rules appear to conflict.",
+    "speaker": "Krishna",
+    "source": "Mahabharata",
+    "reference": "Karna Parva, Section 69",
+    "theme": "Dharma / Complexity"
+  },
+  {
+    "id": "099",
+    "text": "Knowing a moral rule is not the same as understanding how that rule should be applied in a difficult situation.",
+    "speaker": "Krishna",
+    "source": "Mahabharata",
+    "reference": "Karna Parva, Section 69",
+    "theme": "Wisdom / Rules"
+  },
+  {
+    "id": "100",
+    "text": "A ruler should not let personal attraction or hatred determine how different people are treated.",
+    "speaker": "Bhishma",
+    "source": "Mahabharata",
+    "reference": "Santi Parva, Section 85",
+    "theme": "Leadership / Equality"
   }
 ];
