@@ -3,6 +3,7 @@ import { getDailyItems, ACCENT } from '../constants.js';
 import { localDateStr, formatDisplayDate, getCurrentWeekDates, WEEK_LABELS } from '../helpers/dateHelpers.js';
 import SundayReflection from './SundayReflection.jsx';
 import EvidencePrompt from './EvidencePrompt.jsx';
+import { GITA_QUOTES } from '../data/quotes.js';
 
 /**
  * Today tab — daily task checklist and weekly row.
@@ -38,6 +39,17 @@ export default function TodayTab({ t, allLogs, evaluations, onToggle, onEvaluate
   const now = new Date();
   const weekDates = getCurrentWeekDates();
 
+  // Pick a daily quote deterministically based on the date string
+  const dailyQuote = useMemo(() => {
+    let hash = 0;
+    for (let i = 0; i < today.length; i++) {
+      hash = (hash << 5) - hash + today.charCodeAt(i);
+      hash |= 0;
+    }
+    const index = Math.abs(hash) % GITA_QUOTES.length;
+    return GITA_QUOTES[index];
+  }, [today]);
+
   // Helper for weekly row
   const getDayScore = (dateStr) => {
     return allLogs.filter(l => l.type === 'daily_checkbox' && l.date === dateStr).length;
@@ -50,11 +62,11 @@ export default function TodayTab({ t, allLogs, evaluations, onToggle, onEvaluate
         <div style={{ fontFamily: 'monospace', fontSize: '0.65rem', letterSpacing: '0.25em', color: ACCENT, textTransform: 'uppercase', marginBottom: '0.5rem' }}>
           Today · {formatDisplayDate(today)}
         </div>
-        <div style={{ fontSize: '2rem', fontWeight: 900, lineHeight: 1, marginBottom: '0.5rem' }}>
-          {isComplete ? 'Day complete.' : 'Do the work.'}
+        <div style={{ fontSize: '1.25rem', fontWeight: 900, lineHeight: 1.3, marginBottom: '0.5rem', fontFamily: 'Georgia, serif' }}>
+          “{dailyQuote.text}”
         </div>
         <p style={{ fontSize: '0.85rem', fontStyle: 'italic', color: t.muted, lineHeight: 1.6 }}>
-          {isComplete ? 'Four for four. Well done.' : "Four small wins. Then you're done."}
+          — {dailyQuote.speaker}
         </p>
       </div>
 
