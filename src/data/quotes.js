@@ -2878,5 +2878,477 @@ export const GITA_QUOTES = [
     "source": "Valmiki Ramayana",
     "reference": "Yuddha Kanda 101",
     "theme": "Victory / Duty"
+  },
+  {
+    "id": "002",
+    "text": "The guy with the most freedom is the Pirate King.",
+    "speaker": "Monkey D. Luffy",
+    "source": "One Piece",
+    "reference": "Chapter 507",
+    "theme": "Freedom"
+  },
+  {
+    "id": "003",
+    "text": "If I give up now, I'm going to regret it.",
+    "speaker": "Monkey D. Luffy",
+    "source": "One Piece",
+    "reference": "Series dialogue",
+    "theme": "Determination"
+  },
+  {
+    "id": "004",
+    "text": "Being alone is more painful than getting hurt.",
+    "speaker": "Monkey D. Luffy",
+    "source": "One Piece",
+    "reference": "Series dialogue",
+    "theme": "Courage"
+  },
+  {
+    "id": "005",
+    "text": "You can't create a future without taking risks.",
+    "speaker": "Monkey D. Luffy",
+    "source": "One Piece",
+    "reference": "Series dialogue",
+    "theme": "Risk"
+  },
+  {
+    "id": "007",
+    "text": "I don't want to conquer anything.",
+    "speaker": "Monkey D. Luffy",
+    "source": "One Piece",
+    "reference": "Chapter 507",
+    "theme": "Purpose"
+  },
+  {
+    "id": "013",
+    "text": "Protecting my captain's dream comes first.",
+    "speaker": "Roronoa Zoro",
+    "source": "One Piece",
+    "reference": "Thriller Bark",
+    "theme": "Loyalty"
+  },
+  {
+    "id": "015",
+    "text": "Scars on the back are a swordsman's shame.",
+    "speaker": "Roronoa Zoro",
+    "source": "One Piece",
+    "reference": "Chapter 5 / Episode 2",
+    "theme": "Discipline"
+  },
+  {
+    "id": "017",
+    "text": "A defeat is not the end.",
+    "speaker": "Roronoa Zoro",
+    "source": "One Piece",
+    "reference": "Series dialogue",
+    "theme": "Honor"
+  },
+  {
+    "id": "018",
+    "text": "I take responsibility for my words.",
+    "speaker": "Roronoa Zoro",
+    "source": "One Piece",
+    "reference": "Series dialogue",
+    "theme": "Responsibility"
+  },
+  {
+    "id": "020",
+    "text": "I have nothing left to lose.",
+    "speaker": "Roronoa Zoro",
+    "source": "One Piece",
+    "reference": "Series dialogue",
+    "theme": "Resolve"
+  },
+  {
+    "id": "024",
+    "text": "I want to know the true history.",
+    "speaker": "Nico Robin",
+    "source": "One Piece",
+    "reference": "Series goal",
+    "theme": "Knowledge"
+  },
+  {
+    "id": "025",
+    "text": "Living is not a crime.",
+    "speaker": "Nico Robin",
+    "source": "One Piece",
+    "reference": "Series theme",
+    "theme": "Survival"
+  },
+  {
+    "id": "027",
+    "text": "Ohara's will lives on.",
+    "speaker": "Nico Robin",
+    "source": "One Piece",
+    "reference": "Series theme",
+    "theme": "History"
+  },
+  {
+    "id": "028",
+    "text": "I finally found people who accepted me.",
+    "speaker": "Nico Robin",
+    "source": "One Piece",
+    "reference": "Series dialogue",
+    "theme": "Belonging"
+  },
+  {
+    "id": "029",
+    "text": "I refuse to disappear.",
+    "speaker": "Nico Robin",
+    "source": "One Piece",
+    "reference": "Series dialogue",
+    "theme": "Determination"
+  },
+  {
+    "id": "030",
+    "text": "I choose my own life.",
+    "speaker": "Nico Robin",
+    "source": "One Piece",
+    "reference": "Series theme",
+    "theme": "Freedom"
+  },
+  {
+    "id": "033",
+    "text": "If a man risks his life, nothing can stop him.",
+    "speaker": "Sanji",
+    "source": "One Piece",
+    "reference": "Series dialogue",
+    "theme": "Courage"
+  },
+  {
+    "id": "034",
+    "text": "A hungry person should always be fed.",
+    "speaker": "Sanji",
+    "source": "One Piece",
+    "reference": "Baratie philosophy",
+    "theme": "Hospitality"
+  },
+  {
+    "id": "035",
+    "text": "A cook protects the people he feeds.",
+    "speaker": "Sanji",
+    "source": "One Piece",
+    "reference": "Series theme",
+    "theme": "Loyalty"
+  },
+  {
+    "id": "036",
+    "text": "A cook's hands are for saving people.",
+    "speaker": "Sanji",
+    "source": "One Piece",
+    "reference": "Series theme",
+    "theme": "Sacrifice"
+  },
+  {
+    "id": "037",
+    "text": "I never kick a woman.",
+    "speaker": "Sanji",
+    "source": "One Piece",
+    "reference": "Series code",
+    "theme": "Honor"
+  },
+  {
+    "id": "038",
+    "text": "My hands are more valuable than my life.",
+    "speaker": "Sanji",
+    "source": "One Piece",
+    "reference": "Series dialogue",
+    "theme": "Duty"
+  },
+  {
+    "id": "039",
+    "text": "Food is meant to be shared.",
+    "speaker": "Sanji",
+    "source": "One Piece",
+    "reference": "Baratie philosophy",
+    "theme": "Compassion"
+  },
+  {
+    "id": "040",
+    "text": "I won't let my crew starve.",
+    "speaker": "Sanji",
+    "source": "One Piece",
+    "reference": "Series theme",
+    "theme": "Resolve"
+  },
+  {
+    "id": "042",
+    "text": "I want to live freely.",
+    "speaker": "Nami",
+    "source": "One Piece",
+    "reference": "Series theme",
+    "theme": "Courage"
+  },
+  {
+    "id": "047",
+    "text": "I won't give up on my dream.",
+    "speaker": "Nami",
+    "source": "One Piece",
+    "reference": "Series theme",
+    "theme": "Hope"
+  },
+  {
+    "id": "049",
+    "text": "I refuse to live under anyone's control.",
+    "speaker": "Nami",
+    "source": "One Piece",
+    "reference": "Series theme",
+    "theme": "Freedom"
+  },
+  {
+    "id": "050",
+    "text": "I'll keep moving forward.",
+    "speaker": "Nami",
+    "source": "One Piece",
+    "reference": "Series dialogue",
+    "theme": "Resolve"
+  },
+  {
+    "id": "052",
+    "text": "There are times when a man must fight.",
+    "speaker": "Usopp",
+    "source": "One Piece",
+    "reference": "Series dialogue",
+    "theme": "Truth"
+  },
+  {
+    "id": "053",
+    "text": "A brave warrior does not abandon his friends.",
+    "speaker": "Usopp",
+    "source": "One Piece",
+    "reference": "Series theme",
+    "theme": "Loyalty"
+  },
+  {
+    "id": "056",
+    "text": "Being afraid does not mean you cannot act.",
+    "speaker": "Usopp",
+    "source": "One Piece",
+    "reference": "Series theme",
+    "theme": "Fear"
+  },
+  {
+    "id": "057",
+    "text": "I can't let my captain's dream be mocked.",
+    "speaker": "Usopp",
+    "source": "One Piece",
+    "reference": "Water 7",
+    "theme": "Friendship"
+  },
+  {
+    "id": "058",
+    "text": "I have to stand and fight.",
+    "speaker": "Usopp",
+    "source": "One Piece",
+    "reference": "Series dialogue",
+    "theme": "Courage"
+  },
+  {
+    "id": "059",
+    "text": "Even I can do something.",
+    "speaker": "Usopp",
+    "source": "One Piece",
+    "reference": "Series theme",
+    "theme": "Persistence"
+  },
+  {
+    "id": "060",
+    "text": "I will not run from this.",
+    "speaker": "Usopp",
+    "source": "One Piece",
+    "reference": "Series dialogue",
+    "theme": "Resolve"
+  },
+  {
+    "id": "065",
+    "text": "I want to cure people who suffer.",
+    "speaker": "Tony Tony Chopper",
+    "source": "One Piece",
+    "reference": "Series theme",
+    "theme": "Compassion"
+  },
+  {
+    "id": "066",
+    "text": "I won't abandon my friends.",
+    "speaker": "Tony Tony Chopper",
+    "source": "One Piece",
+    "reference": "Series dialogue",
+    "theme": "Friendship"
+  },
+  {
+    "id": "070",
+    "text": "There is always a way to help.",
+    "speaker": "Tony Tony Chopper",
+    "source": "One Piece",
+    "reference": "Series theme",
+    "theme": "Hope"
+  },
+  {
+    "id": "073",
+    "text": "A shipwright's dream can sail beyond the sea.",
+    "speaker": "Franky",
+    "source": "One Piece",
+    "reference": "Series theme",
+    "theme": "Dreams"
+  },
+  {
+    "id": "074",
+    "text": "The ship remembers the people who built it.",
+    "speaker": "Franky",
+    "source": "One Piece",
+    "reference": "Water 7 theme",
+    "theme": "Legacy"
+  },
+  {
+    "id": "076",
+    "text": "If you want to be a man, stand tall.",
+    "speaker": "Franky",
+    "source": "One Piece",
+    "reference": "Series theme",
+    "theme": "Courage"
+  },
+  {
+    "id": "077",
+    "text": "Death is never an apology.",
+    "speaker": "Brook",
+    "source": "One Piece",
+    "reference": "Series dialogue",
+    "theme": "Death"
+  },
+  {
+    "id": "079",
+    "text": "Music can carry a promise across the sea.",
+    "speaker": "Brook",
+    "source": "One Piece",
+    "reference": "Series theme",
+    "theme": "Music"
+  },
+  {
+    "id": "081",
+    "text": "Even after death, a promise can survive.",
+    "speaker": "Brook",
+    "source": "One Piece",
+    "reference": "Thriller Bark theme",
+    "theme": "Hope"
+  },
+  {
+    "id": "082",
+    "text": "Do not only count what you have lost.",
+    "speaker": "Jinbe",
+    "source": "One Piece",
+    "reference": "Marineford / postwar dialogue",
+    "theme": "Courage"
+  },
+  {
+    "id": "083",
+    "text": "What matters is what you still have.",
+    "speaker": "Jinbe",
+    "source": "One Piece",
+    "reference": "Marineford",
+    "theme": "Resilience"
+  },
+  {
+    "id": "084",
+    "text": "A leader must think beyond himself.",
+    "speaker": "Jinbe",
+    "source": "One Piece",
+    "reference": "Series dialogue",
+    "theme": "Leadership"
+  },
+  {
+    "id": "085",
+    "text": "I will stand with my captain.",
+    "speaker": "Jinbe",
+    "source": "One Piece",
+    "reference": "Whole Cake Island",
+    "theme": "Loyalty"
+  },
+  {
+    "id": "086",
+    "text": "Do not let hatred decide your future.",
+    "speaker": "Jinbe",
+    "source": "One Piece",
+    "reference": "Series theme",
+    "theme": "Justice"
+  },
+  {
+    "id": "087",
+    "text": "We can choose a different path.",
+    "speaker": "Jinbe",
+    "source": "One Piece",
+    "reference": "Series theme",
+    "theme": "Freedom"
+  },
+  {
+    "id": "089",
+    "text": "I am grateful that I was born.",
+    "speaker": "Portgas D. Ace",
+    "source": "One Piece",
+    "reference": "Marineford",
+    "theme": "Identity"
+  },
+  {
+    "id": "091",
+    "text": "I will not run from my fate.",
+    "speaker": "Portgas D. Ace",
+    "source": "One Piece",
+    "reference": "Series dialogue",
+    "theme": "Resolve"
+  },
+  {
+    "id": "092",
+    "text": "My life had meaning because of you.",
+    "speaker": "Portgas D. Ace",
+    "source": "One Piece",
+    "reference": "Marineford",
+    "theme": "Legacy"
+  },
+  {
+    "id": "095",
+    "text": "Everyone who joins my crew is family.",
+    "speaker": "Edward Newgate / Whitebeard",
+    "source": "One Piece",
+    "reference": "Series theme",
+    "theme": "Belonging"
+  },
+  {
+    "id": "096",
+    "text": "People of the sea choose their own path.",
+    "speaker": "Edward Newgate / Whitebeard",
+    "source": "One Piece",
+    "reference": "Series theme",
+    "theme": "Freedom"
+  },
+  {
+    "id": "097",
+    "text": "The will of the old era will continue.",
+    "speaker": "Edward Newgate / Whitebeard",
+    "source": "One Piece",
+    "reference": "Marineford",
+    "theme": "Legacy"
+  },
+  {
+    "id": "098",
+    "text": "A man should not fear death.",
+    "speaker": "Edward Newgate / Whitebeard",
+    "source": "One Piece",
+    "reference": "Series dialogue",
+    "theme": "Courage"
+  },
+  {
+    "id": "099",
+    "text": "People die when they are forgotten.",
+    "speaker": "Dr. Hiriluk",
+    "source": "One Piece",
+    "reference": "Chapter 144 / Episode 81",
+    "theme": "Legacy"
+  },
+  {
+    "id": "100",
+    "text": "When do you think people really die?",
+    "speaker": "Dr. Hiriluk",
+    "source": "One Piece",
+    "reference": "Chapter 144 / Episode 81",
+    "theme": "Hope"
   }
 ];
