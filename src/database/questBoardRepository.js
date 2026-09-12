@@ -70,12 +70,12 @@ const DEFAULT_QUESTS = [
 
   // ── Wisdom ───────────────────────────────────────────────────────────────────
   {
-    id: 'q-wisdom-meditations',
+    id: 'q-wisdom-journal',
     axis: 'wisdom',
-    title: 'Write 10-entry personal Meditations',
-    targetValue: 10,
+    title: 'Accumulate 75 evidence points of Wisdom',
+    targetValue: 75,
     currentValue: 0,
-    unit: 'entries',
+    unit: 'pts',
     done: false,
   },
 
@@ -110,19 +110,10 @@ const DEFAULT_QUESTS = [
 
   // ── Strategy ─────────────────────────────────────────────────────────────────
   {
-    id: 'q-strategy-biography',
+    id: 'q-strategy-reading',
     axis: 'strategy',
-    title: 'Read one complete biography of a historical figure',
-    targetValue: 1,
-    currentValue: 0,
-    unit: 'books',
-    done: false,
-  },
-  {
-    id: 'q-strategy-48laws',
-    axis: 'strategy',
-    title: 'Read The 48 Laws of Power',
-    targetValue: 1,
+    title: 'Read 4 strategic/historical books',
+    targetValue: 4,
     currentValue: 0,
     unit: 'books',
     done: false,
@@ -200,8 +191,15 @@ export function deriveQuestValue(quest, allLogs) {
       // journal/reflection entries tagged to knowledge axis count as pages
       return allLogs.filter(l => l.axis === 'knowledge' && l.type === 'journal_entry').length;
 
-    case 'q-wisdom-meditations':
-      return allLogs.filter(l => l.axis === 'wisdom' && l.type === 'journal_entry').length;
+    case 'q-wisdom-journal':
+      return allLogs
+        .filter(l => l.axis === 'wisdom')
+        .reduce((sum, l) => {
+          if (l.type === 'journal_entry') return sum + 1;
+          if (l.type === 'reflection') return sum + 3;
+          if (l.type === 'behavior_change') return sum + 5;
+          return sum;
+        }, 0);
 
     case 'q-creativity-sketchbook':
       return allLogs.filter(l => l.axis === 'creativity' && l.type === 'daily_checkbox').length;
@@ -212,10 +210,10 @@ export function deriveQuestValue(quest, allLogs) {
     case 'q-creativity-piece':
       return allLogs.filter(l => l.axis === 'creativity' && l.type === 'finished_piece').length;
 
-    case 'q-strategy-biography':
-    case 'q-strategy-48laws':
-      // Each finished strategy/history book counts toward the relevant quest
-      return allLogs.filter(l => l.axis === 'strategy' && l.type === 'book_finished').length >= 1 ? 1 : 0;
+    case 'q-strategy-reading':
+      return allLogs
+        .filter(l => l.axis === 'strategy' && l.type === 'book_finished')
+        .reduce((sum, l) => sum + (l.meta?.weight ?? 1.0), 0);
 
     default:
       return 0;

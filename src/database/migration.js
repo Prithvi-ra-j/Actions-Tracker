@@ -15,7 +15,7 @@
  * localStorage is NOT deleted after migration to preserve a safety backup.
  */
 
-import { saveDailyRecord } from './dailyRepository.js';
+import { addLog } from './logsRepository.js';
 import { setGoalCheck } from './goalsRepository.js';
 import { setMilestoneCheck } from './milestonesRepository.js';
 import { getSetting, setSetting } from './settingsRepository.js';
@@ -40,12 +40,23 @@ export async function migrateFromLocalStorage() {
       const daily = JSON.parse(dailyRaw);
       for (const [date, tasks] of Object.entries(daily)) {
         if (typeof date !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(date)) continue;
-        await saveDailyRecord(date, {
-          body:        !!tasks.body,
-          philosophy:  !!tasks.philosophy,
-          art:         !!tasks.art,
-          history:     !!tasks.history,
-        });
+        const taskToAxis = {
+          body: 'discipline',
+          philosophy: 'knowledge',
+          art: 'creativity',
+          history: 'strategy'
+        };
+        for (const [key, done] of Object.entries(tasks)) {
+           if (done && taskToAxis[key]) {
+              await addLog({
+                axis: taskToAxis[key],
+                type: 'daily_checkbox',
+                value: 1,
+                date: date,
+                meta: { task: key }
+              });
+           }
+        }
         migratedAny = true;
       }
     }

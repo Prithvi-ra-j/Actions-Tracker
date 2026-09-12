@@ -15,11 +15,13 @@ export async function getLatestSnapshot() {
 }
 
 /** Writes a new snapshot record. */
-export async function writeSnapshot(stats, date) {
+export async function writeSnapshot(stats, axisDetails, date) {
   await dbPut('statSnapshots', {
     id: crypto.randomUUID(),
     date,
+    modelVersion: '1.0',
     stats: { ...stats },
+    axisDetails: axisDetails ? { ...axisDetails } : null
   });
 }
 
@@ -28,13 +30,14 @@ export async function writeSnapshot(stats, date) {
  * Called on every app open — the check is cheap so it's safe to call every time.
  *
  * @param {{ strength, discipline, knowledge, wisdom, creativity, strategy }} currentStats
+ * @param {object} currentDetails
  * @param {string} today  'YYYY-MM-DD'
  */
-export async function checkAndWriteWeeklySnapshot(currentStats, today) {
+export async function checkAndWriteWeeklySnapshot(currentStats, currentDetails, today) {
   const latest = await getLatestSnapshot();
 
   if (!latest) {
-    await writeSnapshot(currentStats, today);
+    await writeSnapshot(currentStats, currentDetails, today);
     return;
   }
 
@@ -43,6 +46,6 @@ export async function checkAndWriteWeeklySnapshot(currentStats, today) {
   const daysDiff   = Math.round((todayDate - latestDate) / (1000 * 60 * 60 * 24));
 
   if (daysDiff >= SNAPSHOT_INTERVAL_DAYS) {
-    await writeSnapshot(currentStats, today);
+    await writeSnapshot(currentStats, currentDetails, today);
   }
 }

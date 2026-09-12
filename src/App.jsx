@@ -6,13 +6,13 @@ import { localDateStr }   from './helpers/dateHelpers.js';
 import { initDB }                from './database/db.js';
 import { migrateFromLocalStorage, migrateHardcodedGoalsToLifeObjects } from './database/migration.js';
 import { initAxisConfigs, getAllAxisConfigs } from './database/axisConfigRepository.js';
-import { getAllLogs }              from './database/logsRepository.js';
+import { getAllLogs, addLog, deleteDailyCheckboxLog } from './database/logsRepository.js';
 import { initQuestBoard, getAllQuests, syncQuestProgress } from './database/questBoardRepository.js';
-import { getAllDailyRecords, saveDailyRecord } from './database/dailyRepository.js';
 import { getAllGoalChecks,   setGoalCheck }    from './database/goalsRepository.js';
 import { getAllMilestoneChecks, setMilestoneCheck } from './database/milestonesRepository.js';
 import { getSetting, setSetting, getReminders, saveReminders } from './database/settingsRepository.js';
 import { checkAndWriteWeeklySnapshot, getLatestSnapshot } from './database/statSnapshotsRepository.js';
+import { runAnomalyDetection } from './database/telemetryRepository.js';
 import { isOnboardingComplete } from './database/selfModelRepository.js';
 
 // ── Helpers ─────────────────────────────────────────────────────────────────────────────
@@ -28,6 +28,7 @@ import GoalsTab      from './components/GoalsTab.jsx';
 import MilestonesTab from './components/MilestonesTab.jsx';
 
 import CalendarTab from './components/CalendarTab.jsx';
+import ReviewPrompt from './components/ReviewPrompt.jsx';
 import SettingsTab   from './components/SettingsTab.jsx';
 import NavDrawer     from './components/NavDrawer.jsx';
 import { Haptics, ImpactStyle } from '@capacitor/haptics';
@@ -86,8 +87,7 @@ function detectLevelUps(oldTitles, newStats) {
 // ─────────────────────────────────────────────────────────────────────────────
 
 export default function App() {
-  // ── Bootstrap state ────────────────────────────────────────────────────────
-  const [dbReady,         setDbReady]         = useState(false);
+  // ── Bootstrap state ────────────────────────────────────────────────        const [dbReady,         setDbReady]         = useState(false);
   const [dbError,         setDbError]         = useState(null);
   const [needsOnboarding, setNeedsOnboarding] = useState(false);
 
@@ -101,7 +101,7 @@ export default function App() {
   const [expanded,     setExpanded]     = useState(null); // expanded goal index
 
   // ── Data state (loaded from DB on mount; written back on every change) ─────
-  const [allDailyRecords,  setAllDailyRecords]  = useState({});
+  const [allLogs,          setAllLogs]          = useState([]);
   const [goalChecks,       setGoalChecks]        = useState({});
   const [milestoneChecks,  setMilestoneChecks]   = useState({});
   const [reminders,        setReminders]         = useState([
@@ -110,9 +110,9 @@ export default function App() {
     { id: 3, label: 'DAILY CHECK', time: '22:00', enabled: true },
   ]);
 
-  // ── Stat engine state ─────────────────────────────────────────────────────────
-  const [stats,            setStats]             = useState({ strength: 0, discipline: 0, knowledge: 0, wisdom: 0, creativity: 0, strategy: 0 });
+  // ── Stat engine state ────────────────────────────────────────────────         const [stats,            setStats]             = useState({ strength: 0, discipline: 0, knowledge: 0, wisdom: 0, creativity: 0, strategy: 0 });
   const [axisDetails,      setAxisDetails]        = useState({});
+  const [axisConfigs,      setAxisConfigs]        = useState([]);
   const [allQuests,        setAllQuests]          = useState([]);
   const [latestSnapshot,   setLatestSnapshot]     = useState(null);
   const [evaluations,      setEvaluations]        = useState({});
@@ -126,7 +126,15 @@ export default function App() {
   // ── Derived values ─────────────────────────────────────────────────────────
   const t          = dark ? THEMES.dark : THEMES.light;
   const today      = localDateStr();
-  const todayRecord = allDailyRecords[today] ?? { body: false, philosophy: false, art: false, history: false };
+  const todayRecord = useMemo(() => {
+    const rec = { body: false, philosophy: false, art: false, history: false };
+    const dayLogs = allLogs.filter(l => l.type === 'daily_checkbox' && l.date === today);
+    for (const log of dayLogs) {
+      if (log.meta?.task) rec[log.meta.task] = true;
+    }
+    return rec;
+  }, [allLogs, today]);
+
   const doneTargets = Object.values(goalChecks).filter(Boolean).length;
   const dailyDone   = [todayRecord.body, todayRecord.philosophy, todayRecord.art, todayRecord.history].filter(Boolean).length;
 
@@ -142,7 +150,6 @@ export default function App() {
 
         const [records, goals, milestones, darkPref, savedReminders, allLogs, axisConfigs, quests, facts] =
           await Promise.all([
-            getAllDailyRecords(),
             getAllGoalChecks(),
             getAllMilestoneChecks(),
             getSetting('darkMode'),
@@ -172,18 +179,17 @@ export default function App() {
           setNeedsOnboarding(true);
         }
 
-        setAllDailyRecords(records);
+        setAllLogs(allLogs);
+        setAxisConfigs(axisConfigs);
         setGoalChecks(goals);
         setMilestoneChecks(milestones);
         setAllQuests(syncedQuests);
         if (darkPref === 'true') setDark(true);
         if (savedReminders?.length) {
           setReminders(savedReminders);
-          // Phase 6: Sync schedules to reset any stale "Completed" messages from previous weeks
-          await scheduleAllReminders(savedReminders, records[localDateStr()] ?? {});
+          await scheduleAllReminders(savedReminders, todayRecord);
         } else {
-          // If no saved reminders, schedule the default ones
-          await scheduleAllReminders(reminders, records[localDateStr()] ?? {});
+          await scheduleAllReminders(reminders, todayRecord);
         }
 
         // Compute stats + per-axis details
@@ -230,9 +236,12 @@ export default function App() {
         }
 
         // Weekly auto-snapshot (spec §10) — write if 7+ days since last
-        await checkAndWriteWeeklySnapshot(initialStats, today);
+        await checkAndWriteWeeklySnapshot(initialStats, details, today);
         const snap = await getLatestSnapshot();
         setLatestSnapshot(snap);
+
+        // Run anomaly detection quietly in the background
+        await runAnomalyDetection(today);
       } catch (err) {
         console.error('[App] Bootstrap error:', err);
         setDbError(String(err?.message ?? err));
@@ -246,8 +255,7 @@ export default function App() {
     setupStatusBar();
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // ── Android back-button handler ────────────────────────────────────────────
-  // Re-registers whenever the relevant state changes so the handler is current.
+  // ── Android back-button handler ────────────────────────────────────────    // Re-registers whenever the relevant state changes so the handler is current.
   useEffect(() => {
     registerBackHandler(() => {
       if (showSettings)        { setShowSettings(false);  return true; }
@@ -266,18 +274,20 @@ export default function App() {
   // ── Stat recompute — called after any write that could affect a stat ──────
   const recomputeStats = useCallback(async () => {
     try {
-      const [freshLogs, freshConfigs] = await Promise.all([getAllLogs(), getAllAxisConfigs()]);
+      const freshLogs = await getAllLogs();
+      const freshConfigs = await getAllAxisConfigs();
       await syncQuestProgress(freshLogs);
       const freshQuests = await getAllQuests();
       const today = localDateStr();
+      setAllLogs(freshLogs);
+      setAxisConfigs(freshConfigs);
       setAllQuests(freshQuests);
       const newStats   = computeAllStats(freshLogs, freshConfigs, freshQuests, today);
       const newDetails = computeAxisDetails(freshLogs, freshConfigs, freshQuests, today);
       setStats(newStats);
       setAxisDetails(newDetails);
 
-      // ── Level-up detection (spec §11) ─────────────────────────────────────
-      const savedTitlesRaw = await getSetting('lastStatTitles');
+      // ── Level-up detection (spec §11) ────────────────────────────────     const savedTitlesRaw = await getSetting('lastStatTitles');
       const savedTitles = savedTitlesRaw ? JSON.parse(savedTitlesRaw) : {};
       const newLevelUps = detectLevelUps(savedTitles, newStats);
       if (newLevelUps.length > 0) {
@@ -305,20 +315,34 @@ export default function App() {
 
   const handleDailyToggle = useCallback(async (id) => {
     triggerHaptic();
-    const newRecord = { ...todayRecord, [id]: !todayRecord[id] };
-    // Optimistic UI update
-    setAllDailyRecords(prev => ({ ...prev, [today]: newRecord }));
+
+    const taskToAxis = {
+      body: 'discipline',
+      philosophy: 'knowledge',
+      art: 'creativity',
+      history: 'strategy'
+    };
+    const axis = taskToAxis[id];
+
+    // Check if it's already done today
+    const wasDone = allLogs.some(l => l.type === 'daily_checkbox' && l.date === today && l.meta?.task === id);
 
     try {
-      await saveDailyRecord(today, newRecord);
-      // Reschedule all reminders to inject the fresh score / completion state (Phase 6)
+      if (wasDone) {
+        await deleteDailyCheckboxLog(today, id);
+      } else {
+        await addLog({ axis, type: 'daily_checkbox', value: 1, date: today, meta: { task: id } });
+      }
+
+      // Optimistically compute new record to update reminders immediately
+      const newRecord = { ...todayRecord, [id]: !wasDone };
       await scheduleAllReminders(reminders, newRecord);
-      // Recompute stats after any daily checkbox change
+
       await recomputeStats();
     } catch (err) {
-      console.error('[App] saveDailyRecord failed:', err);
+      console.error('[App] handleDailyToggle failed:', err);
     }
-  }, [todayRecord, today, reminders, recomputeStats]);
+  }, [allLogs, today, todayRecord, reminders, recomputeStats]);
 
   const handleGoalToggle = useCallback(async (key) => {
     triggerHaptic();
@@ -514,7 +538,7 @@ export default function App() {
             {tab === 'daily' && (
               <TodayTab
                 t={t}
-                allDailyRecords={allDailyRecords}
+                allLogs={allLogs}
                 evaluations={evaluations}
                 onToggle={handleDailyToggle}
                 onEvaluate={async (targetRef, evalData) => {
@@ -552,6 +576,8 @@ export default function App() {
                 axisDetails={axisDetails}
                 snapshot={latestSnapshot}
                 allQuests={allQuests}
+                allLogs={allLogs}
+                axisConfigs={axisConfigs}
               />
             )}
 
@@ -577,7 +603,7 @@ export default function App() {
             {tab === 'calendar' && (
               <CalendarTab
                 t={t}
-                allDailyRecords={allDailyRecords}
+                allLogs={allLogs}
               />
             )}
 
@@ -588,6 +614,8 @@ export default function App() {
 
           </>
         )}
+
+        <ReviewPrompt t={t} currentStats={stats} />
       </div>
 
       {/* ── Overlays (Phase 4) ──────────────────────────────────────────────── */}

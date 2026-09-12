@@ -2,6 +2,7 @@ import React, { useMemo } from 'react';
 import { ACCENT } from '../constants.js';
 import { getThresholdTitle } from '../helpers/statsEngine.js';
 import RadarChart from './RadarChart.jsx';
+import StatHistoryModal from './StatHistoryModal.jsx';
 
 /**
  * StatsTab — Phase 3 visualization.
@@ -45,7 +46,7 @@ function MiniBar({ value, max = 100, color, dark }) {
   );
 }
 
-function AxisCard({ t, dark, axisInfo, stat, details, quests }) {
+function AxisCard({ t, dark, axisInfo, stat, details, quests, onClick }) {
   const { key, label, icon, color } = axisInfo;
   const { C, V, M } = details ?? {};
   const title = getThresholdTitle(key, Math.round(stat));
@@ -71,8 +72,9 @@ function AxisCard({ t, dark, axisInfo, stat, details, quests }) {
       borderTop: `1px solid ${t.borderFaint}`,
       borderRight: `1px solid ${t.borderFaint}`,
       borderBottom: `1px solid ${t.borderFaint}`,
-      position: 'relative'
-    }}>
+      position: 'relative',
+      cursor: 'pointer'
+    }} onClick={onClick}>
       {axisLagging && (
         <div style={{ position: 'absolute', top: -5, right: -5, width: 12, height: 12, borderRadius: '50%', background: '#c1442c', border: `2px solid ${t.pageBg}` }} title="Lagging pace" />
       )}
@@ -139,7 +141,9 @@ function AxisCard({ t, dark, axisInfo, stat, details, quests }) {
   );
 }
 
-export default function StatsTab({ t, dark, stats = {}, axisDetails = {}, snapshot = null, allQuests = [] }) {
+export default function StatsTab({ t, dark, stats = {}, axisDetails = {}, snapshot = null, allQuests = [], allLogs = [], axisConfigs = [] }) {
+  const [selectedAxis, setSelectedAxis] = React.useState(null);
+
   const snapshotStats = snapshot?.stats ?? null;
   const snapshotLabel = snapshot?.date
     ? `vs. ${new Date(snapshot.date + 'T00:00:00').toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}`
@@ -219,9 +223,21 @@ export default function StatsTab({ t, dark, stats = {}, axisDetails = {}, snapsh
             stat={stats[axisInfo.key] ?? 0}
             details={axisDetails[axisInfo.key] ?? {}}
             quests={allQuests.filter(q => q.axis === axisInfo.key)}
+            onClick={() => setSelectedAxis(axisInfo)}
           />
         ))}
       </div>
+
+      {selectedAxis && (
+        <StatHistoryModal
+          t={t}
+          axisInfo={selectedAxis}
+          allLogs={allLogs}
+          axisConfigs={axisConfigs}
+          allQuests={allQuests}
+          onClose={() => setSelectedAxis(null)}
+        />
+      )}
 
       {/* ── Snapshot note ─────────────────────────────────────────────────────── */}
       <p style={{ marginTop: '1.5rem', fontSize: '0.65rem', color: t.muted, lineHeight: 1.6, fontStyle: 'italic', textAlign: 'center' }}>

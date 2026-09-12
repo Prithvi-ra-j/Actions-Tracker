@@ -9,7 +9,10 @@
     "preview": "vite preview",
     "cap:sync": "npx cap sync",
     "cap:android": "npx cap open android",
-    "test:roundtrip": "node scripts/test-roundtrip.mjs"
+    "test:roundtrip": "node scripts/test-roundtrip.mjs",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage"
   },
   "dependencies": {
     "@capacitor/android": "^6.0.0",
@@ -24,6 +27,8 @@
   "devDependencies": {
     "@capacitor/cli": "^6.0.0",
     "@vitejs/plugin-react": "^4.3.1",
-    "vite": "^5.4.10"
+    "fast-check": "^3.22.0",
+    "vite": "^5.4.10",
+    "vitest": "^2.1.0"
   }
 }

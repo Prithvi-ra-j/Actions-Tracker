@@ -1,59 +1,47 @@
 import React, { useMemo, useState, useEffect } from 'react';
 import { getDailyItems, ACCENT } from '../constants.js';
 import { localDateStr, formatDisplayDate, getCurrentWeekDates, WEEK_LABELS } from '../helpers/dateHelpers.js';
-import {
-  isDayPerfect, getDayScore,
-  calcCurrentStreak, calcLongestStreak,
-  calcPerfectDays, calcTotalTasks,
-  calcWeeklyStats, calcMonthlyStats,
-} from '../helpers/statsHelpers.js';
 import SundayReflection from './SundayReflection.jsx';
 import EvidencePrompt from './EvidencePrompt.jsx';
 
 /**
- * Today tab — daily task checklist, streak display, weekly row, and stats grid.
+ * Today tab — daily task checklist and weekly row.
  *
  * Props:
  *   t               — current theme object
- *   allDailyRecords — { "YYYY-MM-DD": { body, philosophy, art, history } }
+ *   allLogs         — array of all event logs
  *   evaluations     — map of targetRef -> fact
  *   onToggle(id)    — called when user taps a task
  *   onEvaluate      — (targetRef, data) => Promise<void>
  *   onGoToGoals()   — called when user taps the "Open full goals" button
  */
-export default function TodayTab({ t, allDailyRecords, evaluations, onToggle, onEvaluate, onGoToGoals, hasSundayReflection, onSundayReflection }) {
+export default function TodayTab({ t, allLogs, evaluations, onToggle, onEvaluate, onGoToGoals, hasSundayReflection, onSundayReflection }) {
   const today = localDateStr();
-  const todayRecord = allDailyRecords[today] ?? { body: false, philosophy: false, art: false, history: false };
-  const dailyDone  = getDayScore(todayRecord);
+  
+  // Calculate today's record directly from logs
+  const todayRecord = useMemo(() => {
+    const rec = { body: false, philosophy: false, art: false, history: false };
+    const todayLogs = allLogs.filter(l => l.type === 'daily_checkbox' && l.date === today);
+    for (const log of todayLogs) {
+      if (log.meta?.task) rec[log.meta.task] = true;
+    }
+    return rec;
+  }, [allLogs, today]);
+
+  const dailyDone  = [todayRecord.body, todayRecord.philosophy, todayRecord.art, todayRecord.history].filter(Boolean).length;
   const isComplete = dailyDone === 4;
   const pct        = Math.round((dailyDone / 4) * 100);
 
   const [evaluatingId, setEvaluatingId] = useState(null);
-
   const dailyItems = useMemo(() => getDailyItems(today), [today]);
 
-  // ── Streak / stats — memoised so they don't recompute on every render ────────
-  const currentStreak = useMemo(() => calcCurrentStreak(allDailyRecords), [allDailyRecords]);
-  const longestStreak = useMemo(() => calcLongestStreak(allDailyRecords), [allDailyRecords]);
-  const perfectDays   = useMemo(() => calcPerfectDays(allDailyRecords),   [allDailyRecords]);
-  const totalTasks    = useMemo(() => calcTotalTasks(allDailyRecords),     [allDailyRecords]);
-
-  const now          = new Date();
-  const weeklyStats  = useMemo(() => calcWeeklyStats(allDailyRecords),    [allDailyRecords]);
-  const monthlyStats = useMemo(
-    () => calcMonthlyStats(allDailyRecords, now.getFullYear(), now.getMonth() + 1),
-    [allDailyRecords],
-  );
-
+  const now = new Date();
   const weekDates = getCurrentWeekDates();
 
-  // Streak warning (after 7 PM, incomplete, and having an active streak)
-  const [currentHour, setCurrentHour] = useState(new Date().getHours());
-  useEffect(() => {
-    const interval = setInterval(() => setCurrentHour(new Date().getHours()), 60000);
-    return () => clearInterval(interval);
-  }, []);
-  const showStreakWarning = currentStreak > 0 && dailyDone < 4 && currentHour >= 19;
+  // Helper for weekly row
+  const getDayScore = (dateStr) => {
+    return allLogs.filter(l => l.type === 'daily_checkbox' && l.date === dateStr).length;
+  };
 
   return (
     <>
@@ -84,16 +72,6 @@ export default function TodayTab({ t, allDailyRecords, evaluations, onToggle, on
               {pct}% COMPLETE
             </div>
           </div>
-
-          {/* Streak badge */}
-          {currentStreak > 0 && (
-            <div style={{ textAlign: 'right' }}>
-              <div style={{ fontSize: '1.4rem', lineHeight: 1 }}>🔥</div>
-              <div style={{ fontFamily: 'monospace', fontSize: '0.65rem', letterSpacing: '0.1em', color: ACCENT, marginTop: '0.2rem' }}>
-                {currentStreak} DAY STREAK
-              </div>
-            </div>
-          )}
         </div>
 
         {/* Progress bar */}
@@ -120,37 +98,7 @@ export default function TodayTab({ t, allDailyRecords, evaluations, onToggle, on
             ✦ Perfect Day ✦
           </div>
         )}
-        {currentStreak > 0 && currentStreak % 7 === 0 && dailyDone === 4 && (
-          <div style={{
-            marginTop: '0.75rem',
-            fontFamily: 'monospace',
-            fontSize: '0.65rem',
-            letterSpacing: '0.15em',
-            color: '#d99a2b',
-            textTransform: 'uppercase',
-            animation: 'pulse 2s infinite'
-          }}>
-            🏆 {currentStreak} Day Streak! 🏆
-          </div>
-        )}
       </div>
-
-      {/* ── Streak Warning ────────────────────────────────────────────────────── */}
-      {showStreakWarning && (
-        <div style={{
-          padding: '1rem',
-          background: 'rgba(193, 68, 44, 0.15)', // transparent red
-          borderLeft: '4px solid #c1442c',
-          marginBottom: '1.25rem',
-        }}>
-          <div style={{ fontFamily: 'monospace', fontSize: '0.65rem', letterSpacing: '0.15em', color: '#c1442c', textTransform: 'uppercase', marginBottom: '0.25rem' }}>
-            Warning
-          </div>
-          <div style={{ fontSize: '0.85rem', color: t.pageText }}>
-            Your <strong>{currentStreak} day streak</strong> is at risk. Finish today's work.
-          </div>
-        </div>
-      )}
 
       {/* ── Sunday Reflection ─────────────────────────────────────────────────── */}
       {now.getDay() === 0 && !hasSundayReflection && (
@@ -262,9 +210,8 @@ export default function TodayTab({ t, allDailyRecords, evaluations, onToggle, on
         </div>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: '0.2rem' }}>
           {weekDates.map((dateStr, i) => {
-            const record  = allDailyRecords[dateStr];
-            const score   = getDayScore(record);
-            const perfect = isDayPerfect(record);
+            const score   = getDayScore(dateStr);
+            const perfect = score === 4;
             const isTd    = dateStr === today;
             const isFuture = dateStr > today;
 
@@ -286,28 +233,7 @@ export default function TodayTab({ t, allDailyRecords, evaluations, onToggle, on
               </div>
             );
           })}
-        </div>
       </div>
-
-      {/* ── Stats grid ───────────────────────────────────────────────────────── */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem', marginBottom: '1.25rem' }}>
-        {[
-          { label: 'CURRENT STREAK', value: `${currentStreak}d` },
-          { label: 'LONGEST STREAK', value: `${longestStreak}d` },
-          { label: 'PERFECT DAYS',   value: perfectDays },
-          { label: 'TASKS DONE',     value: totalTasks  },
-          { label: 'THIS WEEK',      value: `${weeklyStats.pct}%`  },
-          { label: 'THIS MONTH',     value: `${monthlyStats.pct}%` },
-        ].map(({ label, value }) => (
-          <div key={label} style={{ padding: '0.75rem', background: t.subtleBg, borderLeft: `2px solid ${t.border}` }}>
-            <div style={{ fontFamily: 'monospace', fontSize: '0.65rem', letterSpacing: '0.12em', color: t.muted, textTransform: 'uppercase', marginBottom: '0.25rem' }}>
-              {label}
-            </div>
-            <div style={{ fontFamily: 'monospace', fontSize: '1.25rem', fontWeight: 700, color: t.pageText }}>
-              {value}
-            </div>
-          </div>
-        ))}
       </div>
 
       <button

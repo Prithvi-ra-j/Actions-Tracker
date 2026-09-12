@@ -132,16 +132,33 @@ export function calcVolume(axisQuests) {
  * Returns a value clamped to [-20, +20]. Can go negative so it nudges the stat
  * rather than swinging it.
  *
- * @param {Array}  axisLogs  — logs already filtered to this axis
- * @param {string} today     — 'YYYY-MM-DD'
+ * Strategy pause (§4.5): when paused=true, the Momentum window is frozen at
+ * the date of the last 'book_finished' log, so M doesn't decay during a gap.
+ *
+ * @param {string} axis
+ * @param {Array}  axisLogs   — logs already filtered to this axis
+ * @param {object} axisConfig — { paused }
+ * @param {string} today      — 'YYYY-MM-DD'
  * @returns {number}
  */
-export function calcMomentum(axisLogs, today) {
-  const recent14Start = subDays(today, 13);  // last 14 days (today inclusive)
-  const prior14End   = subDays(today, 14);   // the 14 days before that
-  const prior14Start = subDays(today, 27);
+export function calcMomentum(axis, axisLogs, axisConfig, today) {
+  let windowEnd = today;
 
-  const recentRate = countInRange(axisLogs, recent14Start, today);
+  if (axis === 'strategy' && axisConfig.paused) {
+    const finishedLogs = axisLogs
+      .filter(l => l.type === 'book_finished')
+      .sort((a, b) => b.date.localeCompare(a.date));
+    
+    if (finishedLogs.length > 0) {
+      windowEnd = finishedLogs[0].date;
+    }
+  }
+
+  const recent14Start = subDays(windowEnd, 13);  // last 14 days (windowEnd inclusive)
+  const prior14End    = subDays(windowEnd, 14);  // the 14 days before that
+  const prior14Start  = subDays(windowEnd, 27);
+
+  const recentRate = countInRange(axisLogs, recent14Start, windowEnd);
   const priorRate  = countInRange(axisLogs, prior14Start, prior14End);
 
   const raw = ((recentRate - priorRate) / Math.max(priorRate, 1)) * 100;
@@ -165,7 +182,7 @@ export function calcMomentum(axisLogs, today) {
  */
 export function calcAxisStat(axis, axisLogs, axisConfig, axisQuests, today) {
   const V = calcVolume(axisQuests);
-  const M = calcMomentum(axisLogs, today);
+  const M = calcMomentum(axis, axisLogs, axisConfig, today);
 
   let computed;
   if (!axisConfig.hasConsistencyTerm) {
@@ -241,7 +258,7 @@ export function computeAxisDetails(allLogs, axisConfigs, questBoardItems, today)
       ? calcConsistency(axis, axisLogs, axisConfig, today)
       : null;
     const V = calcVolume(axisQuests);
-    const M = calcMomentum(axisLogs, today);
+    const M = calcMomentum(axis, axisLogs, axisConfig, today);
     const stat = calcAxisStat(axis, axisLogs, axisConfig, axisQuests, today);
 
     details[axis] = { C, V, M, stat };
@@ -274,9 +291,9 @@ const THRESHOLDS = {
   ],
   wisdom: [
     { min: 0,  title: 'Observant'      },
-    { min: 25, title: 'Reflective'     },
-    { min: 55, title: 'Discerning'     },
-    { min: 80, title: 'Sage'           },
+    { min: 20, title: 'Reflective'     },
+    { min: 40, title: 'Discerning'     },
+    { min: 55, title: 'Sage'           },
   ],
   creativity: [
     { min: 0,  title: 'Dormant'        },
