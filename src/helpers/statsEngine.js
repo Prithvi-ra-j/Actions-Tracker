@@ -323,3 +323,20 @@ export function getThresholdTitle(axis, value) {
   }
   return title;
 }
+
+// ─── v8 Addition — Architecture Phase 6 ───────────────────────────────────────
+// Additive export only. All existing functions above are untouched.
+
+/**
+ * Computes a score with full explanation for a domain using the new evidence-
+ * based score engine. Does not replace or affect computeAllStats().
+ *
+ * @param {string} domain  — 'discipline'|'knowledge'|'body'|'strategy'|'creativity'|'social'
+ * @param {{ start: string, end: string }} period  — ISO 8601
+ * @returns {Promise<{ score: object, explanation: object }>}
+ */
+export async function computeScoreWithExplanation(domain, period) {
+  // Lazy-import to avoid circular dependency with scoreEngine at module load time.
+  const { computeScoreWithExplanation: _compute } = await import('../core/scoring/scoreEngine.js');
+  return _compute(domain, period);
+}

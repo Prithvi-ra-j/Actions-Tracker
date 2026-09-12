@@ -21,10 +21,12 @@ import { getAllFacts } from '../database/factsRepository.js';
 // ─── Life dimension display config ───────────────────────────────────────────
 
 const LIFE_DIMS = [
-  { key: 'body',     label: 'Body & Health',      icon: '⚔', color: '#c1442c' },
-  { key: 'mind',     label: 'Mind & Knowledge',   icon: '∞', color: '#4a7ba6' },
-  { key: 'craft',    label: 'Craft & Creativity', icon: '◈', color: '#d99a2b' },
-  { key: 'strategy', label: 'Strategy & History', icon: '♟', color: '#4f8a5f' },
+  { key: 'body',       label: 'Body',       icon: '⚔', color: '#c1442c' },
+  { key: 'knowledge',  label: 'Knowledge',  icon: '∞', color: '#4a7ba6' },
+  { key: 'strategy',   label: 'Strategy',   icon: '♟', color: '#4f8a5f' },
+  { key: 'creativity', label: 'Creativity', icon: '◈', color: '#d99a2b' },
+  { key: 'social',     label: 'Social',     icon: '♥', color: '#b95b89' },
+  { key: 'discipline', label: 'Discipline', icon: '⚡', color: '#685b8c' },
 ];
 
 const PRIORITY_COLORS = { high: '#c1442c', medium: '#d99a2b', low: '#4f8a5f' };
@@ -215,16 +217,26 @@ function EditableVision({ t, value, onSave }) {
 export default function SelfTab({ t, dark }) {
   const [model, setModel] = useState(null);
   const [rpg, setRpg] = useState(null);
+  const [realScores, setRealScores] = useState({});
   const [loading, setLoading] = useState(true);
   const [showCompiler, setShowCompiler] = useState(false);
 
   useEffect(() => {
     Promise.all([
       getSelfModel(),
-      getAllFacts().then(computeGlobalRPG)
-    ]).then(([m, rpgData]) => {
+      getAllFacts().then(computeGlobalRPG),
+      import('../core/scoring/scoreEngine.js').then(async m => {
+        const period = { start: '1970-01-01', end: '2099-12-31' }; // all-time
+        const scores = {};
+        for (const dim of LIFE_DIMS) {
+          scores[dim.key] = await m.computeScoreWithExplanation(dim.key, period);
+        }
+        return scores;
+      })
+    ]).then(([m, rpgData, scores]) => {
       setModel(m);
       setRpg(rpgData);
+      setRealScores(scores);
       setLoading(false);
     });
   }, []);
@@ -258,14 +270,29 @@ export default function SelfTab({ t, dark }) {
 
   const { identity, currentState, desiredSelf, gaps: storedGaps } = model;
 
+  // We map the real score projections into the "current state" format for the UI
+  // Fall back to old manual currentState estimates if real score is 0 or unavailable
+  const hybridCurrentState = { ...currentState };
+  for (const key of Object.keys(realScores)) {
+    const s = realScores[key]?.score;
+    // Overwrite if score engine has data
+    if (s && typeof s.value === 'number') {
+      hybridCurrentState[key] = {
+        value: s.value,
+        confidence: s.confidence,
+        evidence: realScores[key]?.explanation?.headline || s.warnings?.join(', ') || '',
+      };
+    }
+  }
+
   // Recompute gaps live from current stored values
   const liveGaps = desiredSelf?.dimensions
-    ? computeGaps(currentState ?? {}, desiredSelf.dimensions)
+    ? computeGaps(hybridCurrentState ?? {}, desiredSelf.dimensions)
     : {};
   const sorted = sortedGaps(liveGaps);
 
   const hasIdentity = identity?.roles?.length > 0 || identity?.values?.length > 0 || identity?.oneLiner;
-  const hasCurrentState = Object.keys(currentState ?? {}).length > 0;
+  const hasCurrentState = Object.keys(hybridCurrentState ?? {}).length > 0;
 
   return (
     <>
@@ -399,7 +426,7 @@ export default function SelfTab({ t, dark }) {
               key={dim.key}
               t={t}
               dim={dim}
-              currentDim={currentState[dim.key]}
+              currentDim={hybridCurrentState[dim.key]}
               desiredDim={desiredSelf?.dimensions?.[dim.key]}
               gap={liveGaps[dim.key]}
             />

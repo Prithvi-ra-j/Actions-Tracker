@@ -19,11 +19,31 @@ import { exportDatabase, importDatabase } from '../database/db.js';
  *   onSaveReminders   — async (reminders) => void — persists to DB
  *   todayRecord       — { body, philosophy, art, history }
  *   onClose           — function to close the settings panel
+ *   onRunSync         — async () => summary — runs the sync manager
  */
-export default function SettingsTab({ t, dark, setDark, reminders, setReminders, onSaveReminders, todayRecord, onClose }) {
+export default function SettingsTab({ t, dark, setDark, reminders, setReminders, onSaveReminders, todayRecord, onClose, onRunSync }) {
   const [permStatus, setPermStatus] = useState('unknown');
   const [saving,     setSaving]     = useState(false);
   const [saved,      setSaved]      = useState(false);
+  
+  const [aiApiKey, setAiApiKey] = useState('');
+  const [aiBaseUrl, setAiBaseUrl] = useState('');
+  const [aiModel, setAiModel] = useState('');
+
+  // Load AI settings on mount
+  useEffect(() => {
+    import('../database/settingsRepository.js').then(m => {
+      Promise.all([
+        m.getSetting('aiApiKey'),
+        m.getSetting('aiBaseUrl'),
+        m.getSetting('aiModel')
+      ]).then(([key, url, mod]) => {
+        setAiApiKey(key || '');
+        setAiBaseUrl(url || 'https://api.groq.com/openai/v1');
+        setAiModel(mod || 'gemma2-9b-it');
+      });
+    });
+  }, []);
 
   // Update a single reminder field
   function updateReminder(id, changes) {
@@ -41,6 +61,13 @@ export default function SettingsTab({ t, dark, setDark, reminders, setReminders,
     try {
       await onSaveReminders(reminders);
       await scheduleAllReminders(reminders, todayRecord);
+
+      // Save AI Settings
+      const { setSetting } = await import('../database/settingsRepository.js');
+      await setSetting('aiApiKey', aiApiKey);
+      await setSetting('aiBaseUrl', aiBaseUrl);
+      await setSetting('aiModel', aiModel);
+
       setSaved(true);
       setTimeout(() => setSaved(false), 2000);
     } catch (err) {
@@ -85,6 +112,23 @@ export default function SettingsTab({ t, dark, setDark, reminders, setReminders,
     reader.readAsText(file);
     // Reset input so the same file can be re-selected if needed
     e.target.value = '';
+  }
+
+  const [syncing, setSyncing] = useState(false);
+  const [syncSummary, setSyncSummary] = useState(null);
+
+  async function handleSyncClick() {
+    if (!onRunSync) return;
+    setSyncing(true);
+    setSyncSummary(null);
+    try {
+      const summary = await onRunSync();
+      setSyncSummary(summary);
+    } catch (err) {
+      alert('Sync failed: ' + err.message);
+    } finally {
+      setSyncing(false);
+    }
   }
 
   return (
@@ -246,6 +290,89 @@ export default function SettingsTab({ t, dark, setDark, reminders, setReminders,
         >
           {saving ? 'Saving…' : saved ? '✓ Saved' : 'Save Reminders'}
         </button>
+      </div>
+
+      {/* ── AI Engine Settings ────────────────────────────────────────────────── */}
+      <div style={{ border: `1px solid ${t.border}`, borderLeft: `4px solid ${t.border}`, padding: '1rem', marginBottom: '1.5rem' }}>
+        <div style={{ fontFamily: 'monospace', fontSize: '0.65rem', letterSpacing: '0.15em', color: t.muted, textTransform: 'uppercase', marginBottom: '0.5rem' }}>
+          AI Engine (Jarvis)
+        </div>
+        <div style={{ fontSize: '0.9rem', marginBottom: '1rem', lineHeight: 1.5, color: t.muted }}>
+          Configure your LLM provider for Insights. Supports Groq or OpenAI-compatible endpoints.
+        </div>
+        
+        <div style={{ marginBottom: '0.75rem' }}>
+          <label style={{ display: 'block', fontFamily: 'monospace', fontSize: '0.65rem', color: t.muted, marginBottom: '0.25rem' }}>API Key</label>
+          <input 
+            type="password" 
+            value={aiApiKey}
+            onChange={(e) => setAiApiKey(e.target.value)}
+            style={{ width: '100%', padding: '0.5rem', background: t.subtleBg, border: `1px solid ${t.borderSoft}`, color: t.pageText, fontFamily: 'monospace' }} 
+            placeholder="gsk_..."
+          />
+        </div>
+
+        <div style={{ marginBottom: '0.75rem' }}>
+          <label style={{ display: 'block', fontFamily: 'monospace', fontSize: '0.65rem', color: t.muted, marginBottom: '0.25rem' }}>Base URL</label>
+          <input 
+            type="text" 
+            value={aiBaseUrl}
+            onChange={(e) => setAiBaseUrl(e.target.value)}
+            style={{ width: '100%', padding: '0.5rem', background: t.subtleBg, border: `1px solid ${t.borderSoft}`, color: t.pageText, fontFamily: 'monospace' }} 
+          />
+        </div>
+
+        <div style={{ marginBottom: '0.75rem' }}>
+          <label style={{ display: 'block', fontFamily: 'monospace', fontSize: '0.65rem', color: t.muted, marginBottom: '0.25rem' }}>Model</label>
+          <input 
+            type="text" 
+            value={aiModel}
+            onChange={(e) => setAiModel(e.target.value)}
+            style={{ width: '100%', padding: '0.5rem', background: t.subtleBg, border: `1px solid ${t.borderSoft}`, color: t.pageText, fontFamily: 'monospace' }} 
+          />
+        </div>
+      </div>
+
+      {/* ── Integrations & Sync ────────────────────────────────────────────────── */}
+      <div style={{ border: `1px solid ${t.border}`, borderLeft: `4px solid ${t.border}`, padding: '1rem', marginBottom: '1.5rem' }}>
+        <div style={{ fontFamily: 'monospace', fontSize: '0.65rem', letterSpacing: '0.15em', color: t.muted, textTransform: 'uppercase', marginBottom: '0.5rem' }}>
+          Integrations & Sync
+        </div>
+        <div style={{ fontSize: '0.9rem', marginBottom: '1rem', lineHeight: 1.5, color: t.muted }}>
+          Sync data from external health and fitness connectors into your fact ledger.
+        </div>
+        
+        <button
+          onClick={handleSyncClick}
+          disabled={syncing}
+          style={{
+            padding: '0.7rem',
+            background: 'transparent',
+            border: `1px solid ${ACCENT}`,
+            color: ACCENT,
+            fontFamily: 'monospace',
+            fontSize: '0.65rem',
+            letterSpacing: '0.1em',
+            cursor: syncing ? 'default' : 'pointer',
+            textTransform: 'uppercase',
+            width: '100%',
+            opacity: syncing ? 0.75 : 1
+          }}
+        >
+          {syncing ? 'Syncing...' : 'Run Data Sync'}
+        </button>
+        {syncSummary && (
+          <div style={{ marginTop: '0.75rem', padding: '0.5rem', background: t.subtleBg, fontFamily: 'monospace', fontSize: '0.6rem', color: t.muted }}>
+            <div>Last Sync: {new Date(syncSummary.completedAt).toLocaleTimeString()}</div>
+            <div>Connectors run: {syncSummary.connectorsRun}</div>
+            <div>Facts imported: {syncSummary.totalImported}</div>
+            {syncSummary.errors.length > 0 && (
+              <div style={{ color: '#c1442c', marginTop: '0.25rem' }}>
+                Errors: {syncSummary.errors.map(e => e.id).join(', ')}
+              </div>
+            )}
+          </div>
+        )}
       </div>
 
       {/* ── Data Safety ───────────────────────────────────────────────────────── */}

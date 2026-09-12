@@ -1,23 +1,22 @@
 import React from 'react';
-import { GOALS, ACCENT, hexRgb } from '../constants.js';
+import { ACCENT, hexRgb } from '../constants.js';
 import { getDaysUntilYearEnd } from '../helpers/dateHelpers.js';
 import BookTracker from './BookTracker.jsx';
 
 /**
- * Goals tab — existing four goal domains with expandable target checklists.
- * Preserves the original design exactly; checkboxes now persist via IndexedDB.
+ * Goals tab — displays DB-backed goals with expandable target checklists.
  *
  * Props:
  *   t             — current theme object
  *   dark          — boolean, dark mode flag
- *   goalChecks    — { "gi-ti": boolean }
- *   onToggle(key) — called when a target checkbox is tapped
+ *   lifeGoals     — array of Goal objects from the repository
+ *   onToggle      — function(goalId, targetIndex) called when a target checkbox is tapped
  *   expanded      — currently expanded goal index (null = all collapsed)
  *   setExpanded   — setter for expanded
  */
-export default function GoalsTab({ t, dark, goalChecks, onToggle, expanded, setExpanded }) {
-  const totalTargets = GOALS.reduce((a, g) => a + g.targets.length, 0);
-  const doneTargets  = Object.values(goalChecks).filter(Boolean).length;
+export default function GoalsTab({ t, dark, lifeGoals = [], onToggle, expanded, setExpanded }) {
+  const totalTargets = lifeGoals.reduce((a, g) => a + (g.targets?.length || 0), 0);
+  const doneTargets  = lifeGoals.reduce((a, g) => a + (g.targets?.filter(t => t.completed)?.length || 0), 0);
 
   return (
     <>
@@ -44,9 +43,9 @@ export default function GoalsTab({ t, dark, goalChecks, onToggle, expanded, setE
       </div>
 
       {/* ── Goal cards ────────────────────────────────────────────────────────── */}
-      {GOALS.map((g, gi) => {
+      {lifeGoals.map((g, gi) => {
         const isOpen = expanded === gi;
-        const doneCt = g.targets.filter((_, ti) => goalChecks[`${gi}-${ti}`]).length;
+        const doneCt = g.targets?.filter(t => t.completed)?.length || 0;
 
         return (
           <div key={gi} style={{ marginBottom: '0.75rem', border: `1px solid ${isOpen ? g.color : t.border}`, borderLeft: `4px solid ${g.color}`, overflow: 'hidden' }}>
@@ -70,8 +69,8 @@ export default function GoalsTab({ t, dark, goalChecks, onToggle, expanded, setE
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexShrink: 0 }}>
                 {/* Mini progress dots */}
                 <div style={{ display: 'flex', gap: 3 }}>
-                  {g.targets.map((_, ti) => (
-                    <div key={ti} style={{ width: 6, height: 6, borderRadius: '50%', background: goalChecks[`${gi}-${ti}`] ? g.color : t.checkboxBorder }} />
+                  {g.targets?.map((tg, ti) => (
+                    <div key={ti} style={{ width: 6, height: 6, borderRadius: '50%', background: tg.completed ? g.color : t.checkboxBorder }} />
                   ))}
                 </div>
                 <span style={{ fontFamily: 'monospace', color: t.muted, fontSize: '1rem', transform: isOpen ? 'rotate(90deg)' : 'none', transition: 'transform 0.2s', display: 'inline-block' }}>›</span>
@@ -98,14 +97,13 @@ export default function GoalsTab({ t, dark, goalChecks, onToggle, expanded, setE
                 </div>
 
                 {/* Target checkboxes */}
-                {g.targets.map((tg, ti) => {
-                  const key   = `${gi}-${ti}`;
-                  const done  = !!goalChecks[key];
+                {g.targets?.map((tg, ti) => {
+                  const done  = !!tg.completed;
                   return (
                     <div
                       key={ti}
-                      id={`goal-target-${key}`}
-                      onClick={() => onToggle(key)}
+                      id={`goal-target-${g.id}-${ti}`}
+                      onClick={() => onToggle(g.id, ti)}
                       style={{
                         display: 'grid', gridTemplateColumns: 'auto 1fr auto',
                         gap: '0.75rem', padding: '0.75rem 0',

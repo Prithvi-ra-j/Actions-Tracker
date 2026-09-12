@@ -15,7 +15,7 @@
 import { APP_VERSION, SCHEMA_VERSION } from '../version.js';
 
 const DB_NAME = 'actions-tracker';
-const DB_VERSION = 7;
+const DB_VERSION = 9;
 
 /** @type {IDBDatabase|null} */
 let _db = null;
@@ -110,6 +110,82 @@ export function initDB() {
         const telStore = db.createObjectStore('telemetry', { keyPath: 'id' });
         telStore.createIndex('date', 'date', { unique: false });
         telStore.createIndex('type', 'type', { unique: false });
+      }
+
+      // ── DB v8 — Architecture Phase 1 ─────────────────────────────────────────
+      // All stores below are new in v8. Each is guarded by !contains so they are
+      // safe to add even if a future migration runs onupgradeneeded again.
+
+      // §12 Habit / HabitOccurrence model
+      if (!db.objectStoreNames.contains('habits')) {
+        const habitsStore = db.createObjectStore('habits', { keyPath: 'id' });
+        habitsStore.createIndex('domain', 'domain', { unique: false });
+        habitsStore.createIndex('status', 'status', { unique: false });
+      }
+      if (!db.objectStoreNames.contains('habitOccurrences')) {
+        const occStore = db.createObjectStore('habitOccurrences', { keyPath: 'id' });
+        occStore.createIndex('habitId',      'habitId',      { unique: false });
+        occStore.createIndex('scheduledFor', 'scheduledFor', { unique: false });
+        occStore.createIndex('status',       'status',       { unique: false });
+      }
+
+      // §14 Learning entity (books are sources; learnings are the assets)
+      if (!db.objectStoreNames.contains('learnings')) {
+        const learnStore = db.createObjectStore('learnings', { keyPath: 'id' });
+        learnStore.createIndex('sourceId',   'sourceId',   { unique: false });
+        learnStore.createIndex('sourceType', 'sourceType', { unique: false });
+      }
+
+      // §11 Evidence model (derived signals from facts, with supporting fact IDs)
+      if (!db.objectStoreNames.contains('evidence')) {
+        const evidStore = db.createObjectStore('evidence', { keyPath: 'id' });
+        evidStore.createIndex('domain',    'domain',    { unique: false });
+        evidStore.createIndex('createdAt', 'createdAt', { unique: false });
+      }
+
+      // §58 Relation model (cross-entity links without duplicating objects)
+      if (!db.objectStoreNames.contains('relations')) {
+        const relStore = db.createObjectStore('relations', { keyPath: 'id' });
+        relStore.createIndex('fromId', 'fromId', { unique: false });
+        relStore.createIndex('toId',   'toId',   { unique: false });
+      }
+
+      // §28 Memory model (working / episodic / semantic)
+      if (!db.objectStoreNames.contains('memories')) {
+        const memStore = db.createObjectStore('memories', { keyPath: 'id' });
+        memStore.createIndex('status', 'status', { unique: false });
+        memStore.createIndex('type',   'type',   { unique: false });
+      }
+
+      // §36 Sync state — cursor + failure semantics per connector
+      if (!db.objectStoreNames.contains('syncState')) {
+        db.createObjectStore('syncState', { keyPath: 'connectorId' });
+      }
+
+      // §32 Monthly audit records
+      if (!db.objectStoreNames.contains('audits')) {
+        const auditStore = db.createObjectStore('audits', { keyPath: 'id' });
+        auditStore.createIndex('periodStart', 'periodStart', { unique: false });
+      }
+
+      // Phase 13: Scheduled Analysis (§33)
+      if (!db.objectStoreNames.contains('insights')) {
+        db.createObjectStore('insights', { keyPath: 'id' });
+      }
+
+      // §44 Compound indexes on facts for common access patterns.
+      // The facts store already exists from an earlier version, so we access it
+      // via the upgrade transaction rather than createObjectStore.
+      if (db.objectStoreNames.contains('facts')) {
+        const factsInTx = event.target.transaction.objectStore('facts');
+        // (type, localDate) — used by domain engines fetching facts by type in a date window
+        if (!factsInTx.indexNames.contains('type_localDate')) {
+          factsInTx.createIndex('type_localDate', ['type', 'localDate'], { unique: false });
+        }
+        // (objectId, type, localDate) — used when fetching a specific object's fact history
+        if (!factsInTx.indexNames.contains('objectId_type_localDate')) {
+          factsInTx.createIndex('objectId_type_localDate', ['objectId', 'type', 'localDate'], { unique: false });
+        }
       }
     };
   });
@@ -219,6 +295,14 @@ const ALL_STORES = [
   'facts', 'lifeObjects',             // v1.1
   'selfModel',                        // v2.1
   'telemetry',                        // v2.2 (Phase 11)
+  // DB v8 — Architecture Phase 1
+  'habits', 'habitOccurrences',       // §12 Habit / HabitOccurrence
+  'learnings',                        // §14 Learning entity
+  'evidence',                         // §11 Evidence model
+  'relations',                        // §58 Cross-entity relations
+  'memories',                         // §28 Memory model
+  'syncState',                        // §36 Connector sync state
+  'audits',                           // §32 Monthly audits
 ];
 
 /**
