@@ -273,7 +273,7 @@ export default function SelfTab({ t, dark }) {
       <div style={{ marginBottom: '1.5rem' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '0.4rem' }}>
           <div style={{ fontFamily: 'monospace', fontSize: '0.65rem', letterSpacing: '0.25em', color: ACCENT, textTransform: 'uppercase' }}>
-            Self Model
+            Profile
           </div>
           {rpg && (
             <div style={{ textAlign: 'right' }}>
