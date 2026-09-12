@@ -7,7 +7,6 @@
  *                     private data directory — persistent, offline, private.
  *
  * Four object stores:
- *   daily       — daily task records, keyed by "YYYY-MM-DD"
  *   goals       — goal target checkbox states, keyed by "gi-ti"
  *   milestones  — milestone task checkbox states, keyed by "m-mi-ti"
  *   settings    — arbitrary key/value pairs
@@ -16,7 +15,7 @@
 import { APP_VERSION, SCHEMA_VERSION } from '../version.js';
 
 const DB_NAME = 'actions-tracker';
-const DB_VERSION = 6;
+const DB_VERSION = 7;
 
 /** @type {IDBDatabase|null} */
 let _db = null;
@@ -52,9 +51,6 @@ export function initDB() {
     request.onupgradeneeded = (event) => {
       const db = event.target.result;
 
-      if (!db.objectStoreNames.contains('daily')) {
-        db.createObjectStore('daily', { keyPath: 'date' });
-      }
       if (!db.objectStoreNames.contains('goals')) {
         db.createObjectStore('goals', { keyPath: 'key' });
       }
@@ -107,6 +103,13 @@ export function initDB() {
       // Singleton store — one record keyed 'primary' per user.
       if (!db.objectStoreNames.contains('selfModel')) {
         db.createObjectStore('selfModel', { keyPath: 'id' });
+      }
+
+      // v2.2: Phase 11 Telemetry (Anomalies & Reviews)
+      if (!db.objectStoreNames.contains('telemetry')) {
+        const telStore = db.createObjectStore('telemetry', { keyPath: 'id' });
+        telStore.createIndex('date', 'date', { unique: false });
+        telStore.createIndex('type', 'type', { unique: false });
       }
     };
   });
@@ -210,11 +213,12 @@ export function dbGetAllByIndex(storeName, indexName, key) {
 
 // All stores included in export/import — add new stores here as they are created.
 const ALL_STORES = [
-  'daily', 'goals', 'milestones', 'settings',
+  'goals', 'milestones', 'settings',
   'logs', 'axis_config', 'books', 'gymSessions',
   'questBoard', 'statSnapshots',
   'facts', 'lifeObjects',             // v1.1
   'selfModel',                        // v2.1
+  'telemetry',                        // v2.2 (Phase 11)
 ];
 
 /**

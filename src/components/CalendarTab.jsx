@@ -7,16 +7,15 @@ import {
   getDaysInMonth, getFirstDayOfWeek,
   getMonthName,
 } from '../helpers/dateHelpers.js';
-import { isDayPerfect, getDayScore } from '../helpers/statsHelpers.js';
 
 /**
  * Calendar tab — monthly grid with per-day completion state and detail panel.
  *
  * Props:
  *   t               — current theme object
- *   allDailyRecords — { "YYYY-MM-DD": { body, philosophy, art, history } }
+ *   allLogs         — array of all event logs
  */
-export default function CalendarTab({ t, allDailyRecords }) {
+export default function CalendarTab({ t, allLogs }) {
   const now = new Date();
   const [viewYear,  setViewYear]  = useState(now.getFullYear());
   const [viewMonth, setViewMonth] = useState(now.getMonth() + 1); // 1-based
@@ -58,7 +57,17 @@ export default function CalendarTab({ t, allDailyRecords }) {
     setSelectedDate(null);
   }
 
-  const selectedRecord = selectedDate ? (allDailyRecords[selectedDate] ?? null) : null;
+  const getDailyRecordFromLogs = (date) => {
+    const dayLogs = allLogs.filter(l => l.type === 'daily_checkbox' && l.date === date);
+    if (dayLogs.length === 0) return null;
+    const rec = { body: false, philosophy: false, art: false, history: false };
+    for (const log of dayLogs) {
+      if (log.meta?.task) rec[log.meta.task] = true;
+    }
+    return rec;
+  };
+
+  const selectedRecord = selectedDate ? getDailyRecordFromLogs(selectedDate) : null;
 
   return (
     <>
@@ -98,9 +107,9 @@ export default function CalendarTab({ t, allDailyRecords }) {
         {cells.map((dateStr, i) => {
           if (!dateStr) return <div key={`pad-${i}`} />;
 
-          const record   = allDailyRecords[dateStr];
-          const score    = getDayScore(record);
-          const perfect  = isDayPerfect(record);
+          const dayLogs  = allLogs.filter(l => l.type === 'daily_checkbox' && l.date === dateStr);
+          const score    = dayLogs.length;
+          const perfect  = score === 4;
           const isTd     = dateStr === today;
           const isFuture = dateStr > today;
           const isSelected = dateStr === selectedDate;
@@ -176,7 +185,7 @@ export default function CalendarTab({ t, allDailyRecords }) {
           {selectedRecord ? (
             <>
               <div style={{ fontFamily: 'monospace', fontSize: '0.5rem', letterSpacing: '0.1em', color: t.muted, marginBottom: '0.75rem' }}>
-                {getDayScore(selectedRecord)}/4 tasks complete
+                {[selectedRecord.body, selectedRecord.philosophy, selectedRecord.art, selectedRecord.history].filter(Boolean).length}/4 tasks complete
               </div>
               {getDailyItems(selectedDate).map(item => {
                 const done = !!selectedRecord[item.id];
