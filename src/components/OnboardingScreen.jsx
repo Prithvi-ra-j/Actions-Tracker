@@ -43,61 +43,84 @@ function Subtitle({ t, children }) {
   );
 }
 
-function TagInput({ t, value, onChange, placeholder }) {
+function SelectableTags({ t, value, onChange, options = [], customPlaceholder = "Add custom..." }) {
   const [draft, setDraft] = useState('');
-  const add = () => {
+
+  const toggle = (tag) => {
+    if (value.includes(tag)) {
+      onChange(value.filter(v => v !== tag));
+    } else {
+      onChange([...value, tag]);
+    }
+  };
+
+  const addCustom = () => {
     const trimmed = draft.trim();
     if (trimmed && !value.includes(trimmed)) {
       onChange([...value, trimmed]);
     }
     setDraft('');
   };
+
   return (
     <div>
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.4rem', marginBottom: '0.75rem' }}>
+        {/* Predefined options + any custom options already added */}
+        {Array.from(new Set([...options, ...value])).map(tag => {
+          const isSelected = value.includes(tag);
+          return (
+            <span
+              key={tag}
+              onClick={() => toggle(tag)}
+              style={{
+                padding: '0.35rem 0.7rem',
+                background: isSelected ? ACCENT : t.subtleBg,
+                border: `1px solid ${isSelected ? ACCENT : t.border}`,
+                color: isSelected ? '#fff' : t.pageText,
+                fontFamily: 'monospace',
+                fontSize: '0.7rem',
+                letterSpacing: '0.05em',
+                cursor: 'pointer',
+                borderRadius: '4px',
+                transition: 'all 0.15s ease',
+              }}
+            >
+              {tag}
+            </span>
+          );
+        })}
+      </div>
+      
+      {/* Custom input row */}
       <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '0.5rem' }}>
         <input
           value={draft}
           onChange={e => setDraft(e.target.value)}
-          onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); add(); } }}
-          placeholder={placeholder}
+          onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); addCustom(); } }}
+          placeholder={customPlaceholder}
           style={{
-            flex: 1, padding: '0.55rem 0.75rem',
+            flex: 1, padding: '0.5rem 0.75rem',
             background: t.subtleBg, border: `1px solid ${t.border}`,
-            color: t.pageText, fontFamily: 'Georgia, serif', fontSize: '0.9rem',
-            outline: 'none',
+            color: t.pageText, fontFamily: 'Georgia, serif', fontSize: '0.85rem',
+            outline: 'none', borderRadius: '4px'
           }}
         />
         <button
-          onClick={add}
+          onClick={addCustom}
           style={{
-            padding: '0.55rem 0.9rem', background: 'transparent',
+            padding: '0.5rem 0.9rem', background: 'transparent',
             border: `1px solid ${t.border}`, color: t.pageText,
             fontFamily: 'monospace', fontSize: '0.65rem', cursor: 'pointer',
+            borderRadius: '4px'
           }}
         >
           Add
         </button>
       </div>
-      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.35rem' }}>
-        {value.map(tag => (
-          <span
-            key={tag}
-            style={{
-              padding: '0.25rem 0.6rem', background: t.subtleBg,
-              border: `1px solid ${ACCENT}`, color: ACCENT,
-              fontFamily: 'monospace', fontSize: '0.65rem', letterSpacing: '0.05em',
-              cursor: 'pointer',
-            }}
-            onClick={() => onChange(value.filter(v => v !== tag))}
-            title="Click to remove"
-          >
-            {tag} ×
-          </span>
-        ))}
-      </div>
     </div>
   );
 }
+
 
 function SliderRow({ t, label, icon, value, onChange, min = 0, max = 100, step = 5 }) {
   return (
@@ -230,24 +253,36 @@ function PhaseIdentity({ t, identity, setIdentity, onBack, onNext }) {
         />
       </div>
 
-      <div style={{ marginBottom: '1rem' }}>
-        <Label t={t}>Roles you hold (press Enter to add)</Label>
-        <TagInput t={t} value={identity.roles} onChange={v => update('roles', v)} placeholder="athlete, builder, reader…" />
+      <div style={{ marginBottom: '1.25rem' }}>
+        <Label t={t}>Roles you hold</Label>
+        <SelectableTags 
+          t={t} value={identity.roles} onChange={v => update('roles', v)} 
+          options={['athlete', 'builder', 'reader', 'creator', 'engineer', 'writer', 'parent', 'leader', 'student']}
+        />
       </div>
 
-      <div style={{ marginBottom: '1rem' }}>
-        <Label t={t}>Values you actually live by (not aspirations)</Label>
-        <TagInput t={t} value={identity.values} onChange={v => update('values', v)} placeholder="discipline, honesty, craft…" />
+      <div style={{ marginBottom: '1.25rem' }}>
+        <Label t={t}>Values you actually live by</Label>
+        <SelectableTags 
+          t={t} value={identity.values} onChange={v => update('values', v)} 
+          options={['discipline', 'honesty', 'craft', 'courage', 'curiosity', 'focus', 'resilience']}
+        />
       </div>
 
-      <div style={{ marginBottom: '1rem' }}>
-        <Label t={t}>Real strengths (things you can already do well)</Label>
-        <TagInput t={t} value={identity.strengths} onChange={v => update('strengths', v)} placeholder="consistent, analytical, creative…" />
+      <div style={{ marginBottom: '1.25rem' }}>
+        <Label t={t}>Real strengths</Label>
+        <SelectableTags 
+          t={t} value={identity.strengths} onChange={v => update('strengths', v)} 
+          options={['consistent', 'analytical', 'creative', 'calm', 'determined', 'adaptable']}
+        />
       </div>
 
-      <div>
-        <Label t={t}>Real constraints (time, health, context — be honest)</Label>
-        <TagInput t={t} value={identity.constraints} onChange={v => update('constraints', v)} placeholder="limited mornings, high stress work…" />
+      <div style={{ marginBottom: '1.25rem' }}>
+        <Label t={t}>Real constraints (be honest)</Label>
+        <SelectableTags 
+          t={t} value={identity.constraints} onChange={v => update('constraints', v)} 
+          options={['limited mornings', 'high stress work', 'travel often', 'frequent interruptions', 'low energy']}
+        />
       </div>
 
       <NavButtons
