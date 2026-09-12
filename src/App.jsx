@@ -8,12 +8,15 @@ import { migrateFromLocalStorage, migrateHardcodedGoalsToLifeObjects } from './d
 import { initAxisConfigs, getAllAxisConfigs } from './database/axisConfigRepository.js';
 import { getAllLogs, addLog, deleteDailyCheckboxLog } from './database/logsRepository.js';
 import { initQuestBoard, getAllQuests, syncQuestProgress } from './database/questBoardRepository.js';
-import { getAllGoalChecks,   setGoalCheck }    from './database/goalsRepository.js';
+import { initGoals, getAllGoals, updateGoal }    from './database/goalsRepository.js';
 import { getAllMilestoneChecks, setMilestoneCheck } from './database/milestonesRepository.js';
 import { getSetting, setSetting, getReminders, saveReminders } from './database/settingsRepository.js';
 import { checkAndWriteWeeklySnapshot, getLatestSnapshot } from './database/statSnapshotsRepository.js';
 import { runAnomalyDetection } from './database/telemetryRepository.js';
 import { isOnboardingComplete } from './database/selfModelRepository.js';
+import { registerConnector } from './core/sync/syncManager.js';
+import { MockHealthConnector } from './core/sync/connectors/MockHealthConnector.js';
+import { bootstrapAnalysisScheduler } from './core/ai/analysisScheduler.js';
 
 // ── Helpers ─────────────────────────────────────────────────────────────────────────────
 import { computeAllStats, computeAxisDetails, getThresholdTitle } from './helpers/statsEngine.js';
@@ -36,17 +39,23 @@ import OnboardingScreen  from './components/OnboardingScreen.jsx';
 import StatsTab          from './components/StatsTab.jsx';
 import LevelUpCeremony   from './components/LevelUpCeremony.jsx';
 import ProofFearCheckin  from './components/ProofFearCheckin.jsx';
-import SelfTab           from './components/SelfTab.jsx';
+import ProfileTab        from './components/ProfileTab.jsx'; // Phase 15
+import LearnTab          from './components/LearnTab.jsx';   // Phase 7
+import JarvisTab         from './components/JarvisTab.jsx';  // Phase 11
+import AuditsTab         from './components/AuditsTab.jsx';  // Phase 12
 
 // ─────────────────────────────────────────────────────────────────────────────
 
 const TABS = [
+  // Primary
   { id: 'daily',      label: 'Today'    },
   { id: 'stats',      label: 'Stats'    },
-  { id: 'self',       label: 'Profile'  },
+  { id: 'learn',      label: 'Learn'    },
   { id: 'goals',      label: 'Goals'    },
-  { id: 'milestones', label: 'Timeline' },
-  { id: 'calendar',   label: 'Calendar' },
+  { id: 'self',       label: 'Profile'  },
+  // Secondary
+  { id: 'jarvis',     label: 'Jarvis'   },
+  { id: 'audits',     label: 'Audits'   },
 ];
 
 // Total possible goal targets (4 goals × 4 targets each)
@@ -102,7 +111,7 @@ export default function App() {
 
   // ── Data state (loaded from DB on mount; written back on every change) ─────
   const [allLogs,          setAllLogs]          = useState([]);
-  const [goalChecks,       setGoalChecks]        = useState({});
+  const [lifeGoals,        setLifeGoals]        = useState([]);
   const [milestoneChecks,  setMilestoneChecks]   = useState({});
   const [reminders,        setReminders]         = useState([
     { id: 1, label: 'BODY',        time: '07:00', enabled: true },
@@ -123,6 +132,11 @@ export default function App() {
   const [showCheckin,      setShowCheckin]        = useState(false);
   const [hasSundayReflection, setHasSundayReflection] = useState(false);
 
+  // ── Phase 7: Learn tab state ───────────────────────────────────────────────
+  const [todayOccurrences, setTodayOccurrences] = useState([]);
+  const [books,            setBooks]            = useState([]);
+  const [learnings,        setLearnings]        = useState([]);
+
   // ── Derived values ─────────────────────────────────────────────────────────
   const t          = dark ? THEMES.dark : THEMES.light;
   const today      = localDateStr();
@@ -135,7 +149,7 @@ export default function App() {
     return rec;
   }, [allLogs, today]);
 
-  const doneTargets = Object.values(goalChecks).filter(Boolean).length;
+  const doneTargets = lifeGoals.reduce((acc, goal) => acc + (goal.targets?.filter(t => t.completed)?.length ?? 0), 0);
   const dailyDone   = [todayRecord.body, todayRecord.philosophy, todayRecord.art, todayRecord.history].filter(Boolean).length;
 
   // ── Initialise DB and load all data ───────────────────────────────────────
@@ -144,13 +158,13 @@ export default function App() {
       try {
         await initDB();
         await migrateFromLocalStorage();
-        await migrateHardcodedGoalsToLifeObjects(); // v1.2: seed goals as Life Objects
+        await initGoals();
         await initAxisConfigs();
         await initQuestBoard();
 
-        const [records, goals, milestones, darkPref, savedReminders, allLogs, axisConfigs, quests, facts] =
+        const [goals, milestones, darkPref, savedReminders, allLogs, axisConfigs, quests, facts] =
           await Promise.all([
-            getAllGoalChecks(),
+            getAllGoals(),
             getAllMilestoneChecks(),
             getSetting('darkMode'),
             getReminders(),
@@ -159,6 +173,9 @@ export default function App() {
             getAllQuests(),
             import('./database/factsRepository.js').then(m => m.getAllFacts()),
           ]);
+
+        // Register integrations
+        registerConnector(new MockHealthConnector());
 
         // Build evaluations map from facts where type === 'evaluation'
         const evals = {};
@@ -181,7 +198,7 @@ export default function App() {
 
         setAllLogs(allLogs);
         setAxisConfigs(axisConfigs);
-        setGoalChecks(goals);
+        setLifeGoals(goals);
         setMilestoneChecks(milestones);
         setAllQuests(syncedQuests);
         if (darkPref === 'true') setDark(true);
@@ -242,6 +259,24 @@ export default function App() {
 
         // Run anomaly detection quietly in the background
         await runAnomalyDetection(today);
+
+        // Phase 13: Boot background analysis scheduler
+        bootstrapAnalysisScheduler();
+
+        // ── Phase 7: Load today's occurrences, books, and learnings ───────────
+        try {
+          const [occs, booksData, learningsData] = await Promise.all([
+            import('./database/habitOccurrenceRepository.js').then(m => m.getOccurrencesForDate(today)),
+            import('./database/booksRepository.js').then(m => m.getAllBooks()),
+            import('./database/learningRepository.js').then(m => m.getAllLearnings()),
+          ]);
+          setTodayOccurrences(occs);
+          setBooks(booksData);
+          setLearnings(learningsData);
+        } catch (p7err) {
+          // Phase 7 data load is non-fatal — app remains fully functional
+          console.warn('[App] Phase 7 data load partial:', p7err);
+        }
       } catch (err) {
         console.error('[App] Bootstrap error:', err);
         setDbError(String(err?.message ?? err));
@@ -344,16 +379,24 @@ export default function App() {
     }
   }, [allLogs, today, todayRecord, reminders, recomputeStats]);
 
-  const handleGoalToggle = useCallback(async (key) => {
+  const handleGoalToggle = useCallback(async (goalId, targetIndex) => {
     triggerHaptic();
-    const newValue = !goalChecks[key];
-    setGoalChecks(prev => ({ ...prev, [key]: newValue }));
+    const goal = lifeGoals.find(g => g.id === goalId);
+    if (!goal) return;
+
+    const newTargets = [...goal.targets];
+    newTargets[targetIndex] = { ...newTargets[targetIndex], completed: !newTargets[targetIndex].completed };
+
+    // Optimistic UI update
+    setLifeGoals(prev => prev.map(g => g.id === goalId ? { ...g, targets: newTargets } : g));
+
     try {
-      await setGoalCheck(key, newValue);
+      await updateGoal(goalId, { targets: newTargets });
     } catch (err) {
-      console.error('[App] setGoalCheck failed:', err);
+      console.error('[App] handleGoalToggle failed:', err);
+      // rollback could be added here
     }
-  }, [goalChecks]);
+  }, [lifeGoals]);
 
   const handleMilestoneToggle = useCallback(async (key) => {
     triggerHaptic();
@@ -380,6 +423,75 @@ export default function App() {
     setShowSettings(false);
     setShowNavDrawer(false);
   }
+
+  // ── Phase 7: Occurrence command handlers ──────────────────────────────────
+  const handleCompleteOccurrence = useCallback(async (id) => {
+    try {
+      const { completeOccurrence } = await import('./database/habitOccurrenceRepository.js');
+      await completeOccurrence(id);
+      // Refresh today's occurrences
+      const { getOccurrencesForDate } = await import('./database/habitOccurrenceRepository.js');
+      setTodayOccurrences(await getOccurrencesForDate(today));
+    } catch (err) {
+      console.error('[App] handleCompleteOccurrence failed:', err);
+    }
+  }, [today]);
+
+  const handleExcuseOccurrence = useCallback(async (id, reason) => {
+    try {
+      const { excuseOccurrence } = await import('./database/habitOccurrenceRepository.js');
+      await excuseOccurrence(id, reason);
+      const { getOccurrencesForDate } = await import('./database/habitOccurrenceRepository.js');
+      setTodayOccurrences(await getOccurrencesForDate(today));
+    } catch (err) {
+      console.error('[App] handleExcuseOccurrence failed:', err);
+    }
+  }, [today]);
+
+  // ── Phase 7: Learn tab handlers ───────────────────────────────────────────
+  const handleAddLearning = useCallback(async (fields) => {
+    try {
+      const { addLearning, getAllLearnings } = await import('./database/learningRepository.js');
+      await addLearning(fields);
+      setLearnings(await getAllLearnings());
+    } catch (err) {
+      console.error('[App] handleAddLearning failed:', err);
+    }
+  }, []);
+
+  const handleUpdatePages = useCallback(async (bookId, pagesAdded, dateStr) => {
+    try {
+      const { updateBookPagesRead, getAllBooks } = await import('./database/booksRepository.js');
+      await updateBookPagesRead(bookId, pagesAdded, dateStr);
+      setBooks(await getAllBooks());
+      await recomputeStats();
+    } catch (err) {
+      console.error('[App] handleUpdatePages failed:', err);
+    }
+  }, [recomputeStats]);
+
+  const handleFinishBook = useCallback(async (bookId, dateStr) => {
+    try {
+      const { updateBookStatus, getAllBooks } = await import('./database/booksRepository.js');
+      await updateBookStatus(bookId, 'finished', dateStr);
+      setBooks(await getAllBooks());
+      await recomputeStats();
+    } catch (err) {
+      console.error('[App] handleFinishBook failed:', err);
+    }
+  }, [recomputeStats]);
+
+  const handleRunSync = useCallback(async () => {
+    try {
+      const { runAllSyncs } = await import('./core/sync/syncManager.js');
+      const summary = await runAllSyncs();
+      await recomputeStats();
+      return summary;
+    } catch (err) {
+      console.error('[App] handleRunSync failed:', err);
+      throw err;
+    }
+  }, [recomputeStats]);
 
   // ── Loading screen ─────────────────────────────────────────────────────────
   if (!dbReady) {
@@ -532,39 +644,18 @@ export default function App() {
             onSaveReminders={handleSaveReminders}
             todayRecord={todayRecord}
             onClose={() => setShowSettings(false)}
+            onRunSync={handleRunSync}
           />
         ) : (
           <>
             {tab === 'daily' && (
               <TodayTab
                 t={t}
-                allLogs={allLogs}
-                evaluations={evaluations}
-                onToggle={handleDailyToggle}
-                onEvaluate={async (targetRef, evalData) => {
-                  const { addFact } = await import('./database/factsRepository.js');
-                  const fact = {
-                    type: 'evaluation',
-                    value: evalData.impact,
-                    meta: { targetRef, text: evalData.text, confidence: evalData.confidence },
-                    context: {}
-                  };
-                  await addFact(fact);
-                  setEvaluations(prev => ({ ...prev, [targetRef]: fact }));
-                }}
+                todayOccurrences={todayOccurrences}
+                allQuests={allQuests}
+                onCompleteOccurrence={handleCompleteOccurrence}
+                onExcuseOccurrence={handleExcuseOccurrence}
                 onGoToGoals={() => handleTabChange('goals')}
-                hasSundayReflection={hasSundayReflection}
-                onSundayReflection={async (text) => {
-                  const { addLog } = await import('./database/logsRepository.js');
-                  await addLog({
-                    axis: 'wisdom',
-                    type: 'journal_entry',
-                    value: 1,
-                    date: localDateStr(),
-                    meta: { text }
-                  });
-                  await recomputeStats();
-                }}
               />
             )}
 
@@ -612,6 +703,34 @@ export default function App() {
               <SelfTab t={t} dark={dark} />
             )}
 
+            {/* Phase 7: Learn tab */}
+            {tab === 'learn' && (
+              <LearnTab
+                t={t}
+                books={books}
+                learnings={learnings}
+                onUpdatePages={handleUpdatePages}
+                onFinishBook={handleFinishBook}
+                onAddLearning={handleAddLearning}
+              />
+            )}
+
+            {tab === 'self' && (
+              <ProfileTab
+                t={t}
+                dark={dark}
+              />
+            )}
+
+            {/* Phase 11: Jarvis tab */}
+            {tab === 'jarvis' && (
+              <JarvisTab t={t} onQuestsChanged={recomputeStats} />
+            )}
+
+            {/* Phase 12: Audits tab */}
+            {tab === 'audits' && (
+              <AuditsTab t={t} />
+            )}
 
           </>
         )}
