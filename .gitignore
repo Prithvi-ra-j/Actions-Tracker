@@ -19,7 +19,5 @@ Thumbs.db
 # Project documentation & testing artifacts
 reports/
 simulations/
-tests/
 docs/
 skills/
-vitest.config.js
