@@ -6,9 +6,10 @@
  */
 
 import { getSetting } from '../../database/settingsRepository.js';
+import { getSecureValue } from '../../native/secureStorage.js';
 
 export async function queryLLM(messages, options = {}) {
-  const apiKey = await getSetting('aiApiKey');
+  const apiKey = await getSecureValue('aiApiKey');
   const baseUrl = await getSetting('aiBaseUrl') || 'https://api.groq.com/openai/v1';
   const model = await getSetting('aiModel') || 'gemma2-9b-it';
 

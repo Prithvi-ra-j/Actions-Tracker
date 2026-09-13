@@ -6,6 +6,8 @@ export default function StatHistoryModal({ t, axisInfo, allLogs, onClose }) {
   const { key: axis, label, color, icon } = axisInfo;
   
   const [history, setHistory] = useState([]);
+  const [projection, setProjection] = useState(null);
+  const [explanation, setExplanation] = useState(null);
 
   useEffect(() => {
     async function loadHistory() {
@@ -24,6 +26,15 @@ export default function StatHistoryModal({ t, axisInfo, allLogs, onClose }) {
       setHistory(arr);
     }
     loadHistory();
+
+    async function loadExplainability() {
+      const { computeScoreWithExplanation } = await import('../helpers/statsEngine.js');
+      const today = new Date().toISOString().split('T')[0];
+      const { score, explanation } = await computeScoreWithExplanation(axis, { start: '1970-01-01', end: today });
+      setProjection(score);
+      setExplanation(explanation);
+    }
+    loadExplainability();
   }, [axis]);
 
   // 2. Generate Evidence Feed
@@ -57,7 +68,30 @@ export default function StatHistoryModal({ t, axisInfo, allLogs, onClose }) {
         <div style={{ width: '1.5rem' }} /> {/* balance flex */}
       </div>
 
-      {/* Formula Breakdown (Explainability) */}
+      {/* Explainability Projection (ScoreEngine) */}
+      {projection && explanation && (
+        <div style={{ background: t.subtleBg, padding: '1rem', border: `1px solid ${t.border}`, marginBottom: '1.5rem' }}>
+          <div style={{ fontFamily: 'monospace', fontSize: '0.65rem', color: t.muted, marginBottom: '0.5rem', textTransform: 'uppercase' }}>
+            Diagnostic Projection
+          </div>
+          <div style={{ display: 'flex', gap: '2rem', marginBottom: '1rem' }}>
+            <div>
+              <div style={{ fontSize: '0.65rem', color: t.muted }}>Coverage</div>
+              <div style={{ color, fontWeight: 'bold' }}>{Math.round((projection.coverage ?? 0) * 100)}%</div>
+            </div>
+            <div>
+              <div style={{ fontSize: '0.65rem', color: t.muted }}>Confidence</div>
+              <div style={{ color, fontWeight: 'bold' }}>{Math.round((projection.confidence ?? 0) * 100)}%</div>
+            </div>
+          </div>
+          <div style={{ fontSize: '0.8rem', lineHeight: '1.4' }}>
+            <strong>{explanation.headline}</strong>
+            <p style={{ marginTop: '0.5rem', color: t.muted }}>{explanation.detail}</p>
+          </div>
+        </div>
+      )}
+
+      {/* Formula Breakdown (statsEngine) */}
       {history.length > 0 && (
         <div style={{ background: t.subtleBg, padding: '1rem', border: `1px solid ${t.border}`, marginBottom: '1.5rem' }}>
           <div style={{ fontFamily: 'monospace', fontSize: '0.65rem', color: t.muted, marginBottom: '0.5rem', textTransform: 'uppercase' }}>

@@ -8,16 +8,18 @@ import { getAllFacts } from '../../database/factsRepository.js';
 import { getLatestSnapshot } from '../../database/statSnapshotsRepository.js';
 import { getSelfModel } from '../../database/selfModelRepository.js';
 import { getAllGoals } from '../../database/goalsRepository.js';
+import { getSemanticMemories } from '../../database/memoryRepository.js';
 
 export async function assembleContext(intent = 'audit') {
   // We only pull what's necessary based on the intent.
   // For a general audit, we want the current self model, latest score snapshot, active goals, and recent facts.
 
-  const [facts, snapshot, selfModel, goals] = await Promise.all([
+  const [facts, snapshot, selfModel, goals, semanticMemories] = await Promise.all([
     getAllFacts(),
     getLatestSnapshot(),
     getSelfModel(),
-    getAllGoals()
+    getAllGoals(),
+    getSemanticMemories()
   ]);
 
   // Filter to facts from the last 7 days to keep context dense and relevant
@@ -29,6 +31,7 @@ export async function assembleContext(intent = 'audit') {
   const contextData = {
     system_date: new Date().toISOString(),
     user_identity: selfModel?.identity || {},
+    semantic_memories: semanticMemories.map(m => m.content),
     latest_scores: snapshot?.stats || {},
     active_goals: activeGoals.map(g => ({
       title: g.title,

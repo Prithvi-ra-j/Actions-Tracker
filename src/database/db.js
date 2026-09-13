@@ -15,7 +15,7 @@
 import { APP_VERSION, SCHEMA_VERSION } from '../version.js';
 
 const DB_NAME = 'actions-tracker';
-const DB_VERSION = 9;
+const DB_VERSION = 10;
 
 /** @type {IDBDatabase|null} */
 let _db = null;
@@ -173,6 +173,23 @@ export function initDB() {
         db.createObjectStore('insights', { keyPath: 'id' });
       }
 
+      // DB v10 — Architecture Phase 2 (New Entities)
+      if (!db.objectStoreNames.contains('decisions')) {
+        const decStore = db.createObjectStore('decisions', { keyPath: 'id' });
+        decStore.createIndex('createdAt', 'createdAt', { unique: false });
+      }
+      if (!db.objectStoreNames.contains('experiments')) {
+        const expStore = db.createObjectStore('experiments', { keyPath: 'id' });
+        expStore.createIndex('domain', 'domain', { unique: false });
+        expStore.createIndex('createdAt', 'createdAt', { unique: false });
+      }
+      if (!db.objectStoreNames.contains('creativeWorks')) {
+        db.createObjectStore('creativeWorks', { keyPath: 'id' });
+      }
+      if (!db.objectStoreNames.contains('observations')) {
+        db.createObjectStore('observations', { keyPath: 'id' });
+      }
+
       // §44 Compound indexes on facts for common access patterns.
       // The facts store already exists from an earlier version, so we access it
       // via the upgrade transaction rather than createObjectStore.
@@ -318,6 +335,9 @@ const ALL_STORES = [
   'memories',                         // §28 Memory model
   'syncState',                        // §36 Connector sync state
   'audits',                           // §32 Monthly audits
+  'insights',                         // Phase 13 insights
+  // DB v10 — Architecture Phase 2
+  'decisions', 'experiments', 'creativeWorks', 'observations'
 ];
 
 /**

@@ -7,6 +7,7 @@
 
 import { updateInsightStatus } from '../../database/insightsRepository.js';
 import { addQuest } from '../../database/questBoardRepository.js';
+import { getEvidence } from '../../database/evidenceRepository.js';
 
 /**
  * Approves an insight and generates quests from its recommendations.
@@ -14,6 +15,16 @@ import { addQuest } from '../../database/questBoardRepository.js';
  * @param {object} insight The insight object
  */
 export async function approveAndApplyInsight(insight) {
+  // 0. Validate supporting evidence IDs (§29, §30)
+  if (insight.supportingEvidenceIds && Array.isArray(insight.supportingEvidenceIds)) {
+    for (const evid of insight.supportingEvidenceIds) {
+      const e = await getEvidence(evid);
+      if (!e) {
+        console.warn(`[FeedbackEngine] Insight ${insight.id} references missing evidence ID: ${evid}. Insight is still actionable but flagged.`);
+      }
+    }
+  }
+
   // 1. Mark as confirmed
   await updateInsightStatus(insight.id, 'confirmed');
 

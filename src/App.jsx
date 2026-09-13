@@ -12,7 +12,7 @@ import { initGoals, getAllGoals, updateGoal }    from './database/goalsRepositor
 import { getAllMilestoneChecks, setMilestoneCheck } from './database/milestonesRepository.js';
 import { getSetting, setSetting, getReminders, saveReminders } from './database/settingsRepository.js';
 import { checkAndWriteWeeklySnapshot, getLatestSnapshot } from './database/statSnapshotsRepository.js';
-import { runAnomalyDetection } from './database/telemetryRepository.js';
+import { runAnomalyDetection, saveTelemetryEvent } from './database/telemetryRepository.js';
 import { isOnboardingComplete } from './database/selfModelRepository.js';
 import { registerConnector } from './core/sync/syncManager.js';
 import { MockHealthConnector } from './core/sync/connectors/MockHealthConnector.js';
@@ -154,8 +154,10 @@ export default function App() {
   useEffect(() => {
     async function bootstrap() {
       try {
+        await saveTelemetryEvent('app_started', localDateStr(), { type: 'boot' }).catch(() => {});
         await initDB();
         await migrateFromLocalStorage();
+        await saveTelemetryEvent('db_migration_success', localDateStr(), {}).catch(() => {});
         await initGoals();
         await initAxisConfigs();
         await initQuestBoard();
@@ -280,6 +282,11 @@ export default function App() {
         // Phase 13: Boot background analysis scheduler
         bootstrapAnalysisScheduler();
 
+        // Phase 3B: Shadow comparison on boot
+        setTimeout(() => {
+          import('./core/scoring/scoreParityCheck.js').then(m => m.runParityCheck());
+        }, 15000);
+
         // ── Phase 7: Load today's occurrences, books, and learnings ───────────
         try {
           const [occs, booksData, learningsData] = await Promise.all([
@@ -296,6 +303,9 @@ export default function App() {
         }
       } catch (err) {
         console.error('[App] Bootstrap error:', err);
+        try {
+          await saveTelemetryEvent('db_migration_failed', localDateStr(), { error: String(err?.message ?? err) });
+        } catch (e) { /* ignore if DB is entirely broken */ }
         setDbError(String(err?.message ?? err));
         // Fall through — UI still renders, just without persistence
       } finally {
