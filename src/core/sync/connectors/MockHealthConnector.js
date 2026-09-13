@@ -1,5 +1,5 @@
 import { BaseConnector } from '../BaseConnector.js';
-import { createFact } from '../../../models/factSchema.js';
+import { buildFact } from '../../../models/factSchema.js';
 
 /**
  * Mock Health Connector.
@@ -40,7 +40,7 @@ export class MockHealthConnector extends BaseConnector {
       return this.createSyncResult('success', 0, 0, 0, syncState.cursor, [], startedAt, []);
     }
 
-    const stepsFact = createFact({
+    const stepsFact = buildFact(`mock_fact_${Date.now()}_1`, {
       type: 'body.activity.steps',
       objectId: 'user',
       value: { amount: Math.floor(Math.random() * 5000) + 3000, unit: 'steps' },
@@ -51,7 +51,7 @@ export class MockHealthConnector extends BaseConnector {
       timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
     });
 
-    const sleepFact = createFact({
+    const sleepFact = buildFact(`mock_fact_${Date.now()}_2`, {
       type: 'body.recovery.sleep',
       objectId: 'user',
       value: { amount: Math.floor(Math.random() * 3) + 5, unit: 'hours' },

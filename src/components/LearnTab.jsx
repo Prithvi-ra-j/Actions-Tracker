@@ -305,7 +305,6 @@ function LearningCard({ t, learning }) {
     <div style={{
       borderLeft:   `3px solid ${hasApplication ? ACCENT : t.borderSoft}`,
       border:       `1px solid ${t.borderSoft}`,
-      borderLeft:   `3px solid ${hasApplication ? ACCENT : t.borderSoft}`,
       padding:      '0.75rem',
       marginBottom: '0.5rem',
     }}>

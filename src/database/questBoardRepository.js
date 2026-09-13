@@ -145,6 +145,13 @@ export async function updateQuest(id, updates) {
   if (quest) await dbPut('questBoard', { ...quest, ...updates });
 }
 
+export async function addQuest(questData) {
+  const id = `q-ai-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
+  const quest = { id, ...questData };
+  await dbPut('questBoard', quest);
+  return id;
+}
+
 /**
  * Syncs currentValue for every quest from the canonical logs array.
  * This is called on app bootstrap and after any write that could change progress.

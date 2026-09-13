@@ -140,6 +140,33 @@ export async function rescheduleOccurrence(id, newScheduledFor) {
 // ─── Read ──────────────────────────────────────────────────────────────────────
 
 /**
+ * Updates an occurrence with arbitrary fields.
+ * @param {string} id
+ * @param {object} updates
+ * @returns {Promise<void>}
+ */
+export async function updateOccurrence(id, updates) {
+  const existing = await dbGet(STORE, id);
+  if (!existing) throw new Error(`[habitOccurrenceRepository] Occurrence not found: ${id}`);
+  await dbPut(STORE, { ...existing, ...updates });
+}
+
+/**
+ * Returns all occurrences scheduled between startDate and endDate (inclusive).
+ * @param {string} startDate - YYYY-MM-DD
+ * @param {string} endDate - YYYY-MM-DD
+ * @returns {Promise<object[]>}
+ */
+export async function getOccurrencesByDateRange(startDate, endDate) {
+  const all = await dbGetAll(STORE);
+  return all.filter(o => {
+    // If scheduledFor is an ISO date, string comparison still works for filtering
+    const dateStr = o.scheduledFor.split('T')[0];
+    return dateStr >= startDate && dateStr <= endDate;
+  });
+}
+
+/**
  * Returns a single occurrence by ID, or null.
  * @param {string} id
  * @returns {Promise<object|null>}

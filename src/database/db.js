@@ -237,6 +237,21 @@ export function dbPut(storeName, value) {
 }
 
 /**
+ * Deletes a record from an object store by key.
+ * @param {string} storeName
+ * @param {IDBValidKey} key
+ * @returns {Promise<void>}
+ */
+export function dbDelete(storeName, key) {
+  return new Promise((resolve, reject) => {
+    const tx = getDB().transaction(storeName, 'readwrite');
+    const req = tx.objectStore(storeName).delete(key);
+    req.onsuccess = () => resolve();
+    req.onerror = () => reject(req.error);
+  });
+}
+
+/**
  * Returns all records in an object store.
  * @param {string} storeName
  * @returns {Promise<any[]>}
