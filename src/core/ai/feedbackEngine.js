@@ -24,9 +24,10 @@ export async function approveAndApplyInsight(insight) {
         title: `AI: ${actionText}`,
         // Map the insight type to an axis or default to strategy
         axis: mapInsightToAxis(insight.type),
-        maxProgress: 1, // One-off task
-        progress: 0,
-        status: 'active',
+        targetValue: 1, // One-off task
+        currentValue: 0,
+        unit: 'actions',
+        done: false,
         // Link the quest to the insight for traceability
         linkedInsightId: insight.id
       };

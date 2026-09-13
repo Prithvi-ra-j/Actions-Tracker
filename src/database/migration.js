@@ -16,7 +16,7 @@
  */
 
 import { addLog } from './logsRepository.js';
-import { setGoalCheck } from './goalsRepository.js';
+import { dbPut } from './db.js';
 import { setMilestoneCheck } from './milestonesRepository.js';
 import { getSetting, setSetting } from './settingsRepository.js';
 import { GOALS } from '../constants.js';
@@ -66,7 +66,7 @@ export async function migrateFromLocalStorage() {
     if (checkedRaw) {
       const checked = JSON.parse(checkedRaw);
       for (const [key, value] of Object.entries(checked)) {
-        await setGoalCheck(key, !!value);
+        await dbPut('goals', { key, value: value ? 1 : 0 });
         migratedAny = true;
       }
     }
