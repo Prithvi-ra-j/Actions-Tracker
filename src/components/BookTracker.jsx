@@ -51,10 +51,10 @@ export default function BookTracker({ t }) {
           <input placeholder="Title" value={title} onChange={e => setTitle(e.target.value)} style={inputStyle(t)} />
           <input type="number" placeholder="Total Pages" value={totalPages} onChange={e => setTotalPages(e.target.value)} style={inputStyle(t)} />
           <select value={category} onChange={e => setCategory(e.target.value)} style={inputStyle(t)}>
-            <option value="philosophy">Philosophy</option>
-            <option value="history_biography">History/Biography</option>
-            <option value="strategy">Strategy</option>
-            <option value="outside_goals">Outside Goals</option>
+            <option value="philosophy" style={{ background: t.pageBg, color: t.pageText }}>Philosophy</option>
+            <option value="history_biography" style={{ background: t.pageBg, color: t.pageText }}>History/Biography</option>
+            <option value="strategy" style={{ background: t.pageBg, color: t.pageText }}>Strategy</option>
+            <option value="outside_goals" style={{ background: t.pageBg, color: t.pageText }}>Outside Goals</option>
           </select>
           <button onClick={handleAddBook} style={btnStyle(t)}>Add Book</button>
         </div>

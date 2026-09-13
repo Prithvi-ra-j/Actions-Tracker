@@ -171,6 +171,7 @@ export const LIFE_OBJECT_TYPES_V8 = {
   EXPERIMENT:    'experiment',
   DECISION:      'decision',
   CREATIVE_WORK: 'creative_work',
+  OBSERVATION:   'observation',
 };
 
 /**
@@ -311,5 +312,27 @@ export function createCreativeWork(fields) {
     milestoneId:       fields.milestoneId        ?? null,
     schemaVersion:     1,
     createdAt:         new Date().toISOString(),
+  };
+}
+
+/**
+ * Creates an Observation Life Object (§18 Social/Interpersonal Architecture).
+ *
+ * @param {{
+ *   content: string,
+ *   tags?: string[],
+ *   context?: string,
+ * }} fields
+ */
+export function createObservation(fields) {
+  return {
+    id:            fields.id ?? generateLifeObjectId('observation'),
+    type:          LIFE_OBJECT_TYPES_V8.OBSERVATION,
+    status:        LIFE_OBJECT_STATUSES.ACTIVE,
+    content:       fields.content,
+    tags:          fields.tags ?? [],
+    context:       fields.context ?? null,
+    schemaVersion: 1,
+    createdAt:     new Date().toISOString(),
   };
 }

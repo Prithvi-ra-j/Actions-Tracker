@@ -151,6 +151,18 @@ export default function SettingsTab({ t, dark, setDark, reminders, setReminders,
     }
   }
 
+  async function handleLoadDummyData() {
+    if (window.confirm("WARNING: This will completely wipe all your current data and replace it with dummy test data. Are you sure?")) {
+      try {
+        const { generateDummyData } = await import('../scripts/dummyDataGenerator.js');
+        await generateDummyData();
+        window.location.reload();
+      } catch (err) {
+        alert("Failed to generate dummy data: " + err.message);
+      }
+    }
+  }
+
   return (
     <>
       {/* ── Section title ─────────────────────────────────────────────────────── */}
@@ -484,6 +496,34 @@ export default function SettingsTab({ t, dark, setDark, reminders, setReminders,
             />
           </label>
         </div>
+      </div>
+
+      {/* ── Developer Tools ───────────────────────────────────────────────────── */}
+      <div style={{ border: `1px solid ${t.border}`, borderLeft: `4px solid #c1442c`, padding: '1rem', marginBottom: '1.5rem' }}>
+        <div style={{ fontFamily: 'monospace', fontSize: '0.65rem', letterSpacing: '0.15em', color: '#c1442c', textTransform: 'uppercase', marginBottom: '0.5rem' }}>
+          Developer Tools
+        </div>
+        <div style={{ fontSize: '0.9rem', marginBottom: '1rem', lineHeight: 1.5, color: t.muted }}>
+          Wipe current database and load comprehensive dummy test data (including edge cases, stats, active/completed quests, AI insights, etc).
+        </div>
+        
+        <button
+          onClick={handleLoadDummyData}
+          style={{
+            padding: '0.7rem',
+            background: 'rgba(193, 68, 44, 0.1)',
+            border: `1px solid #c1442c`,
+            color: '#c1442c',
+            fontFamily: 'monospace',
+            fontSize: '0.65rem',
+            letterSpacing: '0.1em',
+            cursor: 'pointer',
+            textTransform: 'uppercase',
+            width: '100%'
+          }}
+        >
+          Wipe & Load Dummy Data
+        </button>
       </div>
 
       {/* ── Info note ─────────────────────────────────────────────────────────── */}
