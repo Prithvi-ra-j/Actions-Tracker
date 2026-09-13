@@ -82,7 +82,7 @@ export default function TodayTab({
             lineHeight: 1.6,
             fontStyle: 'italic',
           }}>
-            "{dailyQuote.quote}"
+            "{dailyQuote.text}"
             <div style={{ marginTop: '0.5rem', fontFamily: 'monospace', fontSize: '0.65rem', color: t.muted, textTransform: 'uppercase' }}>
               — {dailyQuote.source}
             </div>

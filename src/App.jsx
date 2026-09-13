@@ -481,8 +481,14 @@ export default function App() {
   const handleAddLearning = useCallback(async (fields) => {
     try {
       const { addLearning, getAllLearnings } = await import('./database/learningRepository.js');
-      await addLearning(fields);
+      const learningId = await addLearning(fields);
       setLearnings(await getAllLearnings());
+
+      // Phase 7: Auto-create Relation
+      if (fields.sourceId) {
+        const { addRelation } = await import('./database/relationRepository.js');
+        await addRelation(learningId, fields.sourceId, 'derived_from', 1.0);
+      }
     } catch (err) {
       console.error('[App] handleAddLearning failed:', err);
     }

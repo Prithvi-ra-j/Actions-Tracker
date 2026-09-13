@@ -236,7 +236,7 @@ function AddLearningForm({ t, books, onSave, onCancel }) {
         style={{ ...fieldStyle, fontFamily: 'monospace', fontSize: '0.75rem' }}
       >
         {SOURCE_TYPES.map(s => (
-          <option key={s.value} value={s.value}>{s.label}</option>
+          <option key={s.value} value={s.value} style={{ background: t.pageBg, color: t.pageText }}>{s.label}</option>
         ))}
       </select>
 
@@ -248,9 +248,9 @@ function AddLearningForm({ t, books, onSave, onCancel }) {
             onChange={e => setSourceId(e.target.value)}
             style={{ ...fieldStyle, fontFamily: 'monospace', fontSize: '0.75rem' }}
           >
-            <option value="">— select book —</option>
+            <option value="" style={{ background: t.pageBg, color: t.pageText }}>— select book —</option>
             {bookOptions.map(b => (
-              <option key={b.id} value={b.id}>{b.title}</option>
+              <option key={b.id} value={b.id} style={{ background: t.pageBg, color: t.pageText }}>{b.title}</option>
             ))}
           </select>
         </>
