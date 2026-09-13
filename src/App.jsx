@@ -94,7 +94,8 @@ function detectLevelUps(oldTitles, newStats) {
 // ─────────────────────────────────────────────────────────────────────────────
 
 export default function App() {
-  // ── Bootstrap state ────────────────────────────────────────────────        const [dbReady,         setDbReady]         = useState(false);
+  // ── Bootstrap state ────────────────────────────────────────────────
+  const [dbReady,         setDbReady]         = useState(false);
   const [dbError,         setDbError]         = useState(null);
   const [needsOnboarding, setNeedsOnboarding] = useState(false);
 
