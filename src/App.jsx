@@ -118,7 +118,8 @@ export default function App() {
     { id: 3, label: 'DAILY CHECK', time: '22:00', enabled: true },
   ]);
 
-  // ── Stat engine state ────────────────────────────────────────────────         const [stats,            setStats]             = useState({ strength: 0, discipline: 0, knowledge: 0, wisdom: 0, creativity: 0, strategy: 0 });
+  // ── Stat engine state ────────────────────────────────────────────────
+  const [stats,            setStats]             = useState({ strength: 0, discipline: 0, knowledge: 0, wisdom: 0, creativity: 0, strategy: 0 });
   const [axisDetails,      setAxisDetails]        = useState({});
   const [axisConfigs,      setAxisConfigs]        = useState([]);
   const [allQuests,        setAllQuests]          = useState([]);
@@ -534,6 +535,7 @@ export default function App() {
   }
 
   // ── Main render ────────────────────────────────────────────────────────────
+  /* // FOR LATER USE: Temporarily disabled onboarding logic
   if (needsOnboarding) {
     return (
       <OnboardingScreen 
@@ -559,6 +561,7 @@ export default function App() {
       />
     );
   }
+  */
 
   return (
     <div style={{
