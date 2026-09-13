@@ -23,6 +23,11 @@ import { buildEvidenceFromFacts, computeCoverageReport, getExpectedSignals } fro
 import { createScoreProjection, createLowCoverageProjection } from '../../models/scoreSchema.js';
 import { createEvidence }                    from '../../models/evidenceSchema.js';
 
+import { calcAxisStat } from '../../helpers/statsEngine.js';
+import { getAllLogs } from '../../database/logsRepository.js';
+import { getAllAxisConfigs } from '../../database/axisConfigRepository.js';
+import { getAllQuests } from '../../database/questBoardRepository.js';
+
 import * as disciplineEngine from '../../domains/discipline/disciplineEngine.js';
 import * as knowledgeEngine  from '../../domains/knowledge/knowledgeEngine.js';
 import * as bodyEngine       from '../../domains/body/bodyEngine.js';
@@ -95,19 +100,38 @@ export function getExplanation(scoreProjection) {
 // ─── Internal pipeline ─────────────────────────────────────────────────────────
 
 async function _buildProjection(domain, period) {
+  // Pre-load data needed by statsEngine for canonical math
+  const allLogs = await getAllLogs();
+  const axisConfigs = await getAllAxisConfigs();
+  const allQuests = await getAllQuests();
+
+  const axisLogs = allLogs.filter(l => l.axis === domain);
+  const axisConfig = axisConfigs.find(c => c.axis === domain) ?? { hasConsistencyTerm: true, expectedPerWeek: 7, paused: false };
+  const axisQuests = allQuests.filter(q => q.axis === domain);
+  
+  // Get canonical score from the pure math engine
+  const canonicalValue = calcAxisStat(domain, axisLogs, axisConfig, axisQuests, period.end);
+
+  let projection;
   switch (domain) {
-    case 'discipline': return _buildDisciplineProjection(period);
-    case 'knowledge':  return _buildKnowledgeProjection(period);
-    case 'body':       return _buildBodyProjection(period);
-    case 'strategy':   return _buildStrategyProjection(period);
-    case 'creativity': return _buildCreativityProjection(period);
-    case 'social':     return _buildSocialProjection(period);
+    case 'discipline': projection = await _buildDisciplineProjection(period); break;
+    case 'knowledge':  projection = await _buildKnowledgeProjection(period); break;
+    case 'body':       projection = await _buildBodyProjection(period); break;
+    case 'strategy':   projection = await _buildStrategyProjection(period); break;
+    case 'creativity': projection = await _buildCreativityProjection(period); break;
+    case 'social':     projection = await _buildSocialProjection(period); break;
     default:
       return createLowCoverageProjection(
         domain, period, 'scoreEngine', SCORE_ENGINE_VERSION,
         `no engine implemented for domain "${domain}" yet`
       );
   }
+
+  // ENFORCE INVARIANT: scoreEngine does not invent scores.
+  // It only adds coverage and confidence diagnostics around the canonical math.
+  projection.value = canonicalValue;
+  
+  return createScoreProjection(projection);
 }
 
 async function _buildDisciplineProjection(period) {
@@ -128,11 +152,10 @@ async function _buildDisciplineProjection(period) {
   // 2. Collect signals from domain engine
   const signals = disciplineEngine.collectSignals(allOccurrences);
 
-  // 3. Calculate score
+  // 3. Calculate preliminary projection (for coverage/confidence)
   const projection = disciplineEngine.calculateScore(signals, period);
 
-  // 4. Build and return a proper ScoreProjection
-  return createScoreProjection(projection);
+  return projection;
 }
 
 async function _buildKnowledgeProjection(period) {
@@ -157,11 +180,10 @@ async function _buildKnowledgeProjection(period) {
   // 4. Collect signals from domain engine
   const signals = knowledgeEngine.collectSignals({ facts, learnings, books });
 
-  // 5. Calculate score
+  // 5. Calculate preliminary projection
   const projection = knowledgeEngine.calculateScore(signals, period);
 
-  // 6. Build and return a proper ScoreProjection
-  return createScoreProjection(projection);
+  return projection;
 }
 
 async function _buildBodyProjection(period) {
@@ -169,7 +191,7 @@ async function _buildBodyProjection(period) {
   const facts = allFacts.filter(f => f.occurredAt >= period.start && f.occurredAt <= period.end);
   const signals = bodyEngine.collectSignals({ facts });
   const projection = bodyEngine.calculateScore(signals, period);
-  return createScoreProjection(projection);
+  return projection;
 }
 
 async function _buildStrategyProjection(period) {
@@ -177,7 +199,7 @@ async function _buildStrategyProjection(period) {
   const facts = allFacts.filter(f => f.occurredAt >= period.start && f.occurredAt <= period.end);
   const signals = strategyEngine.collectSignals({ facts });
   const projection = strategyEngine.calculateScore(signals, period);
-  return createScoreProjection(projection);
+  return projection;
 }
 
 async function _buildCreativityProjection(period) {
@@ -185,7 +207,7 @@ async function _buildCreativityProjection(period) {
   const facts = allFacts.filter(f => f.occurredAt >= period.start && f.occurredAt <= period.end);
   const signals = creativityEngine.collectSignals({ facts });
   const projection = creativityEngine.calculateScore(signals, period);
-  return createScoreProjection(projection);
+  return projection;
 }
 
 async function _buildSocialProjection(period) {
@@ -193,7 +215,7 @@ async function _buildSocialProjection(period) {
   const facts = allFacts.filter(f => f.occurredAt >= period.start && f.occurredAt <= period.end);
   const signals = socialEngine.collectSignals({ facts });
   const projection = socialEngine.calculateScore(signals, period);
-  return createScoreProjection(projection);
+  return projection;
 }
 
 // ─── Additive extension to statsEngine integration ─────────────────────────────

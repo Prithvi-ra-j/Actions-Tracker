@@ -6,6 +6,7 @@ import {
   NOTIFICATION_IDS,
 } from '../native/notifications.js';
 import { exportDatabase, importDatabase } from '../database/db.js';
+import { isBrowserFallback } from '../native/secureStorage.js';
 
 /**
  * Settings panel — opened via the ⚙ icon in the header (not a tab).
@@ -29,21 +30,38 @@ export default function SettingsTab({ t, dark, setDark, reminders, setReminders,
   const [aiApiKey, setAiApiKey] = useState('');
   const [aiBaseUrl, setAiBaseUrl] = useState('');
   const [aiModel, setAiModel] = useState('');
+  
+  const [memories, setMemories] = useState([]);
 
   // Load AI settings on mount
   useEffect(() => {
     import('../database/settingsRepository.js').then(m => {
       Promise.all([
-        m.getSetting('aiApiKey'),
         m.getSetting('aiBaseUrl'),
         m.getSetting('aiModel')
-      ]).then(([key, url, mod]) => {
-        setAiApiKey(key || '');
+      ]).then(([url, mod]) => {
         setAiBaseUrl(url || 'https://api.groq.com/openai/v1');
         setAiModel(mod || 'gemma2-9b-it');
       });
     });
+
+    import('../native/secureStorage.js').then(m => {
+      m.getSecureValue('aiApiKey').then(key => {
+        setAiApiKey(key || '');
+      });
+    });
+
+    import('../database/memoryRepository.js').then(m => {
+      m.getSemanticMemories().then(setMemories);
+    });
   }, []);
+
+  async function handleDeleteMemory(id) {
+    if (!window.confirm("Reject this memory? It will no longer be used by the AI.")) return;
+    const { rejectMemory } = await import('../database/memoryRepository.js');
+    await rejectMemory(id);
+    setMemories(prev => prev.filter(m => m.id !== id));
+  }
 
   // Update a single reminder field
   function updateReminder(id, changes) {
@@ -64,9 +82,11 @@ export default function SettingsTab({ t, dark, setDark, reminders, setReminders,
 
       // Save AI Settings
       const { setSetting } = await import('../database/settingsRepository.js');
-      await setSetting('aiApiKey', aiApiKey);
       await setSetting('aiBaseUrl', aiBaseUrl);
       await setSetting('aiModel', aiModel);
+
+      const { setSecureValue } = await import('../native/secureStorage.js');
+      await setSecureValue('aiApiKey', aiApiKey);
 
       setSaved(true);
       setTimeout(() => setSaved(false), 2000);
@@ -303,6 +323,13 @@ export default function SettingsTab({ t, dark, setDark, reminders, setReminders,
         
         <div style={{ marginBottom: '0.75rem' }}>
           <label style={{ display: 'block', fontFamily: 'monospace', fontSize: '0.65rem', color: t.muted, marginBottom: '0.25rem' }}>API Key</label>
+          
+          {isBrowserFallback() && (
+            <div style={{ background: 'rgba(193, 68, 44, 0.1)', border: '1px solid #c1442c', padding: '0.5rem', color: '#c1442c', fontSize: '0.75rem', marginBottom: '0.5rem', borderRadius: '4px' }}>
+              <strong>API key is session-only in browser</strong> — re-enter after refresh.
+            </div>
+          )}
+
           <input 
             type="password" 
             value={aiApiKey}
@@ -331,6 +358,35 @@ export default function SettingsTab({ t, dark, setDark, reminders, setReminders,
             style={{ width: '100%', padding: '0.5rem', background: t.subtleBg, border: `1px solid ${t.borderSoft}`, color: t.pageText, fontFamily: 'monospace' }} 
           />
         </div>
+      </div>
+
+      {/* ── AI Memory ────────────────────────────────────────────────────────── */}
+      <div style={{ border: `1px solid ${t.border}`, borderLeft: `4px solid ${t.border}`, padding: '1rem', marginBottom: '1.5rem' }}>
+        <div style={{ fontFamily: 'monospace', fontSize: '0.65rem', letterSpacing: '0.15em', color: t.muted, textTransform: 'uppercase', marginBottom: '0.5rem' }}>
+          AI Memory
+        </div>
+        <div style={{ fontSize: '0.9rem', marginBottom: '1rem', lineHeight: 1.5, color: t.muted }}>
+          Facts and patterns the AI has learned about you. You can reject incorrect memories so they are no longer used.
+        </div>
+        
+        {memories.length === 0 ? (
+          <div style={{ fontSize: '0.85rem', color: t.muted, fontStyle: 'italic' }}>No confirmed memories yet.</div>
+        ) : (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+            {memories.map(m => (
+              <div key={m.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: t.subtleBg, padding: '0.75rem', border: `1px solid ${t.borderSoft}` }}>
+                <span style={{ fontSize: '0.85rem', lineHeight: 1.4 }}>{m.content}</span>
+                <button
+                  onClick={() => handleDeleteMemory(m.id)}
+                  aria-label="Reject memory"
+                  style={{ background: 'transparent', border: 'none', color: '#c1442c', cursor: 'pointer', fontSize: '1rem', padding: '0.25rem 0.5rem', marginLeft: '0.5rem' }}
+                >
+                  ✕
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
 
       {/* ── Integrations & Sync ────────────────────────────────────────────────── */}

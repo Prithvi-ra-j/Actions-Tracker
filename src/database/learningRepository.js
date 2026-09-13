@@ -69,6 +69,14 @@ export async function addLearning(fields) {
     updatedAt: ts,
   };
   await dbPut(STORE, record);
+  
+  if (record.sourceId) {
+    const { addRelation } = await import('./relationRepository.js');
+    await addRelation(record.id, record.sourceId, 'derived_from').catch(err => {
+      console.warn(`[learningRepository] Failed to auto-create relation for learning ${record.id}:`, err);
+    });
+  }
+
   return record.id;
 }
 
