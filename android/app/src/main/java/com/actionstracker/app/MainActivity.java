@@ -1,4 +1,4 @@
-package com.prithvi.yearendgoals;
+package com.actionstracker.app;
 
 import com.getcapacitor.BridgeActivity;
 

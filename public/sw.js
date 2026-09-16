@@ -1,4 +1,4 @@
-const CACHE = "year-end-goals-v1";
+const CACHE = "actions-tracker-v1";
 const ASSETS = ["/", "/index.html", "/manifest.webmanifest", "/icon.svg"];
 
 self.addEventListener("install", event => {
