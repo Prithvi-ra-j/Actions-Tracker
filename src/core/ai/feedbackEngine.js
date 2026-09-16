@@ -6,7 +6,7 @@
  */
 
 import { updateInsightStatus } from '../../database/insightsRepository.js';
-import { addQuest } from '../../database/questBoardRepository.js';
+import { addQuest, getAllQuests } from '../../database/questBoardRepository.js';
 import { getEvidence } from '../../database/evidenceRepository.js';
 
 /**
@@ -23,6 +23,14 @@ export async function approveAndApplyInsight(insight) {
         console.warn(`[FeedbackEngine] Insight ${insight.id} references missing evidence ID: ${evid}. Insight is still actionable but flagged.`);
       }
     }
+  }
+
+  // Business Rule Validation: Max 10 active quests total to prevent AI spam
+  const allQuests = await getAllQuests();
+  const activeQuests = allQuests.filter(q => !q.done);
+  
+  if (activeQuests.length + (insight.recommendedActions?.length || 0) > 10) {
+    throw new Error("Business Rule Violation: Cannot apply insight, it would exceed the maximum limit of 10 active quests.");
   }
 
   // 1. Mark as confirmed

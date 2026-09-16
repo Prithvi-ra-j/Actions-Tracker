@@ -121,10 +121,10 @@ export async function generateDummyData() {
       { id: 'tel1', type: 'jarvis_audit', date: dateOffset(-13), durationMs: 4500 }
     ],
     statSnapshots: [
-      { date: dateOffset(-60), stats: { strength: 5, discipline: 3, knowledge: 0, wisdom: 0, creativity: 0, strategy: 0 } },
-      { date: dateOffset(-30), stats: { strength: 20, discipline: 15, knowledge: 5, wisdom: 0, creativity: 0, strategy: 0 } },
-      { date: dateOffset(-10), stats: { strength: 40, discipline: 20, knowledge: 10, wisdom: 2, creativity: 0, strategy: 0 } },
-      { date: dateOffset(0), stats: { strength: 45, discipline: 25, knowledge: 15, wisdom: 5, creativity: 2, strategy: 0 } }
+      { id: 'ss1', date: dateOffset(-60), stats: { strength: 5, discipline: 3, knowledge: 0, wisdom: 0, creativity: 0, strategy: 0 } },
+      { id: 'ss2', date: dateOffset(-30), stats: { strength: 20, discipline: 15, knowledge: 5, wisdom: 0, creativity: 0, strategy: 0 } },
+      { id: 'ss3', date: dateOffset(-10), stats: { strength: 40, discipline: 20, knowledge: 10, wisdom: 2, creativity: 0, strategy: 0 } },
+      { id: 'ss4', date: dateOffset(0), stats: { strength: 45, discipline: 25, knowledge: 15, wisdom: 5, creativity: 2, strategy: 0 } }
     ],
     goals: [],
     milestones: [],

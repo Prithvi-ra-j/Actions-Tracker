@@ -28,11 +28,13 @@ export default function StatHistoryModal({ t, axisInfo, allLogs, onClose }) {
     loadHistory();
 
     async function loadExplainability() {
-      const { computeScoreWithExplanation } = await import('../helpers/statsEngine.js');
+      const { runScoreProjection } = await import('../core/scoring/scoreEngine.js');
       const today = new Date().toISOString().split('T')[0];
-      const { score, explanation } = await computeScoreWithExplanation(axis, { start: '1970-01-01', end: today });
-      setProjection(score);
-      setExplanation(explanation);
+      const projectionData = await runScoreProjection(axis, { start: '1970-01-01', end: today });
+      setProjection(projectionData);
+      
+      const { getExplanation } = await import('../core/scoring/scoreEngine.js');
+      setExplanation(getExplanation(projectionData));
     }
     loadExplainability();
   }, [axis]);
@@ -91,34 +93,26 @@ export default function StatHistoryModal({ t, axisInfo, allLogs, onClose }) {
         </div>
       )}
 
-      {/* Formula Breakdown (statsEngine) */}
-      {history.length > 0 && (
+      {/* Signals Breakdown (scoreEngine) */}
+      {projection && projection.components && projection.components.length > 0 && (
         <div style={{ background: t.subtleBg, padding: '1rem', border: `1px solid ${t.border}`, marginBottom: '1.5rem' }}>
           <div style={{ fontFamily: 'monospace', fontSize: '0.65rem', color: t.muted, marginBottom: '0.5rem', textTransform: 'uppercase' }}>
-            Current Stat Formula Breakdown
+            Current Signal Breakdown
           </div>
           <div style={{ fontSize: '0.8rem', color: t.pageText, marginBottom: '0.75rem', lineHeight: '1.4' }}>
-            <strong>Score = 0.45(V) + 0.40(C) + 0.15(M)</strong>
+            <strong>{Math.round(projection.value)} Total Score</strong>
             <br/>
-            <span style={{ color: t.muted, fontSize: '0.75rem' }}>Calculated dynamically from the evidence log below.</span>
+            <span style={{ color: t.muted, fontSize: '0.75rem' }}>Calculated dynamically by {projection.methodology?.engine} v{projection.methodology?.version}.</span>
           </div>
-          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.85rem' }}>
-            <div style={{ textAlign: 'center' }}>
-              <div style={{ color }}>{Math.round(history[0].V)}</div>
-              <div style={{ fontSize: '0.65rem', color: t.muted }}>Volume</div>
-            </div>
-            <div style={{ textAlign: 'center' }}>
-              <div style={{ color }}>{Math.round(history[0].C)}</div>
-              <div style={{ fontSize: '0.65rem', color: t.muted }}>Consistency</div>
-            </div>
-            <div style={{ textAlign: 'center' }}>
-              <div style={{ color }}>{Math.round(history[0].M)}</div>
-              <div style={{ fontSize: '0.65rem', color: t.muted }}>Momentum</div>
-            </div>
-            <div style={{ textAlign: 'center', fontWeight: 'bold' }}>
-              <div style={{ color }}>{Math.round(history[0].stat)}</div>
-              <div style={{ fontSize: '0.65rem', color: t.muted }}>Total</div>
-            </div>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '1rem', fontSize: '0.85rem' }}>
+            {projection.components.map((comp, idx) => (
+              <div key={idx} style={{ textAlign: 'center', background: t.borderFaint, padding: '0.5rem', borderRadius: 4 }}>
+                <div style={{ color, fontWeight: 'bold' }}>{Math.round(comp.contribution)}</div>
+                <div style={{ fontSize: '0.65rem', color: t.muted, marginTop: '0.2rem' }}>
+                  {comp.signal.replace(/_/g, ' ').toUpperCase()}
+                </div>
+              </div>
+            ))}
           </div>
         </div>
       )}

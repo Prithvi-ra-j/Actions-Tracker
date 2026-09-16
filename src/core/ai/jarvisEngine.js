@@ -7,6 +7,7 @@
 import { queryLLM } from './llmClient.js';
 import { JARVIS_SYSTEM_PROMPT } from './jarvisPersona.js';
 import { assembleContext } from './contextBuilder.js';
+import { AIInsightSchema } from './aiSchemas.js';
 
 /**
  * Generates an insight based on current user context.
@@ -33,14 +34,12 @@ export async function generateInsight(userQuery = "Analyze my current state and 
       insight = JSON.parse(cleaned);
     }
     
-    // §30 Write Boundary Validation: Ensure required fields exist.
-    if (!insight.type || !insight.statement) {
-      throw new Error("Model response failed schema validation.");
-    }
+    // §30 Write Boundary Validation: Strict schema validation
+    const validatedInsight = AIInsightSchema.parse(insight);
 
     return {
       id: `insight_${Date.now()}`,
-      ...insight,
+      ...validatedInsight,
       status: 'proposed',
       createdAt: new Date().toISOString()
     };

@@ -17,10 +17,10 @@ import StatHistoryModal from './StatHistoryModal.jsx';
 import { COLORS } from '../theme.js';
 
 const AXES = [
-  { key: 'strength',   label: 'Body',       color: COLORS.domains.body },
+  { key: 'body',       label: 'Body',       color: COLORS.domains.body },
   { key: 'discipline', label: 'Discipline', color: COLORS.domains.discipline },
   { key: 'knowledge',  label: 'Knowledge',  color: COLORS.domains.knowledge },
-  { key: 'wisdom',     label: 'Philosophy', color: COLORS.domains.philosophy },
+  { key: 'social',     label: 'Social',     color: COLORS.domains.social || '#ff9500' },
   { key: 'creativity', label: 'Creativity', color: COLORS.domains.creativity },
   { key: 'strategy',   label: 'Strategy',   color: COLORS.domains.strategy },
 ];
@@ -36,7 +36,7 @@ function MiniBar({ value, max = 100, color, dark }) {
 
 function StatCard({ t, dark, axisInfo, stat, details, quests, onClick }) {
   const { key, label, color } = axisInfo;
-  const { C, V, M } = details ?? {};
+  const components = details?.components || [];
   const val = Math.round(stat);
   const activeQuests = quests.filter(q => q.status === 'active').length;
 
@@ -71,11 +71,19 @@ function StatCard({ t, dark, axisInfo, stat, details, quests, onClick }) {
       </div>
 
       <div>
-        <div style={{ display: 'flex', gap: '1rem', fontSize: '0.65rem', fontFamily: 'monospace', color: t.muted, marginBottom: '0.5rem' }}>
-          {C != null && <span>C: {Math.round(C)}</span>}
-          <span>V: {Math.round(V)}</span>
-          <span>M: {Math.round(M)}</span>
-        </div>
+        {components.length > 0 ? (
+          <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', fontSize: '0.55rem', fontFamily: 'monospace', color: t.muted, marginBottom: '0.5rem' }}>
+            {components.slice(0, 3).map((comp, idx) => (
+              <span key={idx} style={{ background: t.borderFaint, padding: '0.1rem 0.3rem', borderRadius: 2 }}>
+                {comp.signal.replace(/_/g, ' ').substring(0, 12).toUpperCase()}: {Math.round(comp.contribution)}
+              </span>
+            ))}
+          </div>
+        ) : (
+          <div style={{ fontSize: '0.55rem', fontFamily: 'monospace', color: t.muted, marginBottom: '0.5rem' }}>
+            No recent signals.
+          </div>
+        )}
         <MiniBar value={val} color={color} dark={dark} />
       </div>
     </div>
