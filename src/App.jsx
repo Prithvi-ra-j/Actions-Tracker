@@ -13,6 +13,7 @@ import { getAllMilestoneChecks, setMilestoneCheck } from './database/milestonesR
 import { getSetting, setSetting, getReminders, saveReminders } from './database/settingsRepository.js';
 import { checkAndWriteWeeklySnapshot, getLatestSnapshot } from './database/statSnapshotsRepository.js';
 import { runAnomalyDetection, saveTelemetryEvent } from './database/telemetryRepository.js';
+import { runAutoBackup } from './database/backupService.js';
 import { isOnboardingComplete } from './database/selfModelRepository.js';
 import { registerConnector } from './core/sync/syncManager.js';
 import { HealthConnectConnector } from './core/sync/connectors/HealthConnectConnector.js';
@@ -182,6 +183,7 @@ export default function App() {
       try {
         await saveTelemetryEvent('app_started', localDateStr(), { type: 'boot' }).catch(() => {});
         await initDB();
+        await runAutoBackup().catch(() => {});
         await migrateFromLocalStorage();
         await saveTelemetryEvent('db_migration_success', localDateStr(), {}).catch(() => {});
         await initGoals();

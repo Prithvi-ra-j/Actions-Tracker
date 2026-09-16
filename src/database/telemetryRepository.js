@@ -20,6 +20,20 @@ export async function getAllTelemetry() {
   return await dbGetAll('telemetry');
 }
 
+export async function saveErrorLog(error, info) {
+  try {
+    const todayStr = new Date().toISOString().split('T')[0];
+    await saveTelemetryEvent('crash', todayStr, {
+      message: error?.message || String(error),
+      stack: error?.stack,
+      componentStack: info?.componentStack,
+    });
+  } catch (e) {
+    console.error('Failed to save error log', e);
+  }
+}
+
+
 /**
  * Detects if any stat jumped or dropped unusually fast.
  * Compares the latest snapshot with the one from a week prior.
