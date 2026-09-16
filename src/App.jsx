@@ -15,7 +15,7 @@ import { checkAndWriteWeeklySnapshot, getLatestSnapshot } from './database/statS
 import { runAnomalyDetection, saveTelemetryEvent } from './database/telemetryRepository.js';
 import { isOnboardingComplete } from './database/selfModelRepository.js';
 import { registerConnector } from './core/sync/syncManager.js';
-import { MockHealthConnector } from './core/sync/connectors/MockHealthConnector.js';
+import { HealthConnectConnector } from './core/sync/connectors/HealthConnectConnector.js';
 import { bootstrapAnalysisScheduler } from './core/ai/analysisScheduler.js';
 
 // ── Helpers ─────────────────────────────────────────────────────────────────────────────
@@ -62,10 +62,10 @@ const TOTAL_TARGETS = 16;
 // ── Phase 4 helpers ───────────────────────────────────────────────────────────
 
 const AXIS_COLORS = {
-  strength:   '#c1442c',
+  body:       '#c1442c',
   discipline: '#c1442c',
   knowledge:  '#4a7ba6',
-  wisdom:     '#4a7ba6',
+  social:     '#ff9500',
   creativity: '#d99a2b',
   strategy:   '#4f8a5f',
 };
@@ -77,7 +77,7 @@ const AXIS_COLORS = {
  * @param {{ [axis]: number }} newStats
  */
 function detectLevelUps(oldTitles, newStats) {
-  const AXES = ['strength', 'discipline', 'knowledge', 'wisdom', 'creativity', 'strategy'];
+  const AXES = ['body', 'discipline', 'knowledge', 'social', 'creativity', 'strategy'];
   const events = [];
   for (const axis of AXES) {
     const newVal   = Math.round(newStats[axis] ?? 0);
@@ -85,13 +85,37 @@ function detectLevelUps(oldTitles, newStats) {
     const oldTitle = oldTitles[axis] ?? getThresholdTitle(axis, 0);
     // Only fire if the title is different AND value increased (not an onboarding artifact)
     if (newTitle !== oldTitle && newVal > 0) {
-      events.push({ axis, value: newVal, newTitle, color: AXIS_COLORS[axis] });
+      events.push({ axis, value: newVal, newTitle, color: AXIS_COLORS[axis] || '#ff9500' });
     }
   }
   return events;
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
+
+async function getScoresAsync() {
+  const domains = ['body', 'knowledge', 'strategy', 'creativity', 'social', 'discipline'];
+  const end = new Date();
+  const start = new Date(end.getTime() - 30 * 24 * 60 * 60 * 1000);
+  const period = { start: start.toISOString(), end: end.toISOString() };
+  
+  const stats = {};
+  const details = {};
+  
+  for (const domain of domains) {
+    try {
+      const { runScoreProjection } = await import('./core/scoring/scoreEngine.js');
+      const projection = await runScoreProjection(domain, period);
+      stats[domain] = projection.value;
+      details[domain] = { components: projection.components };
+    } catch (e) {
+      console.warn(`[App] Failed to project ${domain}`, e);
+      stats[domain] = 0;
+      details[domain] = { components: [] };
+    }
+  }
+  return { stats, details };
+}
 
 export default function App() {
   // ── Bootstrap state ────────────────────────────────────────────────
@@ -181,7 +205,7 @@ export default function App() {
           ]);
 
         // Register integrations
-        registerConnector(new MockHealthConnector());
+        registerConnector(new HealthConnectConnector());
 
         // Build evaluations map from facts where type === 'evaluation'
         const evals = {};
@@ -230,10 +254,9 @@ export default function App() {
           await scheduleAllReminders(reminders, todayRecord);
         }
 
-        // Compute stats + per-axis details
+        // Compute stats + per-axis details async via scoreEngine
         const today = localDateStr();
-        const initialStats = computeAllStats(allLogs, axisConfigs, syncedQuests, today);
-        const details = computeAxisDetails(allLogs, axisConfigs, syncedQuests, today);
+        const { stats: initialStats, details } = await getScoresAsync();
         setStats(initialStats);
         setAxisDetails(details);
 
@@ -246,7 +269,7 @@ export default function App() {
         }
         // Always persist current titles so next comparison is accurate
         const currentTitles = {};
-        for (const axis of ['strength', 'discipline', 'knowledge', 'wisdom', 'creativity', 'strategy']) {
+        for (const axis of ['body', 'discipline', 'knowledge', 'social', 'creativity', 'strategy']) {
           currentTitles[axis] = getThresholdTitle(axis, Math.round(initialStats[axis] ?? 0));
         }
         await setSetting('lastStatTitles', JSON.stringify(currentTitles));
@@ -346,8 +369,9 @@ export default function App() {
       setAllLogs(freshLogs);
       setAxisConfigs(freshConfigs);
       setAllQuests(freshQuests);
-      const newStats   = computeAllStats(freshLogs, freshConfigs, freshQuests, today);
-      const newDetails = computeAxisDetails(freshLogs, freshConfigs, freshQuests, today);
+      
+      const { stats: newStats, details: newDetails } = await getScoresAsync();
+      
       setStats(newStats);
       setAxisDetails(newDetails);
 
@@ -359,7 +383,7 @@ export default function App() {
       }
       // Always persist current titles
       const currentTitles = {};
-      for (const axis of ['strength', 'discipline', 'knowledge', 'wisdom', 'creativity', 'strategy']) {
+      for (const axis of ['body', 'discipline', 'knowledge', 'social', 'creativity', 'strategy']) {
         currentTitles[axis] = getThresholdTitle(axis, Math.round(newStats[axis] ?? 0));
       }
       await setSetting('lastStatTitles', JSON.stringify(currentTitles));

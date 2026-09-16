@@ -48,9 +48,9 @@ export default function ReviewPrompt({ t, currentStats }) {
       padding: '1rem', fontFamily: 'Georgia, serif', color: t.pageText
     }}>
       <div style={{ background: t.pageBg, padding: '2rem', border: `1px solid ${t.border}`, maxWidth: 400, width: '100%' }}>
-        <h2 style={{ fontSize: '1.25rem', marginBottom: '1rem', color: ACCENT.wisdom }}>Monthly Stat Review</h2>
+        <h2 style={{ fontSize: '1.25rem', marginBottom: '1rem', color: ACCENT }}>Monthly Stat Review</h2>
         <p style={{ fontSize: '0.9rem', color: t.muted, marginBottom: '1.5rem', lineHeight: '1.4' }}>
-          Do your current stats (e.g. Strength {Math.round(currentStats?.strength ?? 0)}) accurately reflect your real-life progress over the last 30 days?
+          Do your current stats (e.g. Body {Math.round(currentStats?.body ?? 0)}) accurately reflect your real-life progress over the last 30 days?
         </p>
 
         <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '1.5rem' }}>
@@ -60,8 +60,8 @@ export default function ReviewPrompt({ t, currentStats }) {
               onClick={() => setRating(num)}
               style={{
                 width: '40px', height: '40px',
-                borderRadius: '50%', border: `1px solid ${rating === num ? ACCENT.wisdom : t.border}`,
-                background: rating === num ? ACCENT.wisdom : 'transparent',
+                borderRadius: '50%', border: `1px solid ${rating === num ? ACCENT : t.border}`,
+                background: rating === num ? ACCENT : 'transparent',
                 color: rating === num ? '#000' : t.pageText,
                 cursor: 'pointer'
               }}
@@ -91,7 +91,7 @@ export default function ReviewPrompt({ t, currentStats }) {
           <button onClick={() => setShow(false)} style={{ background: 'transparent', color: t.muted, border: 'none', cursor: 'pointer' }}>
             Skip
           </button>
-          <button onClick={handleSubmit} style={{ background: ACCENT.wisdom, color: '#000', border: 'none', padding: '0.5rem 1rem', cursor: 'pointer', fontWeight: 'bold' }}>
+          <button onClick={handleSubmit} style={{ background: ACCENT, color: '#000', border: 'none', padding: '0.5rem 1rem', cursor: 'pointer', fontWeight: 'bold' }}>
             Submit Review
           </button>
         </div>

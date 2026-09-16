@@ -11,6 +11,7 @@ import { getLatestSnapshot } from '../../database/statSnapshotsRepository.js';
 import { getSelfModel } from '../../database/selfModelRepository.js';
 import { getAllGoals } from '../../database/goalsRepository.js';
 import { addAudit } from '../../database/auditRepository.js';
+import { AIAuditSchema } from './aiSchemas.js';
 
 const AUDIT_QUESTIONS_PROMPT = `
 You are generating a Monthly Audit. You must analyze the evidence and output a JSON object adhering to this schema:
@@ -100,15 +101,19 @@ export async function runMonthlyAudit() {
     // Assign period if not provided
     if (!auditData.period) auditData.period = { start: startIso, end: endIso };
     
+    // §30 Write Boundary Validation: Strict schema validation
+    const validatedAudit = AIAuditSchema.parse(auditData);
+
     // Save to DB
     const id = await addAudit({
-      ...auditData,
+      ...validatedAudit,
       analysisVersion: '1.0'
     });
 
-    return { id, ...auditData };
+    return { id, ...validatedAudit };
   } catch (err) {
     console.error("[AuditEngine] Failed to generate monthly audit:", err);
     throw err;
   }
 }
+
