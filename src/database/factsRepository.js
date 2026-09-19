@@ -29,6 +29,7 @@ const SCHEMA_VERSION = 1;
  *   objectId?:    string,   — ID of the Life Object this fact belongs to (optional)
  *   value?:       number,   — numeric payload (1 = done, XP amount, duration, etc.)
  *   meta?:        object,   — any extra payload (text, source, etc.)
+  *   source?:      { type: string, integrationId?: string },
  *   context?: {             — §33 Context Model
  *     energy?:  number,     — 1–5
  *     mood?:    number,     — 1–5
@@ -52,6 +53,7 @@ export async function addFact(fact) {
     objectId:       fact.objectId  ?? null,
     value:          fact.value     ?? null,
     meta:           fact.meta      ?? {},
+    source:         fact.source    ?? { type: 'user' },
     context:        fact.context   ?? {},
     occurredAt:     fact.occurredAt ?? now.toISOString(),
     recordedAt:     now.toISOString(),

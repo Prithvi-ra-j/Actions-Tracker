@@ -3,9 +3,32 @@ import { addOccurrence, getOccurrencesByDateRange, updateOccurrence } from '../d
 import { localDateStr } from '../helpers/dateHelpers.js';
 import { addLog } from '../database/logsRepository.js';
 
+export function getGraceState(scheduledFor, currentDateStr) {
+  const scheduled = new Date(`${scheduledFor}T00:00:00`);
+  const current = new Date(`${currentDateStr}T00:00:00`);
+  const daysLate = Math.floor((current - scheduled) / 86400000);
+  if (daysLate <= 0) return { daysLate: 0, state: 'scheduled' };
+  if (daysLate === 1) return { daysLate, state: 'grace_day_one' };
+  if (daysLate === 2) return { daysLate, state: 'grace_day_two' };
+  return { daysLate, state: 'grace_expired' };
+}
+
+export function getGracePrompt(status, graceState) {
+  if (status === 'expected' && graceState === 'grace_day_one') {
+    return 'You missed yesterday. You still have today.';
+  }
+  if (status === 'expected' && graceState === 'grace_day_two') {
+    return 'You missed yesterday and today. Tomorrow is the day that matters.';
+  }
+  if (status === 'unknown' && graceState === 'grace_expired') {
+    return 'Pattern forming. What is getting in the way?';
+  }
+  return null;
+}
+
 /**
- * Sweeps the database for past 'expected' occurrences and marks them as 'missed'.
- * This penalizes the discipline score, fulfilling architecture section 7 and 34.
+ * Sweeps old occurrences without treating ordinary one- or two-day gaps as misses.
+ * Unknown remains neutral under the discipline invariant.
  */
 async function evaluatePastOccurrences(currentDateStr) {
   try {
@@ -19,10 +42,13 @@ async function evaluatePastOccurrences(currentDateStr) {
 
     for (const occ of pastOccurrences) {
       if (occ.scheduledFor < currentDateStr && occ.status === 'expected') {
-        // It's in the past and still 'expected' -> Mark as unknown (invariant: unknown != missed)
-        await updateOccurrence(occ.id, { status: 'unknown' });
-        
-        unknownCount++;
+        const grace = getGraceState(occ.scheduledFor, currentDateStr);
+        if (grace.state === 'grace_expired') {
+          await updateOccurrence(occ.id, { status: 'unknown', reason: 'grace_window_expired', graceDays: 2 });
+          unknownCount++;
+        } else {
+          await updateOccurrence(occ.id, { graceState: grace.state, graceDays: 2 });
+        }
       }
     }
     

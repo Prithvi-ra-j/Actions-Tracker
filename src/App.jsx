@@ -1,6 +1,7 @@
-import React, { useEffect, useState, useCallback, useMemo } from 'react';
+import React, { useEffect, useState, useCallback, useMemo, useRef } from 'react';
 import { THEMES, ACCENT } from './constants.js';
 import { localDateStr }   from './helpers/dateHelpers.js';
+import { getGraceState } from './core/occurrenceEngine.js';
 
 // ── Database ──────────────────────────────────────────────────────────────────
 import { initDB }                from './database/db.js';
@@ -37,6 +38,7 @@ import { Haptics, ImpactStyle } from '@capacitor/haptics';
 import OnboardingScreen  from './components/OnboardingScreen.jsx';
 import StatsTab          from './components/StatsTab.jsx';
 import LevelUpCeremony   from './components/LevelUpCeremony.jsx';
+import CompletionFeedback from './components/CompletionFeedback.jsx';
 import ProofFearCheckin  from './components/ProofFearCheckin.jsx';
 import ProfileTab        from './components/ProfileTab.jsx'; // Phase 15
 import LearnTab          from './components/LearnTab.jsx';   // Phase 7
@@ -59,6 +61,27 @@ const TABS = [
 
 // Total possible goal targets (4 goals × 4 targets each)
 const TOTAL_TARGETS = 16;
+
+function daysAgoDate(dateStr, days) {
+  const date = new Date(`${dateStr}T00:00:00`);
+  date.setDate(date.getDate() - days);
+  return date.toISOString().split('T')[0];
+}
+
+async function loadEnrichedOccurrences(startDate, endDate, currentDate) {
+  const { getOccurrencesByDateRange } = await import('./database/habitOccurrenceRepository.js');
+  const { getHabit } = await import('./database/habitRepository.js');
+  const occurrences = await getOccurrencesByDateRange(startDate, endDate);
+  return Promise.all(occurrences.map(async occurrence => {
+    const habit = await getHabit(occurrence.habitId);
+    const scheduledDate = occurrence.scheduledFor.split('T')[0];
+    return {
+      ...occurrence,
+      habitTitle: habit?.name || 'Unknown Habit',
+      graceState: getGraceState(scheduledDate, currentDate).state,
+    };
+  }));
+}
 
 // ── Phase 4 helpers ───────────────────────────────────────────────────────────
 
@@ -108,11 +131,18 @@ async function getScoresAsync() {
       const { runScoreProjection } = await import('./core/scoring/scoreEngine.js');
       const projection = await runScoreProjection(domain, period);
       stats[domain] = projection.value;
-      details[domain] = { components: projection.components };
+      details[domain] = {
+        components: projection.components,
+        scoreSource: projection.scoreSource || 'canonical',
+        fallbackReason: projection.fallbackReason || null,
+        coverage: projection.coverage ?? 0,
+        confidence: projection.confidence ?? 0,
+        warnings: projection.warnings || [],
+      };
     } catch (e) {
       console.warn(`[App] Failed to project ${domain}`, e);
       stats[domain] = 0;
-      details[domain] = { components: [] };
+      details[domain] = { components: [], scoreSource: 'canonical', coverage: 0, confidence: 0, warnings: ['projection_failed'] };
     }
   }
   return { stats, details };
@@ -154,6 +184,8 @@ export default function App() {
   // ── Phase 4/5 engagement state ────────────────────────────────────────────────────
   // levelUpQueue: array of { axis, value, newTitle, color } — shown one at a time
   const [levelUpQueue,     setLevelUpQueue]       = useState([]);
+  const [completionFeedback, setCompletionFeedback] = useState(null);
+  const completingOccurrences = useRef(new Set());
   const [showCheckin,      setShowCheckin]        = useState(false);
   const [hasSundayReflection, setHasSundayReflection] = useState(false);
 
@@ -236,18 +268,8 @@ export default function App() {
         setMilestoneChecks(milestones);
         setAllQuests(syncedQuests);
 
-        // Load today's occurrences
-        const { getOccurrencesByDateRange } = await import('./database/habitOccurrenceRepository.js');
-        const { getHabit } = await import('./database/habitRepository.js');
         const todayStr = localDateStr();
-        const occs = await getOccurrencesByDateRange(todayStr, todayStr);
-        
-        // Enrich occurrences with habit titles
-        const enrichedOccs = await Promise.all(occs.map(async (o) => {
-          const h = await getHabit(o.habitId);
-          return { ...o, habitTitle: h ? h.name : 'Unknown Habit' };
-        }));
-        
+        const enrichedOccs = await loadEnrichedOccurrences(daysAgoDate(todayStr, 2), todayStr, todayStr);
         setTodayOccurrences(enrichedOccs);
 
         if (darkPref === 'true') setDark(true);
@@ -319,7 +341,7 @@ export default function App() {
         // ── Phase 7: Load today's occurrences, books, and learnings ───────────
         try {
           const [occs, booksData, learningsData] = await Promise.all([
-            import('./database/habitOccurrenceRepository.js').then(m => m.getOccurrencesForDate(today)),
+            loadEnrichedOccurrences(daysAgoDate(today, 2), today, today),
             import('./database/booksRepository.js').then(m => m.getAllBooks()),
             import('./database/learningRepository.js').then(m => m.getAllLearnings()),
           ]);
@@ -483,25 +505,40 @@ export default function App() {
 
   // ── Phase 7: Occurrence command handlers ──────────────────────────────────
   const handleCompleteOccurrence = useCallback(async (id) => {
+    if (completingOccurrences.current.has(id)) return;
+    completingOccurrences.current.add(id);
     try {
+      const occurrence = todayOccurrences.find(item => item.id === id);
       const { completeOccurrence } = await import('./database/habitOccurrenceRepository.js');
       await completeOccurrence(id);
+      triggerHaptic();
+      setCompletionFeedback({ habitTitle: occurrence?.habitTitle || 'Habit completed' });
       // Refresh today's occurrences
-      const { getOccurrencesForDate } = await import('./database/habitOccurrenceRepository.js');
-      setTodayOccurrences(await getOccurrencesForDate(today));
+      setTodayOccurrences(await loadEnrichedOccurrences(daysAgoDate(today, 2), today, today));
     } catch (err) {
       console.error('[App] handleCompleteOccurrence failed:', err);
+    } finally {
+      completingOccurrences.current.delete(id);
     }
-  }, [today]);
+  }, [today, todayOccurrences]);
 
   const handleExcuseOccurrence = useCallback(async (id, reason) => {
     try {
       const { excuseOccurrence } = await import('./database/habitOccurrenceRepository.js');
       await excuseOccurrence(id, reason);
-      const { getOccurrencesForDate } = await import('./database/habitOccurrenceRepository.js');
-      setTodayOccurrences(await getOccurrencesForDate(today));
+      setTodayOccurrences(await loadEnrichedOccurrences(daysAgoDate(today, 2), today, today));
     } catch (err) {
       console.error('[App] handleExcuseOccurrence failed:', err);
+    }
+  }, [today]);
+
+  const handleOccurrenceReason = useCallback(async (id, reason) => {
+    try {
+      const { recordOccurrenceReason } = await import('./database/habitOccurrenceRepository.js');
+      await recordOccurrenceReason(id, reason);
+      setTodayOccurrences(await loadEnrichedOccurrences(daysAgoDate(today, 2), today, today));
+    } catch (err) {
+      console.error('[App] handleOccurrenceReason failed:', err);
     }
   }, [today]);
 
@@ -720,6 +757,8 @@ export default function App() {
                 allQuests={allQuests}
                 onCompleteOccurrence={handleCompleteOccurrence}
                 onExcuseOccurrence={handleExcuseOccurrence}
+                onOccurrenceReason={handleOccurrenceReason}
+                completionFeedback={completionFeedback}
                 onGoToGoals={() => handleTabChange('goals')}
               />
             )}
@@ -788,6 +827,7 @@ export default function App() {
           onDismiss={() => setLevelUpQueue(q => q.slice(1))}
         />
       )}
+      <CompletionFeedback feedback={completionFeedback} onDismiss={() => setCompletionFeedback(null)} />
 
       {showCheckin && (
         <ProofFearCheckin

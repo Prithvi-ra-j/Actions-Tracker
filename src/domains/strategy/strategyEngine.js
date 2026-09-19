@@ -242,6 +242,21 @@ export function detectPatterns(signals) {
 }
 
 export function recommendNextActions(context) {
+  const { score, patterns } = context || {};
+  if (!score || score.value === 0) {
+    return [{
+      action: 'Log one decision with a prediction and a review date.',
+      rationale: 'No strategic evidence exists yet.',
+      priority: 'high',
+    }];
+  }
+  if (patterns?.some(pattern => pattern.type === 'poor_execution')) {
+    return [{
+      action: 'Review the last failed prediction and name the assumption that broke.',
+      rationale: 'Planning quality is not translating into accurate outcomes.',
+      priority: 'high',
+    }];
+  }
   return [];
 }
 

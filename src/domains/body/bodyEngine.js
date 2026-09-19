@@ -235,7 +235,22 @@ export function detectPatterns(signals) {
 }
 
 export function recommendNextActions(context) {
-  return []; // Placeholder for recommendations (Phase 8 baseline)
+  const { score, patterns } = context || {};
+  if (!score || score.value === 0) {
+    return [{
+      action: 'Log one training session and one recovery measure this week.',
+      rationale: 'No body evidence exists yet.',
+      priority: 'high',
+    }];
+  }
+  if (patterns?.some(pattern => pattern.type === 'high_training_low_recovery')) {
+    return [{
+      action: 'Reduce training intensity temporarily and record sleep or recovery quality.',
+      rationale: 'Training load is high while recovery evidence is low.',
+      priority: 'high',
+    }];
+  }
+  return [];
 }
 
 function _lowCoverageProjection(period) {

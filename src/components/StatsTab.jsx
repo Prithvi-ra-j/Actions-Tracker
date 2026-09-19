@@ -84,6 +84,13 @@ function StatCard({ t, dark, axisInfo, stat, details, quests, onClick }) {
             No recent signals.
           </div>
         )}
+        <div style={{ display: 'flex', justifyContent: 'space-between', gap: '0.5rem', fontFamily: 'monospace', fontSize: '0.52rem', color: t.muted, marginBottom: '0.5rem', textTransform: 'uppercase' }}>
+          <span>{details?.scoreSource || 'canonical'} source</span>
+          <span>coverage {Math.round((details?.coverage || 0) * 100)}%</span>
+          <span>confidence {Math.round((details?.confidence || 0) * 100)}%</span>
+        </div>
+        {details?.fallbackReason && <div style={{ fontSize: '0.58rem', color: t.muted, marginBottom: '0.5rem' }}>{details.fallbackReason}</div>}
+        {details?.warnings?.length > 0 && <div style={{ fontSize: '0.58rem', color: '#c1442c', marginBottom: '0.5rem' }}>{details.warnings[0]}</div>}
         <MiniBar value={val} color={color} dark={dark} />
       </div>
     </div>
@@ -160,7 +167,7 @@ export default function StatsTab({
           ))}
         </div>
         <div style={{ fontFamily: 'monospace', fontSize: '0.6rem', color: t.muted, marginTop: '1rem', textAlign: 'center' }}>
-          C: Consistency (Volume), V: Value (Quests/Milestones), M: Momentum (Recency)
+          C: Consistency, V: Volume, M: Momentum. Source and evidence quality are shown per domain.
         </div>
       </div>
 

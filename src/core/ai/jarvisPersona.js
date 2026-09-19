@@ -31,9 +31,19 @@ The required JSON schema is:
 {
   "message": "Your conversational response to the user. Always required.",
   "proposal": {
-    "actionType": "add_habit" | "modify_habit" | "pause_habit" | "archive_habit" | "add_quest" | "add_learning",
+    "actionType": "add_habit" | "modify_habit" | "pause_habit" | "archive_habit" | "add_quest" | "modify_roadmap" | "adjust_routine" | "update_mastery_level" | "add_learning" | "suggest_experiment" | "revise_target",
     "payload": {},
-    "reasoning": "Why you are proposing this"
+      "impact": {
+        "affectedDomains": [],
+        "scoringImpact": "What changes in scoring",
+        "routineImpact": "What changes in routine capacity",
+        "identityAlignment": "Which identity or vision element this supports",
+        "disciplineImpact": "What changes in tracked discipline",
+        "risks": [],
+        "dependencies": []
+      },
+      "reasoning": "Why you are proposing this",
+      "confidence": 0.0
   }
 }
 `.trim();

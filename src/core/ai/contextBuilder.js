@@ -12,6 +12,8 @@ import { getSemanticMemories } from '../../database/memoryRepository.js';
 import { getAllHabits } from '../../database/habitRepository.js';
 import { getRoutineConfig } from '../../database/routineRepository.js';
 import { computeGaps } from '../../helpers/gapEngine.js';
+import { calculateCapacity } from '../routineEngine.js';
+import { PERSONA } from '../../constants.js';
 
 export async function assembleContext(intent = 'audit') {
   // We only pull what's necessary based on the intent.
@@ -33,6 +35,8 @@ export async function assembleContext(intent = 'audit') {
 
   const activeGoals = goals.filter(g => g.status === 'active');
 
+  const activeHabits = habits.filter(h => h.status === 'active');
+  const routineCapacity = calculateCapacity(routineConfig, activeHabits);
   const contextData = {
     system_date: new Date().toISOString(),
     user_identity: selfModel?.identity || {},
@@ -49,18 +53,24 @@ export async function assembleContext(intent = 'audit') {
       date: f.localDate,
       source: f.source?.type
     })),
-    habits: habits.filter(h => h.status === 'active').map(h => ({
+    active_habits: activeHabits.map(h => ({
       id: h.id, name: h.name, domain: h.domain, phase: h.phase,
       masteryLevel: h.masteryRoadmap?.currentLevel,
       implementationIntention: h.implementationIntention,
+      identityVote: h.identityVote,
     })),
     routine: {
       budget: routineConfig?.weeklyBudget,
-      usedHours: routineConfig?.usedHours || 0,
-      freeHours: routineConfig?.freeHours || 14
+      usedHours: routineCapacity.usedHours,
+      freeHours: routineCapacity.freeHours,
+      overcommitted: routineCapacity.overcommitted,
+      conflicts: routineCapacity.conflicts,
+      timeSlots: routineConfig?.timeSlots || [],
     },
-    gaps: selfModel ? computeGaps(snapshot?.stats || {}, selfModel.desiredDims) : {},
-    vision: selfModel?.vision || ""
+    gaps: selfModel ? computeGaps(snapshot?.stats || {}, selfModel.desiredSelf?.dimensions || {}) : {},
+    scoring_details: snapshot?.axisDetails || {},
+    vision: selfModel?.desiredSelf?.vision || '',
+    persona_statements: PERSONA,
   };
 
   return JSON.stringify(contextData, null, 2);
