@@ -40,6 +40,11 @@ function generateOccurrenceId() {
  *   source?:          { type: 'user'|'core'|'integration', integrationId?: string },
  *   scoring?:         { enabled: boolean, weight: number, evidenceType: string },
  *   exceptionPolicy?: { allowSkip: boolean, requireReason: boolean, affectsDiscipline: boolean },
+ *   masteryRoadmap?:  { currentLevel: number, levels: any[] },
+ *   implementationIntention?: { anchor: string, behavior: string, location: string, timeSlot: string },
+ *   identityVote?:    string,
+ *   tinyVersion?:     string,
+ *   phase?:           'building'|'maintaining'|'advancing',
  * }} fields
  * @returns {object}
  */
@@ -62,6 +67,11 @@ export function createHabit(fields) {
       requireReason:     false,
       affectsDiscipline: true,
     },
+    masteryRoadmap:  fields.masteryRoadmap  ?? null,
+    implementationIntention: fields.implementationIntention ?? null,
+    identityVote:    fields.identityVote    ?? null,
+    tinyVersion:     fields.tinyVersion     ?? null,
+    phase:           fields.phase           ?? 'building',
     status:    'active',
     createdAt: ts,
     updatedAt: ts,

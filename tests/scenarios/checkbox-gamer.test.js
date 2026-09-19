@@ -6,7 +6,7 @@
  *
  * Questions we're answering:
  *   1. How high can discipline/creativity get from checkbox-only activity?
- *   2. Does the system correctly keep knowledge/strength/wisdom/strategy separate?
+ *   2. Does the system correctly keep knowledge/body/social/strategy separate?
  *   3. What does the stat look like at 7/day vs 1/day?
  *   4. Does it ever exceed 99? (No — should be capped.)
  *
@@ -28,10 +28,10 @@ function daysAgo(n) {
 }
 
 const AXIS_CONFIGS = [
-  { axis: 'strength',   expectedPerWeek: 4,    paused: false, hasConsistencyTerm: true },
+  { axis: 'body',   expectedPerWeek: 4,    paused: false, hasConsistencyTerm: true },
   { axis: 'discipline', expectedPerWeek: 7,    paused: false, hasConsistencyTerm: true },
   { axis: 'knowledge',  expectedPerWeek: 7,    paused: false, hasConsistencyTerm: true },
-  { axis: 'wisdom',     expectedPerWeek: null, paused: false, hasConsistencyTerm: false },
+  { axis: 'social',     expectedPerWeek: null, paused: false, hasConsistencyTerm: false },
   { axis: 'creativity', expectedPerWeek: 1,    paused: false, hasConsistencyTerm: true },
   { axis: 'strategy',   expectedPerWeek: 7,    paused: true,  hasConsistencyTerm: true },
 ];
@@ -71,9 +71,9 @@ describe('Checkbox gamer scenario', () => {
     });
 
     it('other axes are unaffected', () => {
-      expect(stats.strength).toBe(0);
+      expect(stats.body).toBe(0);
       expect(stats.knowledge).toBe(0);
-      expect(stats.wisdom).toBe(0);
+      expect(stats.social).toBe(0);
     });
   });
 
@@ -96,8 +96,8 @@ describe('Checkbox gamer scenario', () => {
       expect(details.discipline.C).toBe(100);
     });
 
-    it('strength is untouched by discipline spam', () => {
-      expect(stats.strength).toBe(0);
+    it('body is untouched by discipline spam', () => {
+      expect(stats.body).toBe(0);
     });
 
     it('knowledge is untouched by discipline spam', () => {

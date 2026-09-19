@@ -15,7 +15,7 @@ import {
   computeAllStats,
 } from '../../src/helpers/statsEngine.js';
 
-const AXES = ['strength', 'discipline', 'knowledge', 'wisdom', 'creativity', 'strategy'];
+const AXES = ['body', 'discipline', 'knowledge', 'social', 'creativity', 'strategy'];
 
 const arbDateStr = fc.integer({ min: 0, max: 364 }).map(n => {
   const d = new Date('2025-01-01T00:00:00');
@@ -58,8 +58,8 @@ describe('determinism', () => {
   it('calcMomentum returns the same value for identical inputs', () => {
     fc.assert(
       fc.property(arbLogs, arbDateStr, (logs, today) => {
-        const m1 = calcMomentum('strength', logs, {}, today);
-        const m2 = calcMomentum('strength', logs, {}, today);
+        const m1 = calcMomentum('body', logs, {}, today);
+        const m2 = calcMomentum('body', logs, {}, today);
         expect(m1).toBe(m2);
       }),
       { numRuns: 300 }

@@ -19,8 +19,8 @@ export function createCheckboxGamer(today, days) {
     { axis: 'knowledge',  expectedPerWeek: 7, hasConsistencyTerm: true },
     { axis: 'creativity', expectedPerWeek: 7, hasConsistencyTerm: true },
     { axis: 'strategy',   expectedPerWeek: 7, hasConsistencyTerm: true },
-    { axis: 'wisdom',     expectedPerWeek: null, hasConsistencyTerm: false },
-    { axis: 'strength',   expectedPerWeek: 4, hasConsistencyTerm: true },
+    { axis: 'social',     expectedPerWeek: null, hasConsistencyTerm: false },
+    { axis: 'body',   expectedPerWeek: 4, hasConsistencyTerm: true },
   ];
 
   return { logs, quests, axisConfigs };

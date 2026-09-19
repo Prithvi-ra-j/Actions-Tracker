@@ -10,7 +10,7 @@
  *   completed   = count(non-onboarding, non-proof-checkin logs in window)
  *   C           = clamp( (completed / expected) × 100, 0, 100 )
  *
- * Returns null for axes with hasConsistencyTerm = false (Wisdom).
+ * Returns null for axes with hasConsistencyTerm = false (Social).
  *
  * Source: src/helpers/statsEngine.js
  */
@@ -49,9 +49,9 @@ const strategyPaused   = { hasConsistencyTerm: true, expectedPerWeek: 7, paused:
 // ── Tests ─────────────────────────────────────────────────────────────────────
 
 describe('calcConsistency', () => {
-  // ── Wisdom exception ─────────────────────────────────────────────────────
-  it('returns null when hasConsistencyTerm is false (Wisdom)', () => {
-    const result = calcConsistency('wisdom', [], wisdomConfig, TODAY);
+  // ── Social exception ─────────────────────────────────────────────────────
+  it('returns null when hasConsistencyTerm is false (Social)', () => {
+    const result = calcConsistency('social', [], wisdomConfig, TODAY);
     expect(result).toBeNull();
   });
 
@@ -148,10 +148,10 @@ describe('calcConsistency', () => {
   });
 
   // ── Different expectedPerWeek ─────────────────────────────────────────────
-  it('uses expectedPerWeek=4 correctly for Strength', () => {
+  it('uses expectedPerWeek=4 correctly for Body', () => {
     // expected = (30/7) × 4 ≈ 17.14
-    const logs = Array.from({ length: 17 }, (_, i) => log(daysAgo(i), 'gym_session', 'strength'));
-    const c = calcConsistency('strength', logs, strengthConfig, TODAY);
+    const logs = Array.from({ length: 17 }, (_, i) => log(daysAgo(i), 'gym_session', 'body'));
+    const c = calcConsistency('body', logs, strengthConfig, TODAY);
     // 17 / 17.14 ≈ 99.2%
     expect(c).toBeCloseTo(99, 0);
   });

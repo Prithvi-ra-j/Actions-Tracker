@@ -189,6 +189,11 @@ export function initDB() {
       if (!db.objectStoreNames.contains('observations')) {
         db.createObjectStore('observations', { keyPath: 'id' });
       }
+      
+      // Step 3: Routine Engine Config
+      if (!db.objectStoreNames.contains('routineConfig')) {
+        db.createObjectStore('routineConfig', { keyPath: 'id' });
+      }
 
       // §44 Compound indexes on facts for common access patterns.
       // The facts store already exists from an earlier version, so we access it
@@ -337,7 +342,9 @@ const ALL_STORES = [
   'audits',                           // §32 Monthly audits
   'insights',                         // Phase 13 insights
   // DB v10 — Architecture Phase 2
-  'decisions', 'experiments', 'creativeWorks', 'observations'
+  'decisions', 'experiments', 'creativeWorks', 'observations',
+  // Step 3 — Routine Engine
+  'routineConfig'
 ];
 
 /**

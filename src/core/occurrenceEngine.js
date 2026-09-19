@@ -15,28 +15,19 @@ async function evaluatePastOccurrences(currentDateStr) {
     const startStr = d.toISOString().split('T')[0];
 
     const pastOccurrences = await getOccurrencesByDateRange(startStr, currentDateStr);
-    let missedCount = 0;
+    let unknownCount = 0;
 
     for (const occ of pastOccurrences) {
       if (occ.scheduledFor < currentDateStr && occ.status === 'expected') {
-        // It's in the past and still 'expected' -> Mark as missed
-        await updateOccurrence(occ.id, { status: 'missed' });
+        // It's in the past and still 'expected' -> Mark as unknown (invariant: unknown != missed)
+        await updateOccurrence(occ.id, { status: 'unknown' });
         
-        // Log a discipline penalty explicitly
-        await addLog({
-          axis: 'discipline',
-          type: 'habit_missed',
-          value: -1,
-          date: occ.scheduledFor,
-          meta: { habitId: occ.habitId }
-        });
-        
-        missedCount++;
+        unknownCount++;
       }
     }
     
-    if (missedCount > 0) {
-      console.log(`[occurrenceEngine] Evaluated ${missedCount} past occurrences as missed.`);
+    if (unknownCount > 0) {
+      console.log(`[occurrenceEngine] Evaluated ${unknownCount} past occurrences as unknown.`);
     }
   } catch (err) {
     console.error('[occurrenceEngine] Failed to evaluate past occurrences:', err);

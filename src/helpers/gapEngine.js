@@ -17,9 +17,10 @@
  *
  * @param {object} currentState  — { [dim]: { value, confidence, ... } }
  * @param {object} desiredDims   — { [dim]: { targetValue, why, timeframe } }
- * @returns {{ [dim]: { delta: number, priority: string, currentValue: number, targetValue: number } }}
+ * @param {object} [historicalState] — State from 1 month ago, same format as currentState
+ * @returns {{ [dim]: { delta: number, priority: string, currentValue: number, targetValue: number, trajectory: number, estimatedTargetDate: string|null } }}
  */
-export function computeGaps(currentState, desiredDims) {
+export function computeGaps(currentState, desiredDims, historicalState = null) {
   const gaps = {};
 
   for (const dim of Object.keys(desiredDims)) {
@@ -32,11 +33,28 @@ export function computeGaps(currentState, desiredDims) {
       delta >= 20 ? 'medium' :
                     'low';
 
+    let trajectory = 0;
+    let estimatedTargetDate = null;
+
+    if (historicalState && historicalState[dim] !== undefined) {
+      const past = historicalState[dim]?.value ?? 0;
+      trajectory = current - past;
+
+      if (trajectory > 0 && delta > 0) {
+        const monthsToTarget = delta / trajectory;
+        const d = new Date();
+        d.setMonth(d.getMonth() + Math.ceil(monthsToTarget));
+        estimatedTargetDate = d.toISOString().split('T')[0];
+      }
+    }
+
     gaps[dim] = {
       currentValue: current,
       targetValue:  target,
       delta,
       priority,
+      trajectory,
+      estimatedTargetDate,
     };
   }
 

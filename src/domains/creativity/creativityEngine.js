@@ -13,8 +13,9 @@ const ENGINE_VERSION = '1.0';
 
 // Weights for Creativity signals (version 1.0)
 const SIGNAL_WEIGHTS = Object.freeze({
-  practice: 0.40,
-  output:   0.60,
+  practice:        0.35,
+  output:          0.45,
+  externalization: 0.20,
 });
 
 /**
@@ -79,6 +80,23 @@ export function collectSignals({ facts = [] }) {
     });
   }
 
+  // Externalization signal
+  const externalizationFacts = facts.filter(f => f.type === 'creativity.externalization');
+  if (externalizationFacts.length > 0) {
+    let score = 0;
+    for (const f of externalizationFacts) {
+      if (typeof f.value === 'number') score += f.value;
+      else if (f.value?.score) score += f.value.score;
+    }
+    signals.push({
+      signal: 'creativity.externalization',
+      value: Math.min(100, (score / externalizationFacts.length)),
+      unit: 'score',
+      confidence: externalizationFacts.length >= 1 ? 1.0 : 0.5,
+      supportingIds: externalizationFacts.map(f => f.id)
+    });
+  }
+
   return signals;
 }
 
@@ -99,6 +117,7 @@ export function calculateScore(signals, period) {
     let weight = 0;
     if (s.signal === 'creativity.practice') weight = SIGNAL_WEIGHTS.practice;
     else if (s.signal === 'creativity.output') weight = SIGNAL_WEIGHTS.output;
+    else if (s.signal === 'creativity.externalization') weight = SIGNAL_WEIGHTS.externalization;
 
     if (weight > 0) {
       totalScore += s.value * weight;
@@ -159,8 +178,19 @@ export function explain(scoreProjection, breakdown = null) {
   };
 }
 
-export function detectPatterns(evidence) {
-  return [];
+export function detectPatterns(signals) {
+  const patterns = [];
+  if (!signals) return patterns;
+  const practice = signals.find(s => s.signal === 'creativity.practice');
+  const output = signals.find(s => s.signal === 'creativity.output');
+  if (practice && output && practice.value > 80 && output.value < 20) {
+    patterns.push({
+      type: 'practice_without_production',
+      description: 'You are practicing consistently but not producing finished outputs.',
+      severity: 'medium'
+    });
+  }
+  return patterns;
 }
 
 export function recommendNextActions(context) {

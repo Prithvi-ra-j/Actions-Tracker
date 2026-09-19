@@ -17,7 +17,7 @@
 
 import { getAllFacts }                       from '../../database/factsRepository.js';
 import { addEvidence, getLatestEvidence }    from '../../database/evidenceRepository.js';
-import { checkAndWriteWeeklySnapshot }       from '../../database/statSnapshotsRepository.js';
+import { checkAndWriteWeeklySnapshot, getAllSnapshots }       from '../../database/statSnapshotsRepository.js';
 
 import { buildEvidenceFromFacts, computeCoverageReport, getExpectedSignals } from '../evidence/evidenceBuilder.js';
 import { createScoreProjection, createLowCoverageProjection } from '../../models/scoreSchema.js';
@@ -104,13 +104,15 @@ async function _buildProjection(domain, period) {
   const allLogs = await getAllLogs();
   const axisConfigs = await getAllAxisConfigs();
   const allQuests = await getAllQuests();
+  const allHabits = await getAllHabits();
 
   const axisLogs = allLogs.filter(l => l.axis === domain);
   const axisConfig = axisConfigs.find(c => c.axis === domain) ?? { hasConsistencyTerm: true, expectedPerWeek: 7, paused: false };
   const axisQuests = allQuests.filter(q => q.axis === domain);
+  const axisHabits = allHabits.filter(h => h.domain === domain && h.status === 'active');
   
   // Get canonical score from the pure math engine
-  const canonicalValue = calcAxisStat(domain, axisLogs, axisConfig, axisQuests, period.end);
+  const canonicalValue = calcAxisStat(domain, axisLogs, axisConfig, axisQuests, period.end, axisHabits);
 
   let projection;
   switch (domain) {
@@ -127,10 +129,57 @@ async function _buildProjection(domain, period) {
       );
   }
 
-  // ENFORCE INVARIANT: scoreEngine does not invent scores.
-  // It only adds coverage and confidence diagnostics around the canonical math.
-  projection.value = canonicalValue;
+  // Step 4: Scoring Authority Resolver (P0)
+  // If evidence is strong enough, the engine's projection value takes authority.
+  // Otherwise, it falls back to the canonical statsEngine value.
+  const requiredSignalsPresent = projection.components && projection.components.length > 0;
+  const noCriticalWarnings = !projection.warnings || !projection.warnings.some(w => w.startsWith('low_coverage'));
   
+  const authority = (
+    projection.coverage >= 0.8 &&
+    projection.confidence >= 0.7 &&
+    requiredSignalsPresent &&
+    noCriticalWarnings
+  );
+
+  if (authority) {
+    projection.scoreSource = 'evidence';
+    // projection.value remains whatever the domain engine calculated based on evidence
+  } else {
+    projection.scoreSource = 'canonical';
+    projection.fallbackReason = 'Insufficient evidence coverage/confidence';
+    projection.value = canonicalValue; 
+  }
+  
+  // Step 7: Plateau Detection
+  const allSnapshots = await getAllSnapshots();
+  const todayDate = new Date(period.end + 'T00:00:00');
+  const fourWeeksAgo = new Date(todayDate);
+  fourWeeksAgo.setDate(fourWeeksAgo.getDate() - 28);
+  
+  const recentSnapshots = allSnapshots.filter(s => new Date(s.date + 'T00:00:00') >= fourWeeksAgo);
+  
+  let isPlateau = false;
+  if (recentSnapshots.length >= 2) {
+    const oldest = recentSnapshots[recentSnapshots.length - 1];
+    const newest = recentSnapshots[0];
+    const oldestScore = oldest.stats?.[domain] ?? 0;
+    const newestScore = newest.stats?.[domain] ?? 0;
+    
+    if (Math.abs(newestScore - oldestScore) <= 3) {
+      const isMaintaining = axisHabits.length > 0 && axisHabits.every(h => h.phase === 'maintaining');
+      if (!isMaintaining) {
+        isPlateau = true;
+      }
+    }
+  }
+
+  if (isPlateau) {
+    projection.isPlateau = true;
+    projection.warnings = projection.warnings || [];
+    projection.warnings.push('plateau_detected: Score has barely changed in 4 weeks. Consider increasing difficulty or shifting phase to maintaining.');
+  }
+
   return createScoreProjection(projection);
 }
 

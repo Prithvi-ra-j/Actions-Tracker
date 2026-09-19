@@ -134,10 +134,9 @@ export default function StatsTab({
       <div style={{ display: 'flex', justifyContent: 'center', margin: '1rem 0' }}>
         <div style={{ width: '100%', maxWidth: 300, aspectRatio: '1/1' }}>
           <RadarChart
-            data={radarData}
-            max={100}
-            color={ACCENT}
-            textColor={t.pageText}
+            stats={stats}
+            snapshot={snapshot}
+            dark={dark}
           />
         </div>
       </div>

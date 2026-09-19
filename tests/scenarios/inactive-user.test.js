@@ -18,10 +18,10 @@ import { computeAllStats, computeAxisDetails } from '../../src/helpers/statsEngi
 const TODAY = '2025-06-15';
 
 const AXIS_CONFIGS_DEFAULT = [
-  { axis: 'strength',   expectedPerWeek: 4,    paused: false, hasConsistencyTerm: true },
+  { axis: 'body',   expectedPerWeek: 4,    paused: false, hasConsistencyTerm: true },
   { axis: 'discipline', expectedPerWeek: 7,    paused: false, hasConsistencyTerm: true },
   { axis: 'knowledge',  expectedPerWeek: 7,    paused: false, hasConsistencyTerm: true },
-  { axis: 'wisdom',     expectedPerWeek: null, paused: false, hasConsistencyTerm: false },
+  { axis: 'social',     expectedPerWeek: null, paused: false, hasConsistencyTerm: false },
   { axis: 'creativity', expectedPerWeek: 1,    paused: false, hasConsistencyTerm: true },
   { axis: 'strategy',   expectedPerWeek: 7,    paused: true,  hasConsistencyTerm: true }, // default: paused
 ];
@@ -46,10 +46,10 @@ describe('Inactive user scenario', () => {
 
   describe('Onboarding assessment only (no real logs)', () => {
     const onboardingLogs = [
-      { id: 'ob-s', date: '2025-01-01', axis: 'strength',   type: 'onboarding_assessment', value: 40 },
+      { id: 'ob-s', date: '2025-01-01', axis: 'body',   type: 'onboarding_assessment', value: 40 },
       { id: 'ob-d', date: '2025-01-01', axis: 'discipline', type: 'onboarding_assessment', value: 30 },
       { id: 'ob-k', date: '2025-01-01', axis: 'knowledge',  type: 'onboarding_assessment', value: 50 },
-      { id: 'ob-w', date: '2025-01-01', axis: 'wisdom',     type: 'onboarding_assessment', value: 45 },
+      { id: 'ob-w', date: '2025-01-01', axis: 'social',     type: 'onboarding_assessment', value: 45 },
       { id: 'ob-c', date: '2025-01-01', axis: 'creativity', type: 'onboarding_assessment', value: 20 },
       { id: 'ob-st', date: '2025-01-01', axis: 'strategy',  type: 'onboarding_assessment', value: 35 },
     ];
@@ -62,9 +62,9 @@ describe('Inactive user scenario', () => {
       }
     });
 
-    it('strength stat approaches 40 (the onboarding value)', () => {
+    it('body stat approaches 40 (the onboarding value)', () => {
       // With 0 real logs, w=1, final=onboardingValue=40
-      expect(stats.strength).toBeCloseTo(40, 0);
+      expect(stats.body).toBeCloseTo(40, 0);
     });
 
     it('knowledge stat approaches 50', () => {

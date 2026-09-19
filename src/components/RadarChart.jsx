@@ -14,10 +14,10 @@ import { ACCENT } from '../constants.js';
 
 // Axis order clockwise from top (spec §9)
 const AXES = [
-  { key: 'strength',   label: 'Strength',   color: '#c1442c' },
+  { key: 'body',   label: 'Body',   color: '#c1442c' },
   { key: 'discipline', label: 'Discipline', color: '#c1442c' },
   { key: 'knowledge',  label: 'Knowledge',  color: '#4a7ba6' },
-  { key: 'wisdom',     label: 'Wisdom',     color: '#4a7ba6' },
+  { key: 'social',     label: 'Social',     color: '#4a7ba6' },
   { key: 'creativity', label: 'Creativity', color: '#d99a2b' },
   { key: 'strategy',   label: 'Strategy',   color: '#4f8a5f' },
 ];

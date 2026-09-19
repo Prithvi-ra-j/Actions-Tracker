@@ -9,17 +9,22 @@ import { getLatestSnapshot } from '../../database/statSnapshotsRepository.js';
 import { getSelfModel } from '../../database/selfModelRepository.js';
 import { getAllGoals } from '../../database/goalsRepository.js';
 import { getSemanticMemories } from '../../database/memoryRepository.js';
+import { getAllHabits } from '../../database/habitRepository.js';
+import { getRoutineConfig } from '../../database/routineRepository.js';
+import { computeGaps } from '../../helpers/gapEngine.js';
 
 export async function assembleContext(intent = 'audit') {
   // We only pull what's necessary based on the intent.
   // For a general audit, we want the current self model, latest score snapshot, active goals, and recent facts.
 
-  const [facts, snapshot, selfModel, goals, semanticMemories] = await Promise.all([
+  const [facts, snapshot, selfModel, goals, semanticMemories, habits, routineConfig] = await Promise.all([
     getAllFacts(),
     getLatestSnapshot(),
     getSelfModel(),
     getAllGoals(),
-    getSemanticMemories()
+    getSemanticMemories(),
+    getAllHabits(),
+    getRoutineConfig()
   ]);
 
   // Filter to facts from the last 7 days to keep context dense and relevant
@@ -43,7 +48,19 @@ export async function assembleContext(intent = 'audit') {
       value: f.value,
       date: f.localDate,
       source: f.source?.type
-    }))
+    })),
+    habits: habits.filter(h => h.status === 'active').map(h => ({
+      id: h.id, name: h.name, domain: h.domain, phase: h.phase,
+      masteryLevel: h.masteryRoadmap?.currentLevel,
+      implementationIntention: h.implementationIntention,
+    })),
+    routine: {
+      budget: routineConfig?.weeklyBudget,
+      usedHours: routineConfig?.usedHours || 0,
+      freeHours: routineConfig?.freeHours || 14
+    },
+    gaps: selfModel ? computeGaps(snapshot?.stats || {}, selfModel.desiredDims) : {},
+    vision: selfModel?.vision || ""
   };
 
   return JSON.stringify(contextData, null, 2);

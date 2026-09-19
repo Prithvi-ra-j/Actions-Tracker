@@ -79,7 +79,7 @@ function simulateWisdomWeights(target) {
 
 async function run() {
   let report = `# Life OS Model Audit v0.2\n\n`;
-  report += `> Focused validation on OD-02 (Momentum Window), OD-05 (Strategy Pause), and OD-07 (Wisdom Weighting)\n\n`;
+  report += `> Focused validation on OD-02 (Momentum Window), OD-05 (Strategy Pause), and OD-07 (Social Weighting)\n\n`;
 
   // --- A1: Momentum Window ---
   report += `## 1. Momentum Window (OD-02)\n\n`;
@@ -91,9 +91,9 @@ async function run() {
   report += `| Axis (Cadence) | 14-Day Spread | 21-Day Spread | 30-Day Spread |\n`;
   report += `|---|---|---|---|\n`;
   report += `| Discipline (7/wk) | ${getSpread('discipline', 14)} | ${getSpread('discipline', 21)} | ${getSpread('discipline', 30)} |\n`;
-  report += `| Strength (4/wk) | ${getSpread('strength', 14)} | ${getSpread('strength', 21)} | ${getSpread('strength', 30)} |\n`;
+  report += `| Body (4/wk) | ${getSpread('body', 14)} | ${getSpread('body', 21)} | ${getSpread('body', 30)} |\n`;
   report += `| Creativity (1/wk) | ${getSpread('creativity', 14)} | ${getSpread('creativity', 21)} | ${getSpread('creativity', 30)} |\n`;
-  report += `| Wisdom (2/wk) | ${getSpread('wisdom', 14)} | ${getSpread('wisdom', 21)} | ${getSpread('wisdom', 30)} |\n\n`;
+  report += `| Social (2/wk) | ${getSpread('social', 14)} | ${getSpread('social', 21)} | ${getSpread('social', 30)} |\n\n`;
 
   report += `**Finding**: Low-frequency axes like Creativity have massive momentum swings (spreads of 40 = full -20 to +20 swing) under a 14-day window depending purely on whether the one weekly session falls on day 14 vs day 15. The 30-day window dramatically reduces this calendar noise.\n\n`;
 
@@ -105,8 +105,8 @@ async function run() {
   report += `- **Proposed (M Freezes)**: On Day 0 of the new book, Momentum is **${mFrozen.toFixed(1)}** (frozen from the day the last book finished).\n\n`;
   report += `**Finding**: Freezing M prevents the user from starting their next strategy book with a massive negative momentum penalty just because they took an intentional gap.\n\n`;
 
-  // --- A3: Wisdom Evidence ---
-  report += `## 3. Wisdom Evidence Weighting (OD-07)\n\n`;
+  // --- A3: Social Evidence ---
+  report += `## 3. Social Evidence Weighting (OD-07)\n\n`;
   report += `Proposed Weights: \`Level 1\` (Raw) = 1 pt, \`Level 2\` (Reflection) = 3 pts, \`Level 3\` (Behavior Change) = 5 pts.\n`;
   report += `Simulation: Spammer (90 L1 entries/90 days) vs Deep Thinker (13 L3 entries/90 days).\n\n`;
 
@@ -121,10 +121,10 @@ async function run() {
 
   // --- Reachability Update ---
   report += `## 4. Reachability & Tiers Update\n\n`;
-  report += `With standard axes capping at 85 (clamped to 99), and Wisdom capping at 64, the tiers need adjustment to remain semantically accessible without forced math normalization.\n\n`;
+  report += `With standard axes capping at 85 (clamped to 99), and Social capping at 64, the tiers need adjustment to remain semantically accessible without forced math normalization.\n\n`;
   report += `**Proposed Standard Tiers**: \`0 / 25 / 55 / 80\` (Unchanged. Elite/Iron Will at 80 is very hard but mathematically possible: 85 > 80).\n`;
-  report += `**Proposed Strength Tiers**: \`0 / 30 / 60 / 80\` (Unchanged. Elite at 80 is mathematically possible).\n`;
-  report += `**Proposed Wisdom Tiers**: Since Max = 64 (0.55*100 + 0.45*20), the top tier must be lowered.\n`;
+  report += `**Proposed Body Tiers**: \`0 / 30 / 60 / 80\` (Unchanged. Elite at 80 is mathematically possible).\n`;
+  report += `**Proposed Social Tiers**: Since Max = 64 (0.55*100 + 0.45*20), the top tier must be lowered.\n`;
   report += `- Current: \`0 / 25 / 55 / 80 (Sage)\`\n`;
   report += `- **New Candidate**: \`0 / 20 / 40 / 60 (Sage)\`\n\n`;
 

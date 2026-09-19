@@ -5,15 +5,15 @@ import { describe, it, expect } from 'vitest';
 import { createDeepThinker, createShallowSpammer } from '../../simulations/personas/journalPersonas.js';
 import { computeAxisDetails } from '../../src/helpers/statsEngine.js';
 
-describe('Experiment 3: Wisdom Spam Resistance', () => {
+describe('Experiment 3: Social Spam Resistance', () => {
   const TODAY = '2026-09-15';
 
   it('demonstrates that shallow spamming outscores deep thinking', () => {
     const deep = createDeepThinker(TODAY);
     const spam = createShallowSpammer(TODAY);
 
-    const resDeep = computeAxisDetails(deep.logs, deep.axisConfigs, deep.quests, TODAY).wisdom;
-    const resSpam = computeAxisDetails(spam.logs, spam.axisConfigs, spam.quests, TODAY).wisdom;
+    const resDeep = computeAxisDetails(deep.logs, deep.axisConfigs, deep.quests, TODAY).social;
+    const resSpam = computeAxisDetails(spam.logs, spam.axisConfigs, spam.quests, TODAY).social;
 
     // Spammer should have maximum V (100) because they easily hit the 10 entries target
     expect(resSpam.V).toBe(100);

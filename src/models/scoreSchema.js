@@ -40,6 +40,8 @@ function now() {
  *   components:             { signal: string, value: number, weight: number, contribution: number }[],
  *   methodology:            { engine: string, version: string },
  *   supportingEvidenceIds:  string[],
+ *   scoreSource?:           'evidence'|'canonical',
+ *   fallbackReason?:        string,
  *   warnings?:              string[],   — e.g. 'low coverage', 'stale data'
  * }} fields
  * @returns {object}
@@ -61,6 +63,8 @@ export function createScoreProjection(fields) {
     components:           fields.components          ?? [],
     methodology:          fields.methodology,
     supportingEvidenceIds: fields.supportingEvidenceIds ?? [],
+    scoreSource:          fields.scoreSource         ?? 'canonical',
+    fallbackReason:       fields.fallbackReason      ?? null,
     warnings:             fields.warnings            ?? [],
     generatedAt:          now(),
   };

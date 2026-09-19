@@ -19,9 +19,9 @@ function quest(id, axis, targetValue) {
   return { id, axis, targetValue, currentValue: 0, done: false };
 }
 
-// Re-creates the Wisdom quests for the simulation
+// Re-creates the Social quests for the simulation
 const WISDOM_QUESTS = [
-  quest('q-wisdom-journal', 'wisdom', 75)
+  quest('q-social-journal', 'social', 75)
 ];
 
 // Re-creates the Strategy quests for the simulation
@@ -77,18 +77,18 @@ function evaluateStrategyPauseDecay() {
 function evaluateWisdomResistance() {
   const spammerLogs = [];
   for (let i = 0; i < 90; i++) {
-    spammerLogs.push({ type: 'journal_entry', axis: 'wisdom', date: subDays(TODAY, i) });
+    spammerLogs.push({ type: 'journal_entry', axis: 'social', date: subDays(TODAY, i) });
   }
 
   const deepLogs = [];
   for (let i = 0; i < 13; i++) { // ~1 per week for 90 days
-    deepLogs.push({ type: 'behavior_change', axis: 'wisdom', date: subDays(TODAY, i * 7) });
+    deepLogs.push({ type: 'behavior_change', axis: 'social', date: subDays(TODAY, i * 7) });
   }
 
-  const config = { hasConsistencyTerm: false, paused: false }; // Wisdom drops C
+  const config = { hasConsistencyTerm: false, paused: false }; // Social drops C
 
-  const spammerStat = runEngine('wisdom', spammerLogs, config, WISDOM_QUESTS, TODAY);
-  const deepStat = runEngine('wisdom', deepLogs, config, WISDOM_QUESTS, TODAY);
+  const spammerStat = runEngine('social', spammerLogs, config, WISDOM_QUESTS, TODAY);
+  const deepStat = runEngine('social', deepLogs, config, WISDOM_QUESTS, TODAY);
 
   // Sync quests to see raw Volume progress
   const spamV = Math.min(deriveQuestValue(WISDOM_QUESTS[0], spammerLogs) / 75, 1) * 100;
@@ -126,22 +126,22 @@ async function run() {
   report += `| Strategy book discontinuity | +41.1 | +${disc.jump.toFixed(1)} | Fixed |\n`;
   report += `| Strategy duplicate quest | Yes | No | Fixed |\n`;
   report += `| Strategy pause decay (M) | -20.0 | ${pauseM > 0 ? '+' : ''}${pauseM.toFixed(1)} | Fixed |\n`;
-  report += `| Wisdom spam volume (90 days) | 100% (10 pt target) | ${wisdomRes.spamV.toFixed(0)}% (75 pt target) | Mitigated |\n`;
-  report += `| Wisdom Deep Thinker volume | ~100% | ${wisdomRes.deepV.toFixed(0)}% (75 pt target) | Optimal |\n`;
+  report += `| Social spam volume (90 days) | 100% (10 pt target) | ${wisdomRes.spamV.toFixed(0)}% (75 pt target) | Mitigated |\n`;
+  report += `| Social Deep Thinker volume | ~100% | ${wisdomRes.deepV.toFixed(0)}% (75 pt target) | Optimal |\n`;
   report += `| Momentum calendar noise | 40.0 (30-day) | ${mSpread.toFixed(1)} (14-day) | Fixed |\n`;
   report += `| Test invariants passing | 213 | 213 | 100% Green |\n\n`;
 
   // 2. Reachability & Tiers
   report += `## 2. Reachability under Model v1.0\n\n`;
   
-  // Calculate theoretical max for Wisdom:
+  // Calculate theoretical max for Social:
   // V = 100 (done with quest), M = +20.
   // Stat = 0.55 * 100 + 0.45 * 20 = 55 + 9 = 64
-  report += `### Wisdom Reachability\n`;
+  report += `### Social Reachability\n`;
   report += `- **Theoretical Max**: 64 (0.55 * 100V + 0.45 * 20M)\n`;
   report += `- **Deep Thinker Stat (90 days)**: ${wisdomRes.deepStat.toFixed(1)}\n`;
   report += `- **Shallow Spammer Stat (90 days)**: ${wisdomRes.spammerStat.toFixed(1)}\n\n`;
-  report += `The new Wisdom tiers \`0 / 20 / 40 / 55 (Sage)\` perfectly align with the new 64-point ceiling. A Deep Thinker reaches Sage, while a Spammer is gatekept unless they grind relentlessly.\n\n`;
+  report += `The new Social tiers \`0 / 20 / 40 / 55 (Sage)\` perfectly align with the new 64-point ceiling. A Deep Thinker reaches Sage, while a Spammer is gatekept unless they grind relentlessly.\n\n`;
 
   report += `### Strategy Reachability\n`;
   // V = 100 (read 4 books), C = 100, M = +20

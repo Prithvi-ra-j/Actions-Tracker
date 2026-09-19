@@ -26,7 +26,7 @@ export const GOALS = [
     fear: "This one compounds slowly — but it's the one everyone else can see. Do not skip it because the mirror lies in month one.",
   },
   {
-    domain: "Philosophy",
+    domain: "Knowledge",
     label: "Track II",
     color: "#4a7ba6",
     icon: "∞",
@@ -42,7 +42,7 @@ export const GOALS = [
     fear: "You will read slowly at first. That is correct. One paragraph of Meditations understood is worth ten chapters skimmed.",
   },
   {
-    domain: "Art",
+    domain: "Creativity",
     label: "Track III",
     color: "#d99a2b",
     icon: "◈",
@@ -58,7 +58,7 @@ export const GOALS = [
     fear: "The first things you make will be bad. This is not a problem — it is the price of entry. The sketchbook is private. Fill it badly.",
   },
   {
-    domain: "History & Strategy",
+    domain: "Strategy",
     label: "Track IV",
     color: "#4f8a5f",
     icon: "♟",
@@ -75,7 +75,14 @@ export const GOALS = [
   },
 ];
 
-
+export const MOMENTUM_WINDOWS = {
+  body: 14,
+  knowledge: 14,
+  strategy: 28,
+  creativity: 14,
+  social: 28,
+  discipline: 14,
+};
 
 // ─── Themes ───────────────────────────────────────────────────────────────────
 
@@ -150,9 +157,9 @@ export function getDailyItems(dateStr = new Date().toISOString()) {
 
   return [
     { id: "body",       domain: "BODY",              icon: "⚔", color: "#c1442c", text: bodyText },
-    { id: "philosophy", domain: "PHILOSOPHY",         icon: "∞", color: "#4a7ba6", text: "Read 10 pages or write in your commonplace book" },
-    { id: "art",        domain: "ART",                icon: "◈", color: "#d99a2b", text: artText },
-    { id: "history",    domain: "HISTORY & STRATEGY", icon: "♟", color: "#4f8a5f", text: historyText },
+    { id: "philosophy", domain: "KNOWLEDGE",         icon: "∞", color: "#4a7ba6", text: "Read 10 pages or write in your commonplace book" },
+    { id: "art",        domain: "CREATIVITY",                icon: "◈", color: "#d99a2b", text: artText },
+    { id: "history",    domain: "STRATEGY", icon: "♟", color: "#4f8a5f", text: historyText },
   ];
 }
 
