@@ -194,6 +194,21 @@ export function detectPatterns(signals) {
 }
 
 export function recommendNextActions(context) {
+  const { score, patterns } = context || {};
+  if (!score || score.value === 0) {
+    return [{
+      action: 'Complete one small creative practice block and save the output.',
+      rationale: 'No creative evidence exists yet.',
+      priority: 'high',
+    }];
+  }
+  if (patterns?.some(pattern => pattern.type === 'practice_without_production')) {
+    return [{
+      action: 'Finish and share one small piece instead of starting another practice block.',
+      rationale: 'Practice is not yet becoming externalized work.',
+      priority: 'medium',
+    }];
+  }
   return [];
 }
 

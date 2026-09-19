@@ -26,6 +26,7 @@ const SIGNAL_WEIGHTS = Object.freeze({
  */
 export function collectSignals({ facts = [] }) {
   if (!facts || facts.length === 0) return [];
+  const signals = [];
 
   // Interaction signal
   const interactionFacts = facts.filter(f => f.type === 'social.interaction');
@@ -175,7 +176,23 @@ export function detectPatterns(signals) {
 }
 
 export function recommendNextActions(context) {
-  return [];
+  const { score, patterns } = context || {};
+  const recommendations = [];
+  if (!score || score.value === 0) {
+    return [{
+      action: 'Run one deliberate social experiment and record the outcome.',
+      rationale: 'No social evidence exists yet.',
+      priority: 'high',
+    }];
+  }
+  if (patterns?.some(pattern => pattern.type === 'over_reflection')) {
+    recommendations.push({
+      action: 'Replace one reflection block with a real conversation or experiment.',
+      rationale: 'Reflection is outpacing direct social behavior.',
+      priority: 'medium',
+    });
+  }
+  return recommendations;
 }
 
 function _lowCoverageProjection(period) {

@@ -5,6 +5,7 @@ import { computeGaps, sortedGaps } from '../helpers/gapEngine.js';
 import ArchetypeCompiler from './ArchetypeCompiler.jsx';
 import { computeGlobalRPG } from '../helpers/rpgEngine.js';
 import { getAllFacts } from '../database/factsRepository.js';
+import HabitRoadmapEditor from './HabitRoadmapEditor.jsx';
 
 /**
  * SelfTab — v2.7 Character Sheet (§3–§6, §10).
@@ -468,6 +469,8 @@ export default function SelfTab({ t, dark }) {
           })}
         </>
       )}
+
+      <HabitRoadmapEditor t={t} />
 
       {/* ── Footer note ── */}
       <p style={{ marginTop: '1.5rem', fontSize: '0.65rem', color: t.muted, lineHeight: 1.6, fontStyle: 'italic', textAlign: 'center' }}>

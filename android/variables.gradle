@@ -1,5 +1,6 @@
 ext {
-    minSdkVersion = 22
+    // Health Connect requires Android API 26 or newer.
+    minSdkVersion = 26
     compileSdkVersion = 34
     targetSdkVersion = 34
     androidxActivityVersion = '1.8.0'

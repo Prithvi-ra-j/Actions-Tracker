@@ -1,5 +1,9 @@
 import { z } from 'zod';
 
+const ACTIONS_REQUIRING_ID = new Set([
+  'modify_habit', 'pause_habit', 'archive_habit', 'modify_roadmap', 'update_mastery_level',
+]);
+
 export const ActionProposalSchema = z.object({
   actionType: z.enum([
     'add_habit', 'modify_habit', 'pause_habit', 'archive_habit',
@@ -18,4 +22,17 @@ export const ActionProposalSchema = z.object({
   }),
   reasoning: z.string(),
   confidence: z.number().min(0).max(1),
+}).superRefine((proposal, context) => {
+  if (ACTIONS_REQUIRING_ID.has(proposal.actionType) && typeof proposal.payload.id !== 'string') {
+    context.addIssue({ code: z.ZodIssueCode.custom, path: ['payload', 'id'], message: 'This action requires payload.id' });
+  }
+  if (proposal.actionType === 'add_habit' && typeof proposal.payload.name !== 'string') {
+    context.addIssue({ code: z.ZodIssueCode.custom, path: ['payload', 'name'], message: 'add_habit requires payload.name' });
+  }
+  if (proposal.actionType === 'add_quest' && typeof proposal.payload.title !== 'string') {
+    context.addIssue({ code: z.ZodIssueCode.custom, path: ['payload', 'title'], message: 'add_quest requires payload.title' });
+  }
+  if (proposal.actionType === 'suggest_experiment' && typeof proposal.payload.hypothesis !== 'string') {
+    context.addIssue({ code: z.ZodIssueCode.custom, path: ['payload', 'hypothesis'], message: 'suggest_experiment requires payload.hypothesis' });
+  }
 });

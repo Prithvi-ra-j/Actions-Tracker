@@ -40,7 +40,9 @@ jobs:
 
       # ── 4. Install dependencies ───────────────────────────────────────────
       - name: Install npm dependencies
-        run: npm install
+        # Health Connect 0.7 declares a Capacitor 5 peer while this app uses
+        # Capacitor 6; use the tested compatibility override.
+        run: npm install --legacy-peer-deps
 
       # ── 5. Build web assets ───────────────────────────────────────────────
       - name: Build web app (Vite)

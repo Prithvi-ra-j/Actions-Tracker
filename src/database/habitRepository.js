@@ -39,6 +39,11 @@ function now() {
  *   source?:          { type: 'user'|'core'|'integration', integrationId?: string },
  *   scoring?:         { enabled: boolean, weight: number, evidenceType: string },
  *   exceptionPolicy?: { allowSkip: boolean, requireReason: boolean, affectsDiscipline: boolean },
+ *   masteryRoadmap?:  { currentLevel: number, levels: object[] },
+ *   implementationIntention?: { anchor: string, behavior: string, location: string, timeSlot: string },
+ *   identityVote?:    string,
+ *   tinyVersion?:     string,
+ *   phase?:           'building'|'maintaining'|'advancing',
  * }} fields
  * @returns {Promise<string>} The generated habit ID
  */
@@ -57,6 +62,11 @@ export async function addHabit(fields) {
     source:          fields.source          ?? { type: 'user' },
     scoring:         fields.scoring         ?? { enabled: false, weight: 1, evidenceType: '' },
     exceptionPolicy: fields.exceptionPolicy ?? { allowSkip: true, requireReason: false, affectsDiscipline: true },
+    masteryRoadmap:  fields.masteryRoadmap ?? null,
+    implementationIntention: fields.implementationIntention ?? null,
+    identityVote:    fields.identityVote ?? null,
+    tinyVersion:     fields.tinyVersion ?? null,
+    phase:           fields.phase ?? 'building',
     status:          'active',
     createdAt:       ts,
     updatedAt:       ts,

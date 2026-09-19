@@ -6,8 +6,9 @@
  */
 
 import { updateInsightStatus } from '../../database/insightsRepository.js';
-import { addQuest, getAllQuests } from '../../database/questBoardRepository.js';
+import { getAllQuests } from '../../database/questBoardRepository.js';
 import { getEvidence } from '../../database/evidenceRepository.js';
+import { executeAction } from './actionExecutor.js';
 
 /**
  * Approves an insight and generates quests from its recommendations.
@@ -15,6 +16,9 @@ import { getEvidence } from '../../database/evidenceRepository.js';
  * @param {object} insight The insight object
  */
 export async function approveAndApplyInsight(insight) {
+  if (insight.status && insight.status !== 'proposed') {
+    throw new Error(`Insight ${insight.id} is already ${insight.status}; refusing replay.`);
+  }
   // 0. Validate supporting evidence IDs (§29, §30)
   if (insight.supportingEvidenceIds && Array.isArray(insight.supportingEvidenceIds)) {
     for (const evid of insight.supportingEvidenceIds) {
@@ -33,27 +37,36 @@ export async function approveAndApplyInsight(insight) {
     throw new Error("Business Rule Violation: Cannot apply insight, it would exceed the maximum limit of 10 active quests.");
   }
 
-  // 1. Mark as confirmed
-  await updateInsightStatus(insight.id, 'confirmed');
-
-  // 2. Generate Quests for recommended actions
+  // Generate Quests through the generalized approved-action path.
   if (insight.recommendedActions && insight.recommendedActions.length > 0) {
     for (const actionText of insight.recommendedActions) {
-      const quest = {
-        title: `AI: ${actionText}`,
-        // Map the insight type to an axis or default to strategy
-        axis: mapInsightToAxis(insight.type),
-        targetValue: 1, // One-off task
-        currentValue: 0,
-        unit: 'actions',
-        done: false,
-        // Link the quest to the insight for traceability
-        linkedInsightId: insight.id
-      };
-      
-      await addQuest(quest);
+      const duplicate = allQuests.some(q => q.linkedInsightId === insight.id && q.title === `AI: ${actionText}`);
+      if (duplicate) continue;
+      await executeAction({
+        actionType: 'add_quest',
+        payload: {
+          title: `AI: ${actionText}`,
+          domain: mapInsightToAxis(insight.type),
+          targetValue: 1,
+          unit: 'actions',
+          linkedInsightId: insight.id,
+        },
+        impact: {
+          affectedDomains: [mapInsightToAxis(insight.type)],
+          scoringImpact: 'Creates a quest that can increase Volume when completed.',
+          routineImpact: 'No routine change until scheduled.',
+          identityAlignment: 'Supports the approved recommendation.',
+          disciplineImpact: 'Adds one explicitly approved action target.',
+          risks: [],
+          dependencies: [],
+        },
+        reasoning: `Approved from insight ${insight.id}`,
+        confidence: insight.confidence ?? 0,
+      });
     }
   }
+
+  await updateInsightStatus(insight.id, 'confirmed');
 }
 
 function mapInsightToAxis(type) {

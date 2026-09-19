@@ -6,6 +6,11 @@ import { executeAction } from '../core/ai/actionExecutor.js';
 import { computeImpact } from '../core/ai/impactEngine.js';
 import { conversationManager } from '../core/ai/conversationManager.js';
 import { getRoutineConfig } from '../database/routineRepository.js';
+import { getAllHabits } from '../database/habitRepository.js';
+import { getAllLogs } from '../database/logsRepository.js';
+import { getAllAxisConfigs } from '../database/axisConfigRepository.js';
+import { getAllQuests } from '../database/questBoardRepository.js';
+import { computeAllStats, computeAxisDetails } from '../helpers/statsEngine.js';
 
 export default function JarvisTab({ t, onQuestsChanged }) {
   const [messages, setMessages] = useState([]);
@@ -44,8 +49,16 @@ export default function JarvisTab({ t, onQuestsChanged }) {
       let enrichedProposal = null;
       if (response.proposal) {
         // Just mock current state for routine
-        const routineConfig = await getRoutineConfig();
-        const currentState = { routine: routineConfig || { usedHours: 0, freeHours: 14 } };
+        const [routineConfig, habits, logs, axisConfigs, quests] = await Promise.all([
+          getRoutineConfig(), getAllHabits(), getAllLogs(), getAllAxisConfigs(), getAllQuests(),
+        ]);
+        const today = new Date().toISOString().split('T')[0];
+        const currentState = {
+          routine: routineConfig,
+          habits,
+          stats: computeAllStats(logs, axisConfigs, quests, today, habits),
+          axisDetails: computeAxisDetails(logs, axisConfigs, quests, today, habits),
+        };
         const impact = computeImpact(response.proposal, currentState);
         enrichedProposal = { ...response.proposal, impact };
       }
@@ -79,6 +92,17 @@ export default function JarvisTab({ t, onQuestsChanged }) {
     } finally {
       setExecuting(false);
     }
+  };
+
+  const handleDeclineProposal = (index) => {
+    setMessages(prev => prev.map((message, messageIndex) => (
+      messageIndex === index ? { ...message, proposal: null } : message
+    )));
+    setMessages(prev => [...prev, { role: 'system', content: 'Proposal declined. No data was changed.' }]);
+  };
+
+  const handleModifyProposal = (proposal) => {
+    setInput(`Modify the ${proposal.actionType} proposal: `);
   };
 
   const handleKeyDown = (e) => {
@@ -157,6 +181,12 @@ export default function JarvisTab({ t, onQuestsChanged }) {
                     <ul style={{ margin: '0.5rem 0 0 0', paddingLeft: '1.2rem', color: t.muted }}>
                       <li>{msg.proposal.impact.scoringImpact}</li>
                       <li>{msg.proposal.impact.routineImpact}</li>
+                      {Object.values(msg.proposal.impact.scoringProjections || {}).map(projection => (
+                        <li key={projection.domain}>
+                          {projection.domain} over {projection.horizonDays} days: {projection.before} to {projection.estimatedRange.low}-{projection.estimatedRange.high}
+                          {projection.warnings?.length > 0 ? ` (${projection.warnings[0]})` : ''}
+                        </li>
+                      ))}
                       {msg.proposal.impact.risks?.map((risk, i) => (
                         <li key={i} style={{ color: '#c1442c' }}>Risk: {risk}</li>
                       ))}
@@ -180,6 +210,20 @@ export default function JarvisTab({ t, onQuestsChanged }) {
                   }}
                 >
                   {executing ? 'Executing...' : 'Approve & Execute'}
+                </button>
+                <button
+                  onClick={() => handleModifyProposal(msg.proposal)}
+                  disabled={executing}
+                  style={{ marginLeft: '0.5rem', padding: '0.5rem 1rem', background: 'transparent', color: t.pageText, border: `1px solid ${t.border}`, fontSize: '0.8rem', fontFamily: 'monospace', textTransform: 'uppercase' }}
+                >
+                  Modify
+                </button>
+                <button
+                  onClick={() => handleDeclineProposal(idx)}
+                  disabled={executing}
+                  style={{ marginLeft: '0.5rem', padding: '0.5rem 1rem', background: 'transparent', color: t.muted, border: 'none', fontSize: '0.8rem', fontFamily: 'monospace', textTransform: 'uppercase' }}
+                >
+                  Decline
                 </button>
               </div>
             )}

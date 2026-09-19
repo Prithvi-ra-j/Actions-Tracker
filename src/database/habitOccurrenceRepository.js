@@ -98,6 +98,17 @@ export async function excuseOccurrence(id, reason = '') {
 }
 
 /**
+ * Records context for an occurrence without changing its evaluation status.
+ * This is used after a grace window expires, when the system knows a pattern
+ * needs explanation but still must preserve unknown != missed.
+ */
+export async function recordOccurrenceReason(id, reason = '') {
+  const existing = await dbGet(STORE, id);
+  if (!existing) throw new Error(`[habitOccurrenceRepository] Occurrence not found: ${id}`);
+  await dbPut(STORE, { ...existing, reason });
+}
+
+/**
  * Marks an occurrence as missed (confirmed non-completion).
  *
  * IMPORTANT: This must only be called with explicit intent.

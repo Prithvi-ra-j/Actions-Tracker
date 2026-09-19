@@ -3,6 +3,7 @@ import { ACCENT } from '../constants.js';
 import { localDateStr, formatDisplayDate } from '../helpers/dateHelpers.js';
 import InsightsInbox from './InsightsInbox.jsx';
 import { GITA_QUOTES } from '../data/quotes.js';
+import { getGracePrompt } from '../core/occurrenceEngine.js';
 
 /**
  * Today Screen (§51)
@@ -18,6 +19,7 @@ export default function TodayTab({
   todayOccurrences,
   onCompleteOccurrence,
   onExcuseOccurrence,
+  onOccurrenceReason,
   allQuests,
   onGoToGoals
 }) {
@@ -146,6 +148,10 @@ export default function TodayTab({
             {todayOccurrences.map(occ => {
               const isDone = occ.status === 'completed';
               const isExcused = occ.status === 'excused';
+              const gracePrompt = getGracePrompt(occ.status, occ.graceState);
+              const isGraceDayOne = occ.status === 'expected' && occ.graceState === 'grace_day_one';
+              const isGraceDayTwo = occ.status === 'expected' && occ.graceState === 'grace_day_two';
+              const isGraceExpired = occ.status === 'unknown' && occ.graceState === 'grace_expired';
               return (
                 <div key={occ.id} style={{ 
                   border: `1px solid ${isDone ? '#4f8a5f' : (isExcused ? t.borderSoft : t.border)}`, 
@@ -158,6 +164,7 @@ export default function TodayTab({
                     <div style={{ fontWeight: 600, fontSize: '1rem', textDecoration: isExcused ? 'line-through' : 'none' }}>
                       {occ.habitTitle || 'Habit'}
                     </div>
+                    {gracePrompt && <div style={{ fontSize: '0.75rem', color: isGraceExpired ? '#c1442c' : ACCENT, marginTop: '0.25rem' }}>{gracePrompt}</div>}
                     {isExcused && (
                       <div style={{ fontSize: '0.75rem', color: t.muted, marginTop: '0.25rem' }}>
                         Reason: {occ.excuseReason}
@@ -183,6 +190,18 @@ export default function TodayTab({
                         Skip
                       </button>
                     </div>
+                  )}
+
+                  {isGraceExpired && !occ.reason && (
+                    <button
+                      onClick={() => {
+                        const reason = prompt('What got in the way?');
+                        if (reason?.trim()) onOccurrenceReason(occ.id, reason.trim());
+                      }}
+                      style={{ background: 'transparent', border: `1px solid #c1442c`, color: '#c1442c', padding: '0.4rem 0.8rem', cursor: 'pointer', fontFamily: 'monospace', fontSize: '0.6rem', textTransform: 'uppercase' }}
+                    >
+                      Log reason
+                    </button>
                   )}
 
                   {isDone && (

@@ -16,7 +16,26 @@ const registry = new Map();
  * @param {import('./BaseConnector.js').BaseConnector} connector
  */
 export function registerConnector(connector) {
+  if (!connector?.id || typeof connector.getStatus !== 'function' || typeof connector.sync !== 'function') {
+    throw new Error('[syncManager] Connector must provide id, getStatus(), and sync().');
+  }
   registry.set(connector.id, connector);
+}
+
+export function getRegisteredConnectors() {
+  return [...registry.values()];
+}
+
+export async function getConnectorStatuses() {
+  const statuses = {};
+  for (const [id, connector] of registry.entries()) {
+    try {
+      statuses[id] = await connector.getStatus();
+    } catch (error) {
+      statuses[id] = { status: 'error', message: error.message };
+    }
+  }
+  return statuses;
 }
 
 /**
