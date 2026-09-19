@@ -32,3 +32,5 @@ skills/
 # Cache
 .eslintcache
 .vite/
+
+db__pass.txt

@@ -18,6 +18,7 @@ import { runAutoBackup } from './database/backupService.js';
 import { isOnboardingComplete } from './database/selfModelRepository.js';
 import { registerConnector } from './core/sync/syncManager.js';
 import { HealthConnectConnector } from './core/sync/connectors/HealthConnectConnector.js';
+import { NutriLiftConnector } from './core/sync/connectors/NutriLiftConnector.js';
 import { bootstrapAnalysisScheduler } from './core/ai/analysisScheduler.js';
 
 // ── Helpers ─────────────────────────────────────────────────────────────────────────────
@@ -242,6 +243,7 @@ export default function App() {
 
         // Register integrations
         registerConnector(new HealthConnectConnector());
+        registerConnector(new NutriLiftConnector());
 
         // Build evaluations map from facts where type === 'evaluation'
         const evals = {};
