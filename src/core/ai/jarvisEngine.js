@@ -8,6 +8,13 @@ import { queryLLM } from './llmClient.js';
 import { JARVIS_SYSTEM_PROMPT } from './jarvisPersona.js';
 import { assembleContext } from './contextBuilder.js';
 import { AIInsightSchema } from './aiSchemas.js';
+import { ActionProposalSchema } from './actionSchemas.js';
+import { z } from 'zod';
+
+const ConversationalResponseSchema = z.object({
+  message: z.string(),
+  proposal: ActionProposalSchema.optional()
+});
 
 /**
  * Generates an insight based on current user context.
@@ -45,6 +52,42 @@ export async function generateInsight(userQuery = "Analyze my current state and 
     };
   } catch (err) {
     console.error("[JarvisEngine] Failed to generate insight:", err);
+    throw err;
+  }
+}
+
+/**
+ * Handles a conversational turn with Jarvis.
+ * 
+ * @param {string} userMessage The user's input.
+ * @param {Array} history Previous messages [{ role, content }] (optional).
+ * @returns {Promise<object>} Returns { message, proposal }
+ */
+export async function chatWithJarvis(userMessage, history = []) {
+  const contextText = await assembleContext('chat');
+  
+  const messages = [
+    { role: 'system', content: JARVIS_SYSTEM_PROMPT },
+    { role: 'system', content: `Here is the CURRENT system state and evidence:\n\n${contextText}` },
+    ...history,
+    { role: 'user', content: userMessage }
+  ];
+  
+  try {
+    const rawResponse = await queryLLM(messages, { jsonMode: true, temperature: 0.2 });
+    let responseObj;
+    try {
+      responseObj = JSON.parse(rawResponse);
+    } catch (parseErr) {
+      const cleaned = rawResponse.replace(/```json/g, '').replace(/```/g, '').trim();
+      responseObj = JSON.parse(cleaned);
+    }
+    
+    // Validate output
+    const validated = ConversationalResponseSchema.parse(responseObj);
+    return validated;
+  } catch (err) {
+    console.error("[JarvisEngine] Chat failed:", err);
     throw err;
   }
 }

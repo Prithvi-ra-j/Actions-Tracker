@@ -25,7 +25,7 @@ import {
 
 // ── Arbitraries ───────────────────────────────────────────────────────────────
 
-const AXES = ['strength', 'discipline', 'knowledge', 'wisdom', 'creativity', 'strategy'];
+const AXES = ['body', 'discipline', 'knowledge', 'social', 'creativity', 'strategy'];
 const LOG_TYPES = ['gym_session', 'daily_checkbox', 'book_pages', 'book_finished', 'journal_entry'];
 
 const arbDateStr = fc.integer({ min: 0, max: 364 }).map(n => {
@@ -84,7 +84,7 @@ describe('calcMomentum — bounds property', () => {
   it('always returns a value in [−20, +20]', () => {
     fc.assert(
       fc.property(arbLogs, arbDateStr, (logs, today) => {
-        const m = calcMomentum('strength', logs, {}, today);
+        const m = calcMomentum('body', logs, {}, today);
         expect(m).toBeGreaterThanOrEqual(-20);
         expect(m).toBeLessThanOrEqual(20);
         expect(Number.isFinite(m)).toBe(true);

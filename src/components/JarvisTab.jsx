@@ -1,45 +1,96 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { ACCENT } from '../constants.js';
 import InsightsInbox from './InsightsInbox.jsx';
+import { chatWithJarvis } from '../core/ai/jarvisEngine.js';
+import { executeAction } from '../core/ai/actionExecutor.js';
+import { computeImpact } from '../core/ai/impactEngine.js';
+import { conversationManager } from '../core/ai/conversationManager.js';
+import { getRoutineConfig } from '../database/routineRepository.js';
 
-/**
- * Jarvis Tab (§25).
- * 
- * Provides an interface to interact with Jarvis and view structured AI insights.
- */
 export default function JarvisTab({ t, onQuestsChanged }) {
-  const [insight, setInsight] = useState(null);
+  const [messages, setMessages] = useState([]);
+  const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+  const [executing, setExecuting] = useState(false);
+  const messagesEndRef = useRef(null);
 
-  async function handleAnalyze() {
-    setLoading(true);
+  useEffect(() => {
+    // Scroll to bottom on new messages
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [messages]);
+
+  const handleSend = async () => {
+    if (!input.trim() || loading) return;
+
+    const userText = input.trim();
+    setInput('');
     setError(null);
-    setInsight(null);
+    
+    // Optimistic UI
+    const newMessages = [...messages, { role: 'user', content: userText }];
+    setMessages(newMessages);
+    
+    setLoading(true);
 
     try {
-      const { generateInsight } = await import('../core/ai/jarvisEngine.js');
-      const result = await generateInsight();
-      setInsight(result);
+      const history = conversationManager.getHistory();
+      const response = await chatWithJarvis(userText, history);
+      
+      conversationManager.appendMessage('user', userText);
+      conversationManager.appendMessage('assistant', JSON.stringify(response));
+
+      // Compute deterministic impact if there's a proposal
+      let enrichedProposal = null;
+      if (response.proposal) {
+        // Just mock current state for routine
+        const routineConfig = await getRoutineConfig();
+        const currentState = { routine: routineConfig || { usedHours: 0, freeHours: 14 } };
+        const impact = computeImpact(response.proposal, currentState);
+        enrichedProposal = { ...response.proposal, impact };
+      }
+
+      setMessages(prev => [...prev, { 
+        role: 'assistant', 
+        content: response.message, 
+        proposal: enrichedProposal 
+      }]);
+      
     } catch (err) {
       setError(err.message);
+      // Remove optimistic message on fail, or show error message
+      setMessages(prev => [...prev, { role: 'assistant', isError: true, content: 'Failed to communicate with Jarvis.' }]);
     } finally {
       setLoading(false);
     }
-  }
+  };
 
-  const typeColors = {
-    pattern: '#4a7ba6',
-    contradiction: '#c1442c',
-    risk: '#c1442c',
-    win: '#4f8a5f',
-    recommendation: '#d99a2b',
-    summary: '#8a7060'
+  const handleApproveProposal = async (proposal) => {
+    setExecuting(true);
+    try {
+      await executeAction(proposal);
+      setMessages(prev => [...prev, { 
+        role: 'system', 
+        content: `Action executed: ${proposal.actionType}` 
+      }]);
+      if (onQuestsChanged) onQuestsChanged();
+    } catch (err) {
+      setError(`Execution failed: ${err.message}`);
+    } finally {
+      setExecuting(false);
+    }
+  };
+
+  const handleKeyDown = (e) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      handleSend();
+    }
   };
 
   return (
-    <>
-      <div style={{ marginBottom: '1.5rem' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', height: '100%', maxHeight: '80vh' }}>
+      <div style={{ marginBottom: '1rem', flexShrink: 0 }}>
         <div style={{ fontFamily: 'monospace', fontSize: '0.65rem', letterSpacing: '0.25em', color: ACCENT, textTransform: 'uppercase', marginBottom: '0.4rem' }}>
           Jarvis OS
         </div>
@@ -51,94 +102,139 @@ export default function JarvisTab({ t, onQuestsChanged }) {
         </div>
       </div>
 
-      <div style={{ marginBottom: '1.5rem' }}>
-        <div style={{ fontFamily: 'monospace', fontSize: '0.65rem', letterSpacing: '0.15em', color: t.muted, textTransform: 'uppercase', marginBottom: '0.5rem' }}>
-          Passive Scheduled Insights
-        </div>
-        <InsightsInbox t={t} onQuestsChanged={onQuestsChanged} />
-      </div>
-
-      <div style={{ border: `1px solid ${t.border}`, padding: '1.5rem', textAlign: 'center', background: t.subtleBg, marginBottom: '1.5rem' }}>
-        <button
-          onClick={handleAnalyze}
-          disabled={loading}
-          style={{
-            padding: '0.75rem 1.5rem',
-            background: loading ? 'transparent' : ACCENT,
-            border: `1px solid ${ACCENT}`,
-            color: loading ? ACCENT : '#fff',
-            fontFamily: 'monospace', fontSize: '0.75rem', letterSpacing: '0.15em', textTransform: 'uppercase',
-            cursor: loading ? 'default' : 'pointer',
-            transition: 'all 0.2s',
-          }}
-        >
-          {loading ? 'Analyzing Evidence...' : 'Generate System Audit'}
-        </button>
-
-        {error && (
-          <div style={{ marginTop: '1rem', color: '#c1442c', fontSize: '0.8rem', fontFamily: 'monospace', textAlign: 'left' }}>
-            <strong>Error:</strong> {error}
-            <div style={{ marginTop: '0.5rem', fontSize: '0.7rem' }}>
-              Ensure your API key is configured in Settings and you have network connectivity.
-            </div>
+      <div style={{ flex: 1, overflowY: 'auto', border: `1px solid ${t.border}`, background: t.subtleBg, padding: '1rem', display: 'flex', flexDirection: 'column', gap: '1rem', marginBottom: '1rem' }}>
+        {messages.length === 0 && (
+          <div style={{ textAlign: 'center', color: t.muted, margin: 'auto', fontStyle: 'italic', fontSize: '0.9rem' }}>
+            Awaiting input. Ask Jarvis to analyze your habits, build a routine, or review your momentum.
           </div>
         )}
-      </div>
-
-      {insight && (
-        <div style={{ 
-          borderLeft: `4px solid ${typeColors[insight.type] || ACCENT}`,
-          borderTop: `1px solid ${t.border}`,
-          borderRight: `1px solid ${t.border}`,
-          borderBottom: `1px solid ${t.border}`,
-          padding: '1.25rem',
-          background: t.subtleBg 
-        }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '0.75rem' }}>
-            <div style={{ fontFamily: 'monospace', fontSize: '0.65rem', letterSpacing: '0.15em', color: typeColors[insight.type] || ACCENT, textTransform: 'uppercase' }}>
-              {insight.type}
-            </div>
-            {insight.confidence && (
-              <div style={{ fontFamily: 'monospace', fontSize: '0.6rem', color: t.muted }}>
-                Confidence: {Math.round(insight.confidence * 100)}%
+        
+        {messages.map((msg, idx) => (
+          <div key={idx} style={{ 
+            alignSelf: msg.role === 'user' ? 'flex-end' : 'flex-start',
+            maxWidth: '85%',
+          }}>
+            {msg.role === 'system' ? (
+              <div style={{ fontFamily: 'monospace', fontSize: '0.7rem', color: ACCENT, textAlign: 'center', marginTop: '1rem', marginBottom: '1rem' }}>
+                [{msg.content}]
+              </div>
+            ) : (
+              <div style={{
+                background: msg.role === 'user' ? ACCENT : (msg.isError ? '#c1442c' : t.pageBg),
+                color: msg.role === 'user' ? '#fff' : t.pageText,
+                padding: '0.75rem 1rem',
+                border: msg.role === 'assistant' ? `1px solid ${t.border}` : 'none',
+                borderRadius: '8px',
+                fontSize: '0.9rem',
+                lineHeight: 1.5,
+                whiteSpace: 'pre-wrap'
+              }}>
+                {msg.content}
+              </div>
+            )}
+            
+            {msg.proposal && (
+              <div style={{
+                marginTop: '0.5rem',
+                borderLeft: `3px solid ${ACCENT}`,
+                padding: '1rem',
+                background: t.pageBg,
+                borderTop: `1px solid ${t.border}`,
+                borderRight: `1px solid ${t.border}`,
+                borderBottom: `1px solid ${t.border}`,
+              }}>
+                <div style={{ fontFamily: 'monospace', fontSize: '0.7rem', color: ACCENT, textTransform: 'uppercase', marginBottom: '0.5rem' }}>
+                  Action Proposal: {msg.proposal.actionType}
+                </div>
+                
+                <div style={{ fontSize: '0.85rem', marginBottom: '1rem' }}>
+                  {msg.proposal.reasoning}
+                </div>
+                
+                {msg.proposal.impact && (
+                  <div style={{ fontSize: '0.8rem', padding: '0.75rem', background: t.subtleBg, marginBottom: '1rem', border: `1px solid ${t.borderSoft}` }}>
+                    <strong>Projected Impact:</strong>
+                    <ul style={{ margin: '0.5rem 0 0 0', paddingLeft: '1.2rem', color: t.muted }}>
+                      <li>{msg.proposal.impact.scoringImpact}</li>
+                      <li>{msg.proposal.impact.routineImpact}</li>
+                      {msg.proposal.impact.risks?.map((risk, i) => (
+                        <li key={i} style={{ color: '#c1442c' }}>Risk: {risk}</li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+                
+                <button 
+                  onClick={() => handleApproveProposal(msg.proposal)}
+                  disabled={executing}
+                  style={{
+                    background: ACCENT,
+                    color: '#fff',
+                    border: 'none',
+                    padding: '0.5rem 1rem',
+                    fontSize: '0.8rem',
+                    fontFamily: 'monospace',
+                    textTransform: 'uppercase',
+                    cursor: executing ? 'default' : 'pointer',
+                    opacity: executing ? 0.7 : 1
+                  }}
+                >
+                  {executing ? 'Executing...' : 'Approve & Execute'}
+                </button>
               </div>
             )}
           </div>
-
-          <h3 style={{ margin: '0 0 1rem 0', fontSize: '1.2rem', lineHeight: 1.3 }}>{insight.title}</h3>
-          
-          <div style={{ fontSize: '0.95rem', lineHeight: 1.6, marginBottom: '1.25rem', color: t.pageText }}>
-            {insight.statement}
+        ))}
+        {loading && (
+          <div style={{ alignSelf: 'flex-start', color: t.muted, fontSize: '0.85rem', fontStyle: 'italic' }}>
+            Jarvis is thinking...
           </div>
+        )}
+        <div ref={messagesEndRef} />
+      </div>
 
-          {insight.reasoning && (
-            <div style={{ fontSize: '0.8rem', lineHeight: 1.5, marginBottom: '1rem', color: t.muted, fontStyle: 'italic' }}>
-              <strong>Reasoning:</strong> {insight.reasoning}
-            </div>
-          )}
-
-          {insight.recommendedActions && insight.recommendedActions.length > 0 && (
-            <div style={{ marginTop: '1rem' }}>
-              <div style={{ fontFamily: 'monospace', fontSize: '0.65rem', letterSpacing: '0.1em', color: t.muted, textTransform: 'uppercase', marginBottom: '0.5rem' }}>
-                Next Actions
-              </div>
-              <ul style={{ margin: 0, paddingLeft: '1.2rem', fontSize: '0.85rem', lineHeight: 1.5 }}>
-                {insight.recommendedActions.map((action, idx) => (
-                  <li key={idx} style={{ marginBottom: '0.25rem' }}>{action}</li>
-                ))}
-              </ul>
-            </div>
-          )}
-
-          {insight.supportingEvidenceIds && insight.supportingEvidenceIds.length > 0 && (
-            <div style={{ marginTop: '1rem', paddingTop: '1rem', borderTop: `1px solid ${t.borderFaint}` }}>
-              <div style={{ fontFamily: 'monospace', fontSize: '0.6rem', color: t.muted }}>
-                Supporting Evidence: {insight.supportingEvidenceIds.join(', ')}
-              </div>
-            </div>
-          )}
+      <div style={{ flexShrink: 0 }}>
+        {error && (
+          <div style={{ color: '#c1442c', fontSize: '0.8rem', marginBottom: '0.5rem' }}>
+            {error}
+          </div>
+        )}
+        <div style={{ display: 'flex', gap: '0.5rem' }}>
+          <textarea 
+            value={input}
+            onChange={(e) => setInput(e.target.value)}
+            onKeyDown={handleKeyDown}
+            placeholder="Ask Jarvis to review your routine or propose a new habit..."
+            style={{
+              flex: 1,
+              background: t.pageBg,
+              color: t.pageText,
+              border: `1px solid ${t.border}`,
+              padding: '0.75rem',
+              fontSize: '0.9rem',
+              resize: 'none',
+              fontFamily: 'inherit',
+              height: '60px',
+              outline: 'none'
+            }}
+          />
+          <button 
+            onClick={handleSend}
+            disabled={loading || !input.trim()}
+            style={{
+              background: loading || !input.trim() ? 'transparent' : ACCENT,
+              color: loading || !input.trim() ? t.muted : '#fff',
+              border: `1px solid ${loading || !input.trim() ? t.border : ACCENT}`,
+              padding: '0 1.5rem',
+              fontFamily: 'monospace',
+              textTransform: 'uppercase',
+              cursor: loading || !input.trim() ? 'default' : 'pointer'
+            }}
+          >
+            Send
+          </button>
         </div>
-      )}
-    </>
+      </div>
+    </div>
   );
 }

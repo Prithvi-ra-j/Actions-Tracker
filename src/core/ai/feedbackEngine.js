@@ -59,7 +59,7 @@ export async function approveAndApplyInsight(insight) {
 function mapInsightToAxis(type) {
   switch(type) {
     case 'risk': return 'strategy';
-    case 'pattern': return 'wisdom';
+    case 'pattern': return 'strategy';
     case 'contradiction': return 'discipline';
     case 'recommendation': return 'strategy';
     default: return 'strategy';

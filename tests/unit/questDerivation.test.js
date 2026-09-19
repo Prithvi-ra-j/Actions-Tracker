@@ -19,29 +19,29 @@ function log(axis, type, meta = {}) {
   return { id: crypto.randomUUID(), axis, type, date: '2025-06-15', meta };
 }
 
-function quest(id, axis = 'strength') {
+function quest(id, axis = 'body') {
   return { id, axis, targetValue: 1, currentValue: 0, done: false };
 }
 
-// ── Strength ──────────────────────────────────────────────────────────────────
+// ── Body ──────────────────────────────────────────────────────────────────
 
-describe('deriveQuestValue — q-strength-sessions', () => {
-  const q = quest('q-strength-sessions', 'strength');
+describe('deriveQuestValue — q-body-sessions', () => {
+  const q = quest('q-body-sessions', 'body');
 
   it('returns 0 with no logs', () => {
     expect(deriveQuestValue(q, [])).toBe(0);
   });
 
-  it('counts gym_session logs on the strength axis', () => {
+  it('counts gym_session logs on the body axis', () => {
     const logs = [
-      log('strength', 'gym_session'),
-      log('strength', 'gym_session'),
+      log('body', 'gym_session'),
+      log('body', 'gym_session'),
     ];
     expect(deriveQuestValue(q, logs)).toBe(2);
   });
 
   it('ignores non-gym_session logs', () => {
-    const logs = [log('strength', 'daily_checkbox'), log('strength', 'journal_entry')];
+    const logs = [log('body', 'daily_checkbox'), log('body', 'journal_entry')];
     expect(deriveQuestValue(q, logs)).toBe(0);
   });
 
@@ -51,24 +51,24 @@ describe('deriveQuestValue — q-strength-sessions', () => {
   });
 });
 
-describe('deriveQuestValue — q-strength-benchmark', () => {
-  const q = quest('q-strength-benchmark', 'strength');
+describe('deriveQuestValue — q-body-benchmark', () => {
+  const q = quest('q-body-benchmark', 'body');
 
   it('returns 0 with no benchmark attempts', () => {
-    expect(deriveQuestValue(q, [log('strength', 'gym_session')])).toBe(0);
+    expect(deriveQuestValue(q, [log('body', 'gym_session')])).toBe(0);
   });
 
   it('returns 1 when any gym_session has isBenchmarkAttempt=true', () => {
     const logs = [
-      log('strength', 'gym_session', { isBenchmarkAttempt: true }),
+      log('body', 'gym_session', { isBenchmarkAttempt: true }),
     ];
     expect(deriveQuestValue(q, logs)).toBe(1);
   });
 
   it('remains 1 even with multiple benchmark attempts (capped at 1)', () => {
     const logs = [
-      log('strength', 'gym_session', { isBenchmarkAttempt: true }),
-      log('strength', 'gym_session', { isBenchmarkAttempt: true }),
+      log('body', 'gym_session', { isBenchmarkAttempt: true }),
+      log('body', 'gym_session', { isBenchmarkAttempt: true }),
     ];
     expect(deriveQuestValue(q, logs)).toBe(1);
   });
@@ -93,7 +93,7 @@ describe('deriveQuestValue — q-discipline-days', () => {
   });
 
   it('does not count non-discipline logs', () => {
-    const logs = [log('strength', 'daily_checkbox')];
+    const logs = [log('body', 'daily_checkbox')];
     expect(deriveQuestValue(q, logs)).toBe(0);
   });
 });
@@ -154,17 +154,17 @@ describe('deriveQuestValue — q-knowledge-commonplace', () => {
   });
 });
 
-// ── Wisdom ────────────────────────────────────────────────────────────────────
+// ── Social ────────────────────────────────────────────────────────────────────
 
-describe('deriveQuestValue — q-wisdom-journal', () => {
-  const q = quest('q-wisdom-journal', 'wisdom');
+describe('deriveQuestValue — q-social-journal', () => {
+  const q = quest('q-social-journal', 'social');
 
   it('sums evidence weights correctly', () => {
     const logs = [
-      log('wisdom', 'journal_entry'),    // +1
-      log('wisdom', 'reflection'),       // +3
-      log('wisdom', 'behavior_change'),  // +5
-      log('wisdom', 'journal_entry'),    // +1
+      log('social', 'journal_entry'),    // +1
+      log('social', 'reflection'),       // +3
+      log('social', 'behavior_change'),  // +5
+      log('social', 'journal_entry'),    // +1
     ];
     expect(deriveQuestValue(q, logs)).toBe(10);
   });
@@ -226,7 +226,7 @@ describe('deriveQuestValue — q-strategy-reading', () => {
 
 describe('deriveQuestValue — unknown quest id', () => {
   it('returns 0 for an unknown quest id', () => {
-    const q = quest('q-nonexistent-quest', 'strength');
-    expect(deriveQuestValue(q, [log('strength', 'gym_session')])).toBe(0);
+    const q = quest('q-nonexistent-quest', 'body');
+    expect(deriveQuestValue(q, [log('body', 'gym_session')])).toBe(0);
   });
 });

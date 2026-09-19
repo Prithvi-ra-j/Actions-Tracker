@@ -20,10 +20,10 @@ describe('Experiment 8: Score Ceiling', () => {
     expect(res.stat).toBeLessThan(90);
   });
 
-  it('proves Wisdom cannot exceed 64 without onboarding', () => {
+  it('proves Social cannot exceed 64 without onboarding', () => {
     // Math: V=100, M=20 -> 0.55(100) + 0.45(20) = 55 + 9 = 64
     const ideal = createIdealUser(TODAY, 90);
-    const res = computeAxisDetails(ideal.logs, ideal.axisConfigs, ideal.quests, TODAY).wisdom;
+    const res = computeAxisDetails(ideal.logs, ideal.axisConfigs, ideal.quests, TODAY).social;
     
     expect(res.stat).toBeLessThanOrEqual(64);
   });

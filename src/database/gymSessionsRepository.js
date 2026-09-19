@@ -7,9 +7,9 @@ export async function addGymSession(session) {
   const newSession = { id, ...session };
   await dbPut('gymSessions', newSession);
 
-  // Write a gym_session log — this is what the Strength axis reads for Consistency and Volume
+  // Write a gym_session log — this is what the Body axis reads for Consistency and Volume
   await addLog({
-    axis: 'strength',
+    axis: 'body',
     type: 'gym_session',
     value: 1,
     date: session.date,

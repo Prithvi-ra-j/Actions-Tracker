@@ -11,10 +11,10 @@ import { ACCENT } from '../constants.js';
  */
 
 const AXIS_ICONS = {
-  strength:   '⚔',
+  body:       '⚔',
   discipline: '🔥',
   knowledge:  '∞',
-  wisdom:     '◎',
+  social:     '◎',
   creativity: '◈',
   strategy:   '♟',
 };

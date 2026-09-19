@@ -10,18 +10,18 @@ import { deriveQuestValue } from '../../src/database/questBoardRepository.js';
 
 describe('Migration: Model v0.1 -> Model v1.0', () => {
 
-  it('migrates historical Wisdom journal_entry logs gracefully', () => {
-    // In v0.1, a user logged 'journal_entry' for Wisdom, which counted as 1 entry.
+  it('migrates historical Social journal_entry logs gracefully', () => {
+    // In v0.1, a user logged 'journal_entry' for Social, which counted as 1 entry.
     // In v1.0, the same exact 'journal_entry' should seamlessly map to 1 evidence point.
     
     const historicalLogs = [
-      { id: '1', type: 'journal_entry', axis: 'wisdom', date: '2025-01-01' },
-      { id: '2', type: 'journal_entry', axis: 'wisdom', date: '2025-01-02' },
-      { id: '3', type: 'journal_entry', axis: 'wisdom', date: '2025-01-03' }
+      { id: '1', type: 'journal_entry', axis: 'social', date: '2025-01-01' },
+      { id: '2', type: 'journal_entry', axis: 'social', date: '2025-01-02' },
+      { id: '3', type: 'journal_entry', axis: 'social', date: '2025-01-03' }
     ];
 
-    // The new quest replaces the old 'q-wisdom-meditations'
-    const newQuest = { id: 'q-wisdom-journal', axis: 'wisdom', targetValue: 75 };
+    // The new quest replaces the old 'q-social-meditations'
+    const newQuest = { id: 'q-social-journal', axis: 'social', targetValue: 75 };
     
     const progress = deriveQuestValue(newQuest, historicalLogs);
     

@@ -7,12 +7,12 @@ import { localDateStr } from '../helpers/dateHelpers.js';
 // ─── Dimensions captured during onboarding ────────────────────────────────────
 
 // These map to the 6 stat axes for backward compat with the stats engine.
-const STAT_AXES = ['strength', 'discipline', 'knowledge', 'wisdom', 'creativity', 'strategy'];
+const STAT_AXES = ['body', 'discipline', 'knowledge', 'social', 'creativity', 'strategy'];
 
 // Higher-level life dimensions shown in the self-model (more intuitive labels).
 const LIFE_DIMS = [
-  { key: 'body',      label: 'Body & Health',      icon: '⚔',  axes: ['strength', 'discipline'] },
-  { key: 'mind',      label: 'Mind & Knowledge',   icon: '∞',  axes: ['knowledge', 'wisdom']    },
+  { key: 'body',      label: 'Body & Health',      icon: '⚔',  axes: ['body', 'discipline'] },
+  { key: 'mind',      label: 'Mind & Knowledge',   icon: '∞',  axes: ['knowledge', 'social']    },
   { key: 'craft',     label: 'Craft & Creativity', icon: '◈',  axes: ['creativity']              },
   { key: 'strategy',  label: 'Strategy & History', icon: '♟',  axes: ['strategy']                },
 ];

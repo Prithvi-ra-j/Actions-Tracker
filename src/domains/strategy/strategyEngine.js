@@ -15,8 +15,12 @@ const ENGINE_VERSION = '1.0';
 
 // Weights for Strategy signals (version 1.0)
 const SIGNAL_WEIGHTS = Object.freeze({
-  decision_volume:  0.20,
-  outcome_accuracy: 0.80,
+  decision_volume:  0.15,
+  outcome_accuracy: 0.25,
+  financial:        0.15,
+  planning:         0.15,
+  risk:             0.15,
+  leadership:       0.15
 });
 
 /**
@@ -70,6 +74,74 @@ export function collectSignals({ facts = [] }) {
     }
   }
 
+  // Financial signal
+  const financialFacts = facts.filter(f => f.type === 'strategy.financial');
+  if (financialFacts.length > 0) {
+    let score = 0;
+    for (const f of financialFacts) {
+      if (typeof f.value === 'number') score += f.value;
+      else if (f.value?.score) score += f.value.score;
+    }
+    signals.push({
+      signal: 'strategy.financial',
+      value: Math.min(100, (score / financialFacts.length)),
+      unit: 'score',
+      confidence: financialFacts.length >= 1 ? 1.0 : 0.5,
+      supportingIds: financialFacts.map(f => f.id)
+    });
+  }
+
+  // Planning signal
+  const planningFacts = facts.filter(f => f.type === 'strategy.planning');
+  if (planningFacts.length > 0) {
+    let score = 0;
+    for (const f of planningFacts) {
+      if (typeof f.value === 'number') score += f.value;
+      else if (f.value?.score) score += f.value.score;
+    }
+    signals.push({
+      signal: 'strategy.planning',
+      value: Math.min(100, (score / planningFacts.length)),
+      unit: 'score',
+      confidence: planningFacts.length >= 1 ? 1.0 : 0.5,
+      supportingIds: planningFacts.map(f => f.id)
+    });
+  }
+
+  // Risk signal
+  const riskFacts = facts.filter(f => f.type === 'strategy.risk');
+  if (riskFacts.length > 0) {
+    let score = 0;
+    for (const f of riskFacts) {
+      if (typeof f.value === 'number') score += f.value;
+      else if (f.value?.score) score += f.value.score;
+    }
+    signals.push({
+      signal: 'strategy.risk',
+      value: Math.min(100, (score / riskFacts.length)),
+      unit: 'score',
+      confidence: riskFacts.length >= 1 ? 1.0 : 0.5,
+      supportingIds: riskFacts.map(f => f.id)
+    });
+  }
+
+  // Leadership signal
+  const leadershipFacts = facts.filter(f => f.type === 'strategy.leadership');
+  if (leadershipFacts.length > 0) {
+    let score = 0;
+    for (const f of leadershipFacts) {
+      if (typeof f.value === 'number') score += f.value;
+      else if (f.value?.score) score += f.value.score;
+    }
+    signals.push({
+      signal: 'strategy.leadership',
+      value: Math.min(100, (score / leadershipFacts.length)),
+      unit: 'score',
+      confidence: leadershipFacts.length >= 1 ? 1.0 : 0.5,
+      supportingIds: leadershipFacts.map(f => f.id)
+    });
+  }
+
   return signals;
 }
 
@@ -90,6 +162,10 @@ export function calculateScore(signals, period) {
     let weight = 0;
     if (s.signal === 'strategy.decision_volume') weight = SIGNAL_WEIGHTS.decision_volume;
     else if (s.signal === 'strategy.outcome_accuracy') weight = SIGNAL_WEIGHTS.outcome_accuracy;
+    else if (s.signal === 'strategy.financial') weight = SIGNAL_WEIGHTS.financial;
+    else if (s.signal === 'strategy.planning') weight = SIGNAL_WEIGHTS.planning;
+    else if (s.signal === 'strategy.risk') weight = SIGNAL_WEIGHTS.risk;
+    else if (s.signal === 'strategy.leadership') weight = SIGNAL_WEIGHTS.leadership;
 
     if (weight > 0) {
       totalScore += s.value * weight;
@@ -150,8 +226,19 @@ export function explain(scoreProjection, breakdown = null) {
   };
 }
 
-export function detectPatterns(evidence) {
-  return [];
+export function detectPatterns(signals) {
+  const patterns = [];
+  if (!signals) return patterns;
+  const planning = signals.find(s => s.signal === 'strategy.planning');
+  const outcome = signals.find(s => s.signal === 'strategy.outcome_accuracy');
+  if (planning && outcome && planning.value > 70 && outcome.value < 30) {
+    patterns.push({
+      type: 'poor_execution',
+      description: 'You are planning well but outcomes are missing expectations.',
+      severity: 'medium'
+    });
+  }
+  return patterns;
 }
 
 export function recommendNextActions(context) {

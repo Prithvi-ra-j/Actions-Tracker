@@ -13,9 +13,11 @@ const ENGINE_VERSION = '1.0';
 
 // Weights for Body signals (version 1.0)
 const SIGNAL_WEIGHTS = Object.freeze({
-  activity: 0.30,
-  training: 0.40,
-  recovery: 0.30,
+  activity: 0.20,
+  training: 0.30,
+  recovery: 0.20,
+  progression: 0.15,
+  performance: 0.15
 });
 
 /**
@@ -93,6 +95,42 @@ export function collectSignals({ facts = [] }) {
     });
   }
 
+  // Progression signal
+  const progressionFacts = facts.filter(f => f.type === 'body.progression');
+  if (progressionFacts.length > 0) {
+    let score = 0;
+    for (const f of progressionFacts) {
+      if (typeof f.value === 'number') score += f.value;
+      else if (f.value?.score) score += f.value.score;
+    }
+    const val = Math.min(100, (score / progressionFacts.length));
+    signals.push({
+      signal: 'body.progression',
+      value: val,
+      unit: 'score',
+      confidence: progressionFacts.length >= 2 ? 1.0 : 0.5,
+      supportingIds: progressionFacts.map(f => f.id)
+    });
+  }
+
+  // Performance signal
+  const performanceFacts = facts.filter(f => f.type === 'body.performance');
+  if (performanceFacts.length > 0) {
+    let score = 0;
+    for (const f of performanceFacts) {
+      if (typeof f.value === 'number') score += f.value;
+      else if (f.value?.score) score += f.value.score;
+    }
+    const val = Math.min(100, (score / performanceFacts.length));
+    signals.push({
+      signal: 'body.performance',
+      value: val,
+      unit: 'score',
+      confidence: performanceFacts.length >= 1 ? 1.0 : 0.5,
+      supportingIds: performanceFacts.map(f => f.id)
+    });
+  }
+
   return signals;
 }
 
@@ -114,6 +152,8 @@ export function calculateScore(signals, period) {
     if (s.signal === 'body.activity') weight = SIGNAL_WEIGHTS.activity;
     else if (s.signal === 'body.training') weight = SIGNAL_WEIGHTS.training;
     else if (s.signal === 'body.recovery') weight = SIGNAL_WEIGHTS.recovery;
+    else if (s.signal === 'body.progression') weight = SIGNAL_WEIGHTS.progression;
+    else if (s.signal === 'body.performance') weight = SIGNAL_WEIGHTS.performance;
 
     if (weight > 0) {
       totalScore += s.value * weight;
@@ -179,8 +219,19 @@ export function explain(scoreProjection, breakdown = null) {
   };
 }
 
-export function detectPatterns(evidence) {
-  return []; // Placeholder for pattern detection (Phase 8 baseline)
+export function detectPatterns(signals) {
+  const patterns = [];
+  if (!signals) return patterns;
+  const training = signals.find(s => s.signal === 'body.training');
+  const recovery = signals.find(s => s.signal === 'body.recovery');
+  if (training && recovery && training.value > 80 && recovery.value < 40) {
+    patterns.push({
+      type: 'high_training_low_recovery',
+      description: 'You are training hard but not recovering adequately, risking burnout or injury.',
+      severity: 'high'
+    });
+  }
+  return patterns;
 }
 
 export function recommendNextActions(context) {

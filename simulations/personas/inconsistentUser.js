@@ -7,16 +7,16 @@ export function createInconsistentUser(today, days) {
     const d = subDays(today, i);
     // e.g. works when i % 40 < 10 (10 days on, 30 days off)
     if (i % 40 < 10) {
-      logs.push({ type: 'gym_session', axis: 'strength', date: d });
+      logs.push({ type: 'gym_session', axis: 'body', date: d });
     }
   }
 
   const quests = [
-    { id: 'q-strength-1', axis: 'strength', targetValue: 20, currentValue: 0, done: false }
+    { id: 'q-body-1', axis: 'body', targetValue: 20, currentValue: 0, done: false }
   ];
 
   const axisConfigs = [
-    { axis: 'strength', expectedPerWeek: 3, hasConsistencyTerm: true }
+    { axis: 'body', expectedPerWeek: 3, hasConsistencyTerm: true }
   ];
 
   return { logs, quests, axisConfigs };

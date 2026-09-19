@@ -4,7 +4,7 @@ import { localDateStr }   from './helpers/dateHelpers.js';
 
 // ── Database ──────────────────────────────────────────────────────────────────
 import { initDB }                from './database/db.js';
-import { migrateFromLocalStorage, migrateHardcodedGoalsToLifeObjects } from './database/migration.js';
+import { migrateFromLocalStorage, migrateHardcodedGoalsToLifeObjects, migrateAxisVocabulary } from './database/migration.js';
 import { initAxisConfigs, getAllAxisConfigs } from './database/axisConfigRepository.js';
 import { getAllLogs, addLog, deleteDailyCheckboxLog } from './database/logsRepository.js';
 import { initQuestBoard, getAllQuests, syncQuestProgress } from './database/questBoardRepository.js';
@@ -144,7 +144,7 @@ export default function App() {
   ]);
 
   // ── Stat engine state ────────────────────────────────────────────────
-  const [stats,            setStats]             = useState({ strength: 0, discipline: 0, knowledge: 0, wisdom: 0, creativity: 0, strategy: 0 });
+  const [stats,            setStats]             = useState({ body: 0, discipline: 0, knowledge: 0, social: 0, creativity: 0, strategy: 0 });
   const [axisDetails,      setAxisDetails]        = useState({});
   const [axisConfigs,      setAxisConfigs]        = useState([]);
   const [allQuests,        setAllQuests]          = useState([]);
@@ -186,6 +186,8 @@ export default function App() {
         await runAutoBackup().catch(() => {});
         await migrateFromLocalStorage();
         await saveTelemetryEvent('db_migration_success', localDateStr(), {}).catch(() => {});
+        await migrateHardcodedGoalsToLifeObjects();
+        await migrateAxisVocabulary();
         await initGoals();
         await initAxisConfigs();
         await initQuestBoard();
@@ -582,7 +584,7 @@ export default function App() {
           const postOnboardingStats = computeAllStats(freshLogs, freshConfigs, freshQuests, localDateStr());
           
           const seedTitles = {};
-          for (const axis of ['strength', 'discipline', 'knowledge', 'wisdom', 'creativity', 'strategy']) {
+          for (const axis of ['body', 'discipline', 'knowledge', 'social', 'creativity', 'strategy']) {
             seedTitles[axis] = getThresholdTitle(axis, Math.round(postOnboardingStats[axis] ?? 0));
           }
           await setSetting('lastStatTitles', JSON.stringify(seedTitles));

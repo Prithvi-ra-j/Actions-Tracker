@@ -13,8 +13,9 @@ const ENGINE_VERSION = '1.0';
 
 // Weights for Social signals (version 1.0)
 const SIGNAL_WEIGHTS = Object.freeze({
-  experimentation: 0.60,
-  observation:     0.40,
+  interaction: 0.40,
+  reflection:  0.30,
+  outcome:     0.30,
 });
 
 /**
@@ -26,38 +27,54 @@ const SIGNAL_WEIGHTS = Object.freeze({
 export function collectSignals({ facts = [] }) {
   if (!facts || facts.length === 0) return [];
 
-  const experimentFacts = facts.filter(f => f.type === 'social.experiment.logged');
-  
-  const signals = [];
-
-  if (experimentFacts.length > 0) {
-    // Experimentation signal: running social experiments is a high-level skill
-    // Baseline: 1 experiment per week = 100 score
-    const expValue = Math.min(100, (experimentFacts.length / 1) * 100);
+  // Interaction signal
+  const interactionFacts = facts.filter(f => f.type === 'social.interaction');
+  if (interactionFacts.length > 0) {
+    let score = 0;
+    for (const f of interactionFacts) {
+      if (typeof f.value === 'number') score += f.value;
+      else if (f.value?.score) score += f.value.score;
+    }
     signals.push({
-      signal: 'social.experimentation',
-      value: expValue,
+      signal: 'social.interaction',
+      value: Math.min(100, (score / interactionFacts.length)),
       unit: 'score',
       confidence: 1.0,
-      supportingIds: experimentFacts.map(f => f.id),
+      supportingIds: interactionFacts.map(f => f.id)
     });
+  }
 
-    // Observation signal: recording outcomes and conclusions
-    let observationCount = 0;
-    for (const f of experimentFacts) {
-      if (f.value?.observations?.length > 0 || f.value?.conclusion) {
-        observationCount++;
-      }
+  // Reflection signal
+  const reflectionFacts = facts.filter(f => f.type === 'social.reflection');
+  if (reflectionFacts.length > 0) {
+    let score = 0;
+    for (const f of reflectionFacts) {
+      if (typeof f.value === 'number') score += f.value;
+      else if (f.value?.score) score += f.value.score;
     }
-    
-    // Baseline: 1 detailed observation per week
-    const obsValue = Math.min(100, (observationCount / 1) * 100);
     signals.push({
-      signal: 'social.observation',
-      value: obsValue,
+      signal: 'social.reflection',
+      value: Math.min(100, (score / reflectionFacts.length)),
       unit: 'score',
-      confidence: experimentFacts.length > 0 ? 1.0 : 0.5,
-      supportingIds: experimentFacts.filter(f => f.value?.observations?.length > 0 || f.value?.conclusion).map(f => f.id),
+      confidence: 1.0,
+      supportingIds: reflectionFacts.map(f => f.id)
+    });
+  }
+
+  // Outcome signal
+  const outcomeFacts = facts.filter(f => f.type === 'social.outcome');
+  if (outcomeFacts.length > 0) {
+    let score = 0;
+    for (const f of outcomeFacts) {
+      if (typeof f.value === 'number') score += f.value;
+      else if (f.value?.score) score += f.value.score;
+    }
+    signals.push({
+      signal: 'social.outcome',
+      value: Math.min(100, (score / outcomeFacts.length)),
+      unit: 'score',
+      confidence: 1.0,
+      supportingIds: outcomeFacts.map(f => f.id)
     });
   }
 
@@ -79,8 +96,9 @@ export function calculateScore(signals, period) {
 
   for (const s of signals) {
     let weight = 0;
-    if (s.signal === 'social.experimentation') weight = SIGNAL_WEIGHTS.experimentation;
-    else if (s.signal === 'social.observation') weight = SIGNAL_WEIGHTS.observation;
+    if (s.signal === 'social.interaction') weight = SIGNAL_WEIGHTS.interaction;
+    else if (s.signal === 'social.reflection') weight = SIGNAL_WEIGHTS.reflection;
+    else if (s.signal === 'social.outcome') weight = SIGNAL_WEIGHTS.outcome;
 
     if (weight > 0) {
       totalScore += s.value * weight;
@@ -141,8 +159,19 @@ export function explain(scoreProjection, breakdown = null) {
   };
 }
 
-export function detectPatterns(evidence) {
-  return [];
+export function detectPatterns(signals) {
+  const patterns = [];
+  if (!signals) return patterns;
+  const reflection = signals.find(s => s.signal === 'social.reflection');
+  const interaction = signals.find(s => s.signal === 'social.interaction');
+  if (reflection && interaction && reflection.value > 80 && interaction.value < 20) {
+    patterns.push({
+      type: 'over_reflection',
+      description: 'You are reflecting heavily on social interactions but not actually interacting.',
+      severity: 'medium'
+    });
+  }
+  return patterns;
 }
 
 export function recommendNextActions(context) {

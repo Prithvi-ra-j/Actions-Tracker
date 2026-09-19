@@ -34,9 +34,9 @@ async function run() {
   // --- Experiment 8: Score Ceiling ---
   report += `## 3. Mathematical Reachability\n\n`;
   // Standard axis: C=100, V=100, M=20 => 0.45(100) + 0.40(100) + 0.15(20) = 85
-  // Wisdom axis: V=100, M=20 => 0.55(100) + 0.45(20) = 64
+  // Social axis: V=100, M=20 => 0.55(100) + 0.45(20) = 64
   report += `- **Standard axes max**: 85\n`;
-  report += `- **Wisdom max**: 64\n`;
+  report += `- **Social max**: 64\n`;
   report += `- **Gap to declared range (99)**: The engine clamps to 99, but mathematically reaching >85 is impossible without the onboarding blend.\n\n`;
 
   // --- Experiment 1 & 2: Strategy Analysis ---
@@ -57,11 +57,11 @@ async function run() {
   report += `- Current Model (1 book): V=${vCurrent}%\n`;
   report += `- Option A (Split Quests): V=${vOptionA}%\n\n`;
 
-  // --- Experiment 3: Wisdom Spam ---
-  report += `## 7. Wisdom Analysis (Exp 3)\n\n`;
+  // --- Experiment 3: Social Spam ---
+  report += `## 7. Social Analysis (Exp 3)\n\n`;
   report += `| Persona | Entries | V | M | Stat |\n|---|---|---|---|---|\n`;
   [createDeepThinker(TODAY), createConsistentJournaler(TODAY), createShallowSpammer(TODAY), createOccasional(TODAY)].forEach(p => {
-    const res = runEngine(p).wisdom;
+    const res = runEngine(p).social;
     report += `| ${p.name} | ${p.logs.length} | ${res.V} | ${res.M} | ${res.stat.toFixed(1)} |\n`;
   });
   report += `\n**Finding**: Shallow spamming maximizes the stat much faster than deep reflection.\n\n`;
@@ -85,8 +85,8 @@ async function run() {
   report += `### OD-01: Formula Weights\n*See Section 8. Current weights heavily penalize lacking quests (V=0) and cushion volatile momentum.*\n\n`;
   report += `### OD-02: Momentum Window\n*A 14-day window makes rare axes (Creativity 1x/wk) noisy, swinging M wildly based on the exact day. A 30-day window might smooth this.*\n\n`;
   report += `### OD-06: Strategy Quests\n*See Section 6. The current model duplicates quest progress. Option B (Books read target) is recommended.*\n\n`;
-  report += `### OD-07: Wisdom Quality\n*See Section 7. Quality needs to be weighed, or the target must be raised. A spammer finishes the 10-entry quest in 10 days.*\n\n`;
-  report += `### OD-08: Score Ceiling\n*See Section 3. Standard axes cap at 85. Wisdom caps at 64. 99 is impossible without onboarding boost.*\n\n`;
+  report += `### OD-07: Social Quality\n*See Section 7. Quality needs to be weighed, or the target must be raised. A spammer finishes the 10-entry quest in 10 days.*\n\n`;
+  report += `### OD-08: Score Ceiling\n*See Section 3. Standard axes cap at 85. Social caps at 64. 99 is impossible without onboarding boost.*\n\n`;
 
   const reportDir = path.join(process.cwd(), 'reports');
   if (!fs.existsSync(reportDir)) fs.mkdirSync(reportDir);

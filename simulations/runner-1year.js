@@ -101,15 +101,15 @@ async function run() {
   report += `### Checkbox Gamer (Spams Daily tasks, Ignores Goals & Real Evidence)\n`;
   report += `| Axis | Limitation | 365-Day Actual | Result |\n`;
   report += `| :--- | :--- | :--- | :--- |\n`;
-  for (const axis of ['strength', 'discipline', 'knowledge', 'wisdom', 'creativity', 'strategy']) {
+  for (const axis of ['body', 'discipline', 'knowledge', 'social', 'creativity', 'strategy']) {
     const val = gamerStats[axis].toFixed(1);
     report += `| ${axis} | C-capped (~45) | **${val}** | ${val <= 50 ? 'Pass (Blocked)' : 'Fail (Exploited)'} |\n`;
   }
 
   report += `\n### Journal Spammer (Spams journals daily)\n`;
-  report += `- **Wisdom Target**: Should be gatekept around 55 without real evidence volume.\n`;
-  report += `- **Actual**: ${spammerStats.wisdom.toFixed(1)}\n`;
-  report += `- **Result**: ${spammerStats.wisdom <= 56 ? 'Pass' : 'Fail'}\n\n`;
+  report += `- **Social Target**: Should be gatekept around 55 without real evidence volume.\n`;
+  report += `- **Actual**: ${spammerStats.social.toFixed(1)}\n`;
+  report += `- **Result**: ${spammerStats.social <= 56 ? 'Pass' : 'Fail'}\n\n`;
 
   report += `## 3. Trajectory & Tier Behavior\n\n`;
 
@@ -119,14 +119,14 @@ async function run() {
   report += `- **Final**: ${idealTraj.final.toFixed(1)}\n`;
   report += `- **Tier down-crossovers**: ${idealTraj.crossoverDownCount} (Expected: 0, since they never stopped)\n\n`;
 
-  const burnoutTraj = analyzeTrajectory(burnout.logs, burnout.axisConfigs, syncQuests(burnout.quests, burnout.logs), 'strength');
-  report += `### Burnout User (Strength: 60 days hard work, then 305 days inactivity)\n`;
+  const burnoutTraj = analyzeTrajectory(burnout.logs, burnout.axisConfigs, syncQuests(burnout.quests, burnout.logs), 'body');
+  report += `### Burnout User (Body: 60 days hard work, then 305 days inactivity)\n`;
   report += `- **Max reached**: ${burnoutTraj.max.toFixed(1)} (Tier: ${burnoutTraj.maxTier})\n`;
   report += `- **Final (Decayed)**: ${burnoutTraj.final.toFixed(1)}\n`;
   report += `- **Tier down-crossovers**: ${burnoutTraj.crossoverDownCount} (Expected > 0, should lose tiers as they decay)\n\n`;
 
-  const incTraj = analyzeTrajectory(inconsistent.logs, inconsistent.axisConfigs, syncQuests(inconsistent.quests, inconsistent.logs), 'strength');
-  report += `### Inconsistent User (Strength: 10 days on, 30 days off loop)\n`;
+  const incTraj = analyzeTrajectory(inconsistent.logs, inconsistent.axisConfigs, syncQuests(inconsistent.quests, inconsistent.logs), 'body');
+  report += `### Inconsistent User (Body: 10 days on, 30 days off loop)\n`;
   report += `- **Max reached**: ${incTraj.max.toFixed(1)} (Tier: ${incTraj.maxTier})\n`;
   report += `- **Final**: ${incTraj.final.toFixed(1)}\n`;
   report += `- **Tier down-crossovers**: ${incTraj.crossoverDownCount} (Expected > 0, oscillating behavior)\n\n`;
@@ -134,7 +134,7 @@ async function run() {
   report += `## 4. Ideal User vs Inactive User (Sanity Check)\n`;
   report += `| Axis | Ideal (Expected ~82) | Inactive (Expected 0) |\n`;
   report += `| :--- | :--- | :--- |\n`;
-  for (const axis of ['strength', 'discipline', 'knowledge', 'wisdom', 'creativity', 'strategy']) {
+  for (const axis of ['body', 'discipline', 'knowledge', 'social', 'creativity', 'strategy']) {
     const idealVal = idealStats[axis].toFixed(1);
     const inactiveVal = inactiveStats[axis].toFixed(1);
     report += `| ${axis} | **${idealVal}** | **${inactiveVal}** |\n`;

@@ -99,17 +99,17 @@ describe('Momentum: more activity in recent window than prior increases M', () =
   it('adding logs only to recent window increases Momentum vs baseline', () => {
     // Baseline: equal activity in both windows
     const recentLogs = Array.from({ length: 5 }, (_, i) => ({
-      id: crypto.randomUUID(), date: daysAgo(i), type: 'gym_session', axis: 'strength',
+      id: crypto.randomUUID(), date: daysAgo(i), type: 'gym_session', axis: 'body',
     }));
     const priorLogs = Array.from({ length: 5 }, (_, i) => ({
-      id: crypto.randomUUID(), date: daysAgo(14 + i), type: 'gym_session', axis: 'strength',
+      id: crypto.randomUUID(), date: daysAgo(14 + i), type: 'gym_session', axis: 'body',
     }));
 
-    const mBase = calcMomentum('strength', [...recentLogs, ...priorLogs], {}, TODAY);
+    const mBase = calcMomentum('body', [...recentLogs, ...priorLogs], {}, TODAY);
 
     // Add one more recent log
-    const extraRecent = { id: crypto.randomUUID(), date: daysAgo(3), type: 'gym_session', axis: 'strength' };
-    const mMore = calcMomentum('strength', [...recentLogs, ...priorLogs, extraRecent], {}, TODAY);
+    const extraRecent = { id: crypto.randomUUID(), date: daysAgo(3), type: 'gym_session', axis: 'body' };
+    const mMore = calcMomentum('body', [...recentLogs, ...priorLogs, extraRecent], {}, TODAY);
 
     expect(mMore).toBeGreaterThanOrEqual(mBase);
   });

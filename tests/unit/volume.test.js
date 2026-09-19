@@ -12,7 +12,7 @@ import { calcVolume } from '../../src/helpers/statsEngine.js';
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
 function quest(id, currentValue, targetValue, done = false) {
-  return { id, currentValue, targetValue, done, axis: 'strength' };
+  return { id, currentValue, targetValue, done, axis: 'body' };
 }
 
 // ── Tests ─────────────────────────────────────────────────────────────────────

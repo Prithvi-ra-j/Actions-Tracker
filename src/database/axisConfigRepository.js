@@ -1,10 +1,10 @@
 import { dbGet, dbPut, dbGetAll } from './db.js';
 
 const DEFAULT_CONFIGS = [
-  { axis: 'strength', expectedPerWeek: 4, paused: false, hasConsistencyTerm: true },
+  { axis: 'body', expectedPerWeek: 4, paused: false, hasConsistencyTerm: true },
   { axis: 'discipline', expectedPerWeek: 7, paused: false, hasConsistencyTerm: true }, // tied to body checkbox
   { axis: 'knowledge', expectedPerWeek: 7, paused: false, hasConsistencyTerm: true },
-  { axis: 'wisdom', expectedPerWeek: null, paused: false, hasConsistencyTerm: false }, // no consistency term
+  { axis: 'social', expectedPerWeek: null, paused: false, hasConsistencyTerm: false }, // no consistency term
   { axis: 'creativity', expectedPerWeek: 1, paused: false, hasConsistencyTerm: true },
   { axis: 'strategy', expectedPerWeek: 7, paused: true, hasConsistencyTerm: true }     // paused by default until a book is started
 ];

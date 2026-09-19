@@ -16,7 +16,7 @@
  */
 
 import { addLog } from './logsRepository.js';
-import { dbPut } from './db.js';
+import { dbPut, dbGetAll, dbDelete } from './db.js';
 import { setMilestoneCheck } from './milestonesRepository.js';
 import { getSetting, setSetting } from './settingsRepository.js';
 import { GOALS } from '../constants.js';
@@ -143,5 +143,82 @@ export async function migrateHardcodedGoalsToLifeObjects() {
     console.log('[Migration] Hardcoded goals → Life Objects migration complete.');
   } catch (err) {
     console.error('[Migration] migrateHardcodedGoalsToLifeObjects failed (will retry):', err);
+  }
+}
+
+// ─── v2.0: Migrate Axis Vocabulary (strength->body, wisdom->strategy) ────────────
+
+/**
+ * One-time migration: updates existing logs, questBoard, and axis_config
+ * records from the old vocabulary ('strength', 'wisdom') to the new
+ * vocabulary ('body', 'strategy').
+ *
+ * Migration flag: 'migrated_axis_vocab_v2'
+ */
+export async function migrateAxisVocabulary() {
+  const alreadyDone = await getSetting('migrated_axis_vocab_v2');
+  if (alreadyDone === '1') return;
+
+  try {
+    let migratedAny = false;
+    
+    // 1. Logs store
+    const allLogs = await dbGetAll('logs');
+    for (const log of allLogs) {
+      if (log.axis === 'strength') {
+        await dbPut('logs', { ...log, axis: 'body' });
+        migratedAny = true;
+      } else if (log.axis === 'wisdom') {
+        await dbPut('logs', { ...log, axis: 'strategy' });
+        migratedAny = true;
+      }
+    }
+
+    // 2. questBoard store
+    const allQuests = await dbGetAll('questBoard');
+    for (const quest of allQuests) {
+      if (quest.axis === 'strength') {
+        const newQuest = { ...quest, axis: 'body' };
+        if (newQuest.id.includes('strength')) {
+          newQuest.id = newQuest.id.replace('strength', 'body');
+          await dbPut('questBoard', newQuest);
+          await dbDelete('questBoard', quest.id);
+        } else {
+          await dbPut('questBoard', newQuest);
+        }
+        migratedAny = true;
+      } else if (quest.axis === 'wisdom') {
+        const newQuest = { ...quest, axis: 'strategy' };
+        if (newQuest.id.includes('wisdom')) {
+          newQuest.id = newQuest.id.replace('wisdom', 'strategy');
+          await dbPut('questBoard', newQuest);
+          await dbDelete('questBoard', quest.id);
+        } else {
+          await dbPut('questBoard', newQuest);
+        }
+        migratedAny = true;
+      }
+    }
+
+    // 3. axis_config store
+    const allConfigs = await dbGetAll('axis_config');
+    for (const config of allConfigs) {
+      if (config.axis === 'strength') {
+        await dbPut('axis_config', { ...config, axis: 'body' });
+        await dbDelete('axis_config', 'strength');
+        migratedAny = true;
+      } else if (config.axis === 'wisdom') {
+        await dbPut('axis_config', { ...config, axis: 'strategy' });
+        await dbDelete('axis_config', 'wisdom');
+        migratedAny = true;
+      }
+    }
+
+    await setSetting('migrated_axis_vocab_v2', '1');
+    if (migratedAny) {
+      console.log('[Migration] Axis vocabulary (strength->body, wisdom->strategy) complete.');
+    }
+  } catch (err) {
+    console.error('[Migration] migrateAxisVocabulary failed (will retry on next launch):', err);
   }
 }

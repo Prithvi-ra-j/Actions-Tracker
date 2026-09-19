@@ -5,10 +5,10 @@ import { dbGet, dbPut, dbGetAll } from './db.js';
  *
  * Default quests are seeded from the GOALS targets defined in §3 and the
  * concrete goal targets in constants.js:
- *   Strength  → 90 training sessions (4×/week body)
+ *   Body       → 90 training sessions (4×/week body)
  *   Discipline → 90 body checkbox days (the "show up" target)
  *   Knowledge  → 6 philosophy books + 40 commonplace pages
- *   Wisdom     → 10 personal Meditations entries
+ *   Social     → 10 personal Meditations entries
  *   Creativity → 52 sketch sessions (weekly Thursday practice)
  *   Strategy   → 2 books (biography + 48 Laws)
  *
@@ -17,10 +17,10 @@ import { dbGet, dbPut, dbGetAll } from './db.js';
  */
 
 const DEFAULT_QUESTS = [
-  // ── Strength ────────────────────────────────────────────────────────────────
+  // ── Body ────────────────────────────────────────────────────────────────────
   {
-    id: 'q-strength-sessions',
-    axis: 'strength',
+    id: 'q-body-sessions',
+    axis: 'body',
     title: 'Train 90 sessions (4×/week for the year)',
     targetValue: 90,
     currentValue: 0,
@@ -28,8 +28,8 @@ const DEFAULT_QUESTS = [
     done: false,
   },
   {
-    id: 'q-strength-benchmark',
-    axis: 'strength',
+    id: 'q-body-benchmark',
+    axis: 'body',
     title: 'Complete benchmark — 50 push-ups or 10K run',
     targetValue: 1,
     currentValue: 0,
@@ -68,11 +68,11 @@ const DEFAULT_QUESTS = [
     done: false,
   },
 
-  // ── Wisdom ───────────────────────────────────────────────────────────────────
+  // ── Social ───────────────────────────────────────────────────────────────────
   {
-    id: 'q-wisdom-journal',
-    axis: 'wisdom',
-    title: 'Accumulate 75 evidence points of Wisdom',
+    id: 'q-social-journal',
+    axis: 'social',
+    title: 'Accumulate 75 evidence points of Social',
     targetValue: 75,
     currentValue: 0,
     unit: 'pts',
@@ -178,12 +178,12 @@ export async function syncQuestProgress(allLogs) {
  */
 export function deriveQuestValue(quest, allLogs) {
   switch (quest.id) {
-    case 'q-strength-sessions':
-      return allLogs.filter(l => l.axis === 'strength' && l.type === 'gym_session').length;
+    case 'q-body-sessions':
+      return allLogs.filter(l => l.axis === 'body' && l.type === 'gym_session').length;
 
-    case 'q-strength-benchmark':
+    case 'q-body-benchmark':
       // A gym_session flagged as isBenchmarkAttempt counts — capped at 1 (quest target)
-      return allLogs.some(l => l.axis === 'strength' && l.type === 'gym_session' && l.meta?.isBenchmarkAttempt) ? 1 : 0;
+      return allLogs.some(l => l.axis === 'body' && l.type === 'gym_session' && l.meta?.isBenchmarkAttempt) ? 1 : 0;
 
     case 'q-discipline-days':
       return allLogs.filter(l => l.axis === 'discipline' && l.type === 'daily_checkbox').length;
@@ -198,9 +198,9 @@ export function deriveQuestValue(quest, allLogs) {
       // journal/reflection entries tagged to knowledge axis count as pages
       return allLogs.filter(l => l.axis === 'knowledge' && l.type === 'journal_entry').length;
 
-    case 'q-wisdom-journal':
+    case 'q-social-journal':
       return allLogs
-        .filter(l => l.axis === 'wisdom')
+        .filter(l => l.axis === 'social')
         .reduce((sum, l) => {
           if (l.type === 'journal_entry') return sum + 1;
           if (l.type === 'reflection') return sum + 3;

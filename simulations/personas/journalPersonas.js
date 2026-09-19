@@ -6,15 +6,15 @@ import { makeQuest } from '../generators/questFactory.js';
 
 function createWisdomPersona(today, name, logsPredicate) {
   const axisConfigs = [
-    { axis: 'wisdom', expectedPerWeek: 2, hasConsistencyTerm: false }
+    { axis: 'social', expectedPerWeek: 2, hasConsistencyTerm: false }
   ];
 
-  const logs = makeDailyLogs('wisdom', 'journal_entry', today, 89, logsPredicate);
+  const logs = makeDailyLogs('social', 'journal_entry', today, 89, logsPredicate);
   const entriesCount = logs.length;
   
-  // Wisdom V relies on completing 10 entries for a quest
+  // Social V relies on completing 10 entries for a quest
   const quests = [
-    makeQuest('q-wisdom-journal', 'wisdom', entriesCount, 10, entriesCount >= 10)
+    makeQuest('q-social-journal', 'social', entriesCount, 10, entriesCount >= 10)
   ];
 
   return { logs, quests, axisConfigs, name };

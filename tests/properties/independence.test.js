@@ -11,7 +11,7 @@ import { describe, it, expect } from 'vitest';
 import * as fc from 'fast-check';
 import { computeAllStats } from '../../src/helpers/statsEngine.js';
 
-const AXES = ['strength', 'discipline', 'knowledge', 'wisdom', 'creativity', 'strategy'];
+const AXES = ['body', 'discipline', 'knowledge', 'social', 'creativity', 'strategy'];
 
 const TODAY = '2025-06-15';
 
@@ -23,13 +23,13 @@ function daysAgo(n) {
 
 const defaultAxisConfigs = AXES.map(axis => ({
   axis,
-  hasConsistencyTerm: axis !== 'wisdom',
-  expectedPerWeek: axis === 'wisdom' ? null : 4,
+  hasConsistencyTerm: axis !== 'social',
+  expectedPerWeek: axis === 'social' ? null : 4,
   paused: false,
 }));
 
 describe('axis independence', () => {
-  it('adding strength-only logs does not change knowledge stat', () => {
+  it('adding body-only logs does not change knowledge stat', () => {
     fc.assert(
       fc.property(
         fc.integer({ min: 1, max: 20 }),
@@ -40,15 +40,15 @@ describe('axis independence', () => {
             id: crypto.randomUUID(),
             date: daysAgo(i % 30),
             type: 'gym_session',
-            axis: 'strength',
+            axis: 'body',
           }));
 
           const withStrengthResult = computeAllStats(strengthLogs, defaultAxisConfigs, [], TODAY);
 
-          // Strength should have changed (it now has activity)
+          // Body should have changed (it now has activity)
           // Knowledge should be exactly the same (no knowledge logs added)
           expect(withStrengthResult.knowledge).toBe(baseResult.knowledge);
-          expect(withStrengthResult.wisdom).toBe(baseResult.wisdom);
+          expect(withStrengthResult.social).toBe(baseResult.social);
           expect(withStrengthResult.creativity).toBe(baseResult.creativity);
           expect(withStrengthResult.strategy).toBe(baseResult.strategy);
         }
@@ -57,7 +57,7 @@ describe('axis independence', () => {
     );
   });
 
-  it('adding wisdom-only logs does not change strength stat', () => {
+  it('adding social-only logs does not change body stat', () => {
     fc.assert(
       fc.property(
         fc.integer({ min: 1, max: 20 }),
@@ -68,12 +68,12 @@ describe('axis independence', () => {
             id: crypto.randomUUID(),
             date: daysAgo(i % 30),
             type: 'journal_entry',
-            axis: 'wisdom',
+            axis: 'social',
           }));
 
           const withWisdomResult = computeAllStats(wisdomLogs, defaultAxisConfigs, [], TODAY);
 
-          expect(withWisdomResult.strength).toBe(baseResult.strength);
+          expect(withWisdomResult.body).toBe(baseResult.body);
           expect(withWisdomResult.discipline).toBe(baseResult.discipline);
           expect(withWisdomResult.knowledge).toBe(baseResult.knowledge);
           expect(withWisdomResult.creativity).toBe(baseResult.creativity);
@@ -103,9 +103,9 @@ describe('axis independence', () => {
 
           // Discipline has no quests, so it should be unchanged
           expect(withQuestResult.discipline).toBe(noQuestResult.discipline);
-          expect(withQuestResult.strength).toBe(noQuestResult.strength);
+          expect(withQuestResult.body).toBe(noQuestResult.body);
           expect(withQuestResult.knowledge).toBe(noQuestResult.knowledge);
-          expect(withQuestResult.wisdom).toBe(noQuestResult.wisdom);
+          expect(withQuestResult.social).toBe(noQuestResult.social);
           expect(withQuestResult.strategy).toBe(noQuestResult.strategy);
         }
       ),

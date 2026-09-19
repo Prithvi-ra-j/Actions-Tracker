@@ -5,7 +5,7 @@
  *
  * Formulas:
  *   Standard: Stat = clamp((0.45 × C) + (0.40 × V) + (0.15 × M), 0, 99)
- *   Wisdom:   Stat = clamp((0.55 × V) + (0.45 × M), 0, 99)
+ *   Social:   Stat = clamp((0.55 × V) + (0.45 × M), 0, 99)
  *   With onboarding blend:
  *     w = max(0, 1 − realLogCount / 30)
  *     final = (1−w) × computed + w × onboardingValue
@@ -45,12 +45,12 @@ const wisdomConfig   = { hasConsistencyTerm: false, expectedPerWeek: null, pause
 // Pre-built "complete" set of quests for all axes (all at 100%)
 function allAxesQuests100() {
   return [
-    makeQuest('q-strength-sessions', 'strength', 90, 90, true),
-    makeQuest('q-strength-benchmark', 'strength', 1, 1, true),
+    makeQuest('q-body-sessions', 'body', 90, 90, true),
+    makeQuest('q-body-benchmark', 'body', 1, 1, true),
     makeQuest('q-discipline-days', 'discipline', 90, 90, true),
     makeQuest('q-knowledge-books', 'knowledge', 6, 6, true),
     makeQuest('q-knowledge-commonplace', 'knowledge', 40, 40, true),
-    makeQuest('q-wisdom-meditations', 'wisdom', 10, 10, true),
+    makeQuest('q-social-meditations', 'social', 10, 10, true),
     makeQuest('q-creativity-sketchbook', 'creativity', 52, 52, true),
     makeQuest('q-creativity-masters', 'creativity', 4, 4, true),
     makeQuest('q-creativity-piece', 'creativity', 1, 1, true),
@@ -84,22 +84,22 @@ describe('calcAxisStat', () => {
     });
   });
 
-  describe('Wisdom exception (no Consistency term)', () => {
-    it('uses Wisdom formula (0.55V + 0.45M) not standard formula', () => {
+  describe('Social exception (no Consistency term)', () => {
+    it('uses Social formula (0.55V + 0.45M) not standard formula', () => {
       // We can't see inside the formula directly, but we can verify:
-      // With V=100, M=0 → wisdom should give 55 (not 0.40×100 = 40 from standard)
-      const quests = [makeQuest('q-wisdom-meditations', 'wisdom', 10, 10, true)]; // V=100
-      const result = calcAxisStat('wisdom', [], wisdomConfig, quests, TODAY);
+      // With V=100, M=0 → social should give 55 (not 0.40×100 = 40 from standard)
+      const quests = [makeQuest('q-social-meditations', 'social', 10, 10, true)]; // V=100
+      const result = calcAxisStat('social', [], wisdomConfig, quests, TODAY);
       // V=100, M=0 (no logs) → 0.55×100 + 0.45×0 = 55
       expect(result).toBeCloseTo(55, 0);
     });
 
     it('is unaffected by expectedPerWeek since there is no C term', () => {
-      const quests = [makeQuest('q', 'wisdom', 5, 10)]; // V=50
+      const quests = [makeQuest('q', 'social', 5, 10)]; // V=50
       const config1 = { ...wisdomConfig };
       const config2 = { ...wisdomConfig, expectedPerWeek: 7 }; // even if set, ignored
-      const r1 = calcAxisStat('wisdom', [], config1, quests, TODAY);
-      const r2 = calcAxisStat('wisdom', [], config2, quests, TODAY);
+      const r1 = calcAxisStat('social', [], config1, quests, TODAY);
+      const r2 = calcAxisStat('social', [], config2, quests, TODAY);
       expect(r1).toBeCloseTo(r2, 5);
     });
   });
@@ -186,33 +186,33 @@ describe('calcAxisStat', () => {
 describe('computeAllStats', () => {
   it('returns all 6 axes', () => {
     const result = computeAllStats([], [], [], TODAY);
-    expect(result).toHaveProperty('strength');
+    expect(result).toHaveProperty('body');
     expect(result).toHaveProperty('discipline');
     expect(result).toHaveProperty('knowledge');
-    expect(result).toHaveProperty('wisdom');
+    expect(result).toHaveProperty('social');
     expect(result).toHaveProperty('creativity');
     expect(result).toHaveProperty('strategy');
   });
 
   it('returns 0 for all axes with no data', () => {
     const result = computeAllStats([], [], [], TODAY);
-    for (const axis of ['strength', 'discipline', 'knowledge', 'wisdom', 'creativity', 'strategy']) {
+    for (const axis of ['body', 'discipline', 'knowledge', 'social', 'creativity', 'strategy']) {
       expect(result[axis]).toBe(0);
     }
   });
 
   it('returns values in [0, 99] for all axes', () => {
     const logs = Array.from({ length: 30 }, (_, i) =>
-      ['strength', 'discipline', 'knowledge', 'wisdom', 'creativity', 'strategy'].map(axis =>
+      ['body', 'discipline', 'knowledge', 'social', 'creativity', 'strategy'].map(axis =>
         makeLog(daysAgo(i), 'daily_checkbox', axis)
       )
     ).flat();
 
     const axisConfigs = [
-      { axis: 'strength',   expectedPerWeek: 4,    paused: false, hasConsistencyTerm: true },
+      { axis: 'body',   expectedPerWeek: 4,    paused: false, hasConsistencyTerm: true },
       { axis: 'discipline', expectedPerWeek: 7,    paused: false, hasConsistencyTerm: true },
       { axis: 'knowledge',  expectedPerWeek: 7,    paused: false, hasConsistencyTerm: true },
-      { axis: 'wisdom',     expectedPerWeek: null, paused: false, hasConsistencyTerm: false },
+      { axis: 'social',     expectedPerWeek: null, paused: false, hasConsistencyTerm: false },
       { axis: 'creativity', expectedPerWeek: 1,    paused: false, hasConsistencyTerm: true },
       { axis: 'strategy',   expectedPerWeek: 7,    paused: false, hasConsistencyTerm: true },
     ];
@@ -225,9 +225,9 @@ describe('computeAllStats', () => {
   });
 
   it('is deterministic — same inputs always produce same output', () => {
-    const logs = [makeLog(daysAgo(3), 'gym_session', 'strength')];
-    const configs = [{ axis: 'strength', expectedPerWeek: 4, paused: false, hasConsistencyTerm: true }];
-    const quests = [makeQuest('q-strength-sessions', 'strength', 30, 90)];
+    const logs = [makeLog(daysAgo(3), 'gym_session', 'body')];
+    const configs = [{ axis: 'body', expectedPerWeek: 4, paused: false, hasConsistencyTerm: true }];
+    const quests = [makeQuest('q-body-sessions', 'body', 30, 90)];
     const r1 = computeAllStats(logs, configs, quests, TODAY);
     const r2 = computeAllStats(logs, configs, quests, TODAY);
     expect(r1).toEqual(r2);
@@ -244,28 +244,28 @@ describe('computeAllStats', () => {
 describe('computeAxisDetails', () => {
   it('returns C, V, M, and stat for each axis', () => {
     const result = computeAxisDetails([], [], [], TODAY);
-    for (const axis of ['strength', 'discipline', 'knowledge', 'wisdom', 'creativity', 'strategy']) {
+    for (const axis of ['body', 'discipline', 'knowledge', 'social', 'creativity', 'strategy']) {
       expect(result[axis]).toHaveProperty('V');
       expect(result[axis]).toHaveProperty('M');
       expect(result[axis]).toHaveProperty('stat');
-      // C is present but may be null for Wisdom
+      // C is present but may be null for Social
       expect(result[axis]).toHaveProperty('C');
     }
   });
 
-  it('returns C=null for Wisdom axis', () => {
-    const wisdomAxisConfig = [{ axis: 'wisdom', expectedPerWeek: null, paused: false, hasConsistencyTerm: false }];
+  it('returns C=null for Social axis', () => {
+    const wisdomAxisConfig = [{ axis: 'social', expectedPerWeek: null, paused: false, hasConsistencyTerm: false }];
     const result = computeAxisDetails([], wisdomAxisConfig, [], TODAY);
-    expect(result.wisdom.C).toBeNull();
+    expect(result.social.C).toBeNull();
   });
 
   it('stat in details matches computeAllStats for the same axis', () => {
-    const logs = [makeLog(daysAgo(2), 'gym_session', 'strength')];
-    const configs = [{ axis: 'strength', expectedPerWeek: 4, paused: false, hasConsistencyTerm: true }];
-    const quests = [makeQuest('q-strength-sessions', 'strength', 30, 90)];
+    const logs = [makeLog(daysAgo(2), 'gym_session', 'body')];
+    const configs = [{ axis: 'body', expectedPerWeek: 4, paused: false, hasConsistencyTerm: true }];
+    const quests = [makeQuest('q-body-sessions', 'body', 30, 90)];
 
     const all = computeAllStats(logs, configs, quests, TODAY);
     const details = computeAxisDetails(logs, configs, quests, TODAY);
-    expect(details.strength.stat).toBeCloseTo(all.strength, 5);
+    expect(details.body.stat).toBeCloseTo(all.body, 5);
   });
 });

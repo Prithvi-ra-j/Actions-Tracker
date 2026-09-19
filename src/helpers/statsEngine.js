@@ -9,10 +9,11 @@
  *
  * Formula weights (spec §4):
  *   Standard:  Stat = (0.45 × C) + (0.40 × V) + (0.15 × M)
- *   Wisdom:    Stat = (0.55 × V) + (0.45 × M)  — no Consistency term (§4.4)
+ *   Social:    Stat = (0.55 × V) + (0.45 × M)  — no Consistency term (§4.4)
  *
  * Result is always clamped to [0, 99].
  */
+import { MOMENTUM_WINDOWS } from '../constants.js';
 
 // ── Utilities ──────────────────────────────────────────────────────────────────
 
@@ -65,7 +66,7 @@ const ONBOARDING_FADE_THRESHOLD = 30;
 /**
  * Consistency (C) — rolling 30-day adherence (spec §4.1).
  *
- * Returns 0–100, or null if this axis has no Consistency term (Wisdom, §4.4).
+ * Returns 0–100, or null if this axis has no Consistency term (Social, §4.4).
  *
  * Strategy pause (§4.5): when paused=true, the Consistency window is frozen at
  * the date of the last 'book_finished' log rather than rolling to today, so
@@ -113,13 +114,27 @@ export function calcConsistency(axis, axisLogs, axisConfig, today) {
  * @param {Array} axisQuests  — questBoard items for this axis
  * @returns {number}
  */
-export function calcVolume(axisQuests) {
+export function calcVolume(axisQuests, axisHabits = []) {
   if (!axisQuests || axisQuests.length === 0) return 0;
 
   const total = axisQuests.reduce((sum, q) => {
-    const progress = q.done
+    let baseProgress = q.done
       ? 1.0
       : Math.min(q.currentValue / Math.max(q.targetValue, 1), 1.0);
+      
+    let masteryBonus = 1.0;
+    let habit = q.linkedHabitId ? axisHabits.find(h => h.id === q.linkedHabitId) : null;
+    if (!habit && axisHabits.length > 0) {
+       habit = axisHabits.find(h => h.masteryRoadmap);
+    }
+    
+    if (habit?.masteryRoadmap) {
+      const currentLevel = habit.masteryRoadmap.currentLevel || 1;
+      const totalLevels = habit.masteryRoadmap.levels?.length || 1;
+      masteryBonus = currentLevel / totalLevels;
+    }
+    
+    const progress = baseProgress * (0.7 + 0.3 * masteryBonus);
     return sum + progress;
   }, 0);
 
@@ -154,12 +169,13 @@ export function calcMomentum(axis, axisLogs, axisConfig, today) {
     }
   }
 
-  const recent14Start = subDays(windowEnd, 13);  // last 14 days (windowEnd inclusive)
-  const prior14End    = subDays(windowEnd, 14);  // the 14 days before that
-  const prior14Start  = subDays(windowEnd, 27);
+  const windowDays = MOMENTUM_WINDOWS[axis] || 14;
+  const recentStart = subDays(windowEnd, windowDays - 1);  // recent window
+  const priorEnd    = subDays(windowEnd, windowDays);      // prior window end
+  const priorStart  = subDays(windowEnd, windowDays * 2 - 1);
 
-  const recentRate = countInRange(axisLogs, recent14Start, windowEnd);
-  const priorRate  = countInRange(axisLogs, prior14Start, prior14End);
+  const recentRate = countInRange(axisLogs, recentStart, windowEnd);
+  const priorRate  = countInRange(axisLogs, priorStart, priorEnd);
 
   const raw = ((recentRate - priorRate) / Math.max(priorRate, 1)) * 100;
   return clamp(raw, -20, 20);
@@ -170,7 +186,7 @@ export function calcMomentum(axis, axisLogs, axisConfig, today) {
 /**
  * Computes the final stat for a single axis (0–99).
  *
- * Applies the Wisdom exception (§4.4): if hasConsistencyTerm is false,
+ * Applies the Social exception (§4.4): if hasConsistencyTerm is false,
  * reweights to 0.55V + 0.45M.
  *
  * @param {string}  axis
@@ -180,17 +196,34 @@ export function calcMomentum(axis, axisLogs, axisConfig, today) {
  * @param {string}  today        — 'YYYY-MM-DD'
  * @returns {number}  0–99
  */
-export function calcAxisStat(axis, axisLogs, axisConfig, axisQuests, today) {
-  const V = calcVolume(axisQuests);
+export function calcAxisStat(axis, axisLogs, axisConfig, axisQuests, today, axisHabits = []) {
+  const V = calcVolume(axisQuests, axisHabits);
   const M = calcMomentum(axis, axisLogs, axisConfig, today);
+
+  let weightC = 0.45;
+  let weightV = 0.40;
+  let weightM = 0.15;
+  
+  if (axisHabits && axisHabits.length > 0) {
+    const phases = { building: 0, maintaining: 0, advancing: 0 };
+    axisHabits.forEach(h => {
+      phases[h.phase || 'building']++;
+    });
+    
+    if (phases.advancing > 0) {
+      weightC = 0.15; weightV = 0.60; weightM = 0.25;
+    } else if (phases.maintaining > phases.building) {
+      weightC = 0.25; weightV = 0.50; weightM = 0.25;
+    }
+  }
 
   let computed;
   if (!axisConfig.hasConsistencyTerm) {
-    // Wisdom (§4.4) — drop Consistency entirely
+    // Social (§4.4) — drop Consistency entirely
     computed = clamp((0.55 * V) + (0.45 * M), 0, 99);
   } else {
     const C = calcConsistency(axis, axisLogs, axisConfig, today);
-    computed = clamp((0.45 * C) + (0.40 * V) + (0.15 * M), 0, 99);
+    computed = clamp((weightC * C) + (weightV * V) + (weightM * M), 0, 99);
   }
 
   // ── Onboarding blend ────────────────────────────────────────────────────────
@@ -218,10 +251,10 @@ export function calcAxisStat(axis, axisLogs, axisConfig, axisQuests, today) {
  * @param {Array}   axisConfigs     — full axis_config table
  * @param {Array}   questBoardItems — full questBoard table
  * @param {string}  today           — 'YYYY-MM-DD'
- * @returns {{ strength, discipline, knowledge, wisdom, creativity, strategy }}
+ * @returns {{ body, discipline, knowledge, social, creativity, strategy }}
  */
-export function computeAllStats(allLogs, axisConfigs, questBoardItems, today) {
-  const AXES = ['strength', 'discipline', 'knowledge', 'wisdom', 'creativity', 'strategy'];
+export function computeAllStats(allLogs, axisConfigs, questBoardItems, today, allHabits = []) {
+  const AXES = ['body', 'discipline', 'knowledge', 'social', 'creativity', 'strategy'];
 
   const defaultConfig = { hasConsistencyTerm: true, expectedPerWeek: 7, paused: false };
 
@@ -231,8 +264,9 @@ export function computeAllStats(allLogs, axisConfigs, questBoardItems, today) {
     const axisLogs    = allLogs.filter(l => l.axis === axis);
     const axisConfig  = axisConfigs.find(c => c.axis === axis) ?? defaultConfig;
     const axisQuests  = questBoardItems.filter(q => q.axis === axis);
+    const axisHabits  = allHabits.filter(h => h.domain === axis && h.status === 'active');
 
-    stats[axis] = calcAxisStat(axis, axisLogs, axisConfig, axisQuests, today);
+    stats[axis] = calcAxisStat(axis, axisLogs, axisConfig, axisQuests, today, axisHabits);
   }
 
   return stats;
@@ -244,8 +278,8 @@ export function computeAllStats(allLogs, axisConfigs, questBoardItems, today) {
  *
  * @returns {{ [axis]: { C: number|null, V: number, M: number, stat: number } }}
  */
-export function computeAxisDetails(allLogs, axisConfigs, questBoardItems, today) {
-  const AXES = ['strength', 'discipline', 'knowledge', 'wisdom', 'creativity', 'strategy'];
+export function computeAxisDetails(allLogs, axisConfigs, questBoardItems, today, allHabits = []) {
+  const AXES = ['body', 'discipline', 'knowledge', 'social', 'creativity', 'strategy'];
   const defaultConfig = { hasConsistencyTerm: true, expectedPerWeek: 7, paused: false };
   const details = {};
 
@@ -253,13 +287,14 @@ export function computeAxisDetails(allLogs, axisConfigs, questBoardItems, today)
     const axisLogs   = allLogs.filter(l => l.axis === axis);
     const axisConfig = axisConfigs.find(c => c.axis === axis) ?? defaultConfig;
     const axisQuests = questBoardItems.filter(q => q.axis === axis);
+    const axisHabits = allHabits.filter(h => h.domain === axis && h.status === 'active');
 
     const C = axisConfig.hasConsistencyTerm
       ? calcConsistency(axis, axisLogs, axisConfig, today)
       : null;
-    const V = calcVolume(axisQuests);
+    const V = calcVolume(axisQuests, axisHabits);
     const M = calcMomentum(axis, axisLogs, axisConfig, today);
-    const stat = calcAxisStat(axis, axisLogs, axisConfig, axisQuests, today);
+    const stat = calcAxisStat(axis, axisLogs, axisConfig, axisQuests, today, axisHabits);
 
     details[axis] = { C, V, M, stat };
   }
@@ -271,7 +306,7 @@ export function computeAxisDetails(allLogs, axisConfigs, questBoardItems, today)
 // Read-only static map — not a system, just a display label.
 
 const THRESHOLDS = {
-  strength: [
+  body: [
     { min: 0,  title: 'Conditioning'    },
     { min: 30, title: 'Athletic'        },
     { min: 60, title: 'Beast'           },
@@ -289,7 +324,7 @@ const THRESHOLDS = {
     { min: 55, title: 'Scholar'        },
     { min: 80, title: 'Polymath'       },
   ],
-  wisdom: [
+  social: [
     { min: 0,  title: 'Observant'      },
     { min: 20, title: 'Reflective'     },
     { min: 40, title: 'Discerning'     },
