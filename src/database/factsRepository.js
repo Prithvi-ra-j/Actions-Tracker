@@ -43,7 +43,7 @@ const SCHEMA_VERSION = 1;
  */
 export async function addFact(fact) {
   const now = new Date();
-  const id = `fact_${now.getTime()}_${Math.random().toString(36).slice(2, 8)}`;
+  const id = fact.id ?? `fact_${now.getTime()}_${Math.random().toString(36).slice(2, 8)}`;
   const timezone = getLocalTimezone();
 
   const record = {

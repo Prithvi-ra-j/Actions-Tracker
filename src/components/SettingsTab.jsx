@@ -7,6 +7,8 @@ import {
 } from '../native/notifications.js';
 import { exportDatabase, importDatabase } from '../database/db.js';
 import { isBrowserFallback } from '../native/secureStorage.js';
+import { isSupabaseConfigured } from '../integrations/supabase/supabaseClient.js';
+import { getCurrentSupabaseUser, signInWithPassword, signOutSupabase } from '../integrations/supabase/supabaseAuth.js';
 
 /**
  * Settings panel — opened via the ⚙ icon in the header (not a tab).
@@ -136,6 +138,35 @@ export default function SettingsTab({ t, dark, setDark, reminders, setReminders,
 
   const [syncing, setSyncing] = useState(false);
   const [syncSummary, setSyncSummary] = useState(null);
+  const [supabaseUser, setSupabaseUser] = useState(null);
+  const [supabaseEmail, setSupabaseEmail] = useState('');
+  const [supabasePassword, setSupabasePassword] = useState('');
+  const [supabaseAuthError, setSupabaseAuthError] = useState(null);
+  const [supabaseAuthBusy, setSupabaseAuthBusy] = useState(false);
+
+  useEffect(() => {
+    getCurrentSupabaseUser().then(setSupabaseUser).catch(() => setSupabaseUser(null));
+  }, []);
+
+  async function handleSupabaseSignIn(event) {
+    event.preventDefault();
+    setSupabaseAuthBusy(true);
+    setSupabaseAuthError(null);
+    try {
+      const result = await signInWithPassword(supabaseEmail.trim(), supabasePassword);
+      setSupabaseUser(result.user);
+      setSupabasePassword('');
+    } catch (err) {
+      setSupabaseAuthError(err.message);
+    } finally {
+      setSupabaseAuthBusy(false);
+    }
+  }
+
+  async function handleSupabaseSignOut() {
+    await signOutSupabase();
+    setSupabaseUser(null);
+  }
 
   async function handleSyncClick() {
     if (!onRunSync) return;
@@ -408,6 +439,24 @@ export default function SettingsTab({ t, dark, setDark, reminders, setReminders,
         </div>
         <div style={{ fontSize: '0.9rem', marginBottom: '1rem', lineHeight: 1.5, color: t.muted }}>
           Sync data from external health and fitness connectors into your fact ledger.
+        </div>
+        <div style={{ marginBottom: '1rem', padding: '0.75rem', background: t.subtleBg, fontSize: '0.75rem' }}>
+          <div style={{ fontFamily: 'monospace', fontSize: '0.6rem', color: t.muted, textTransform: 'uppercase', marginBottom: '0.45rem' }}>NutriLift cloud connection</div>
+          {!isSupabaseConfigured ? (
+            <div style={{ color: t.muted }}>Supabase is not configured in this deployment.</div>
+          ) : supabaseUser ? (
+            <div style={{ display: 'flex', justifyContent: 'space-between', gap: '0.5rem', alignItems: 'center' }}>
+              <span>Connected as {supabaseUser.email || supabaseUser.id}</span>
+              <button type="button" onClick={handleSupabaseSignOut} style={{ padding: '0.35rem 0.5rem', background: 'transparent', border: `1px solid ${t.border}`, color: t.muted, cursor: 'pointer', fontFamily: 'monospace', fontSize: '0.58rem' }}>SIGN OUT</button>
+            </div>
+          ) : (
+            <form onSubmit={handleSupabaseSignIn} style={{ display: 'grid', gap: '0.45rem' }}>
+              <input aria-label="Supabase email" type="email" autoComplete="email" placeholder="Supabase email" value={supabaseEmail} onChange={e => setSupabaseEmail(e.target.value)} style={{ padding: '0.45rem', background: t.pageBg, color: t.pageText, border: `1px solid ${t.border}` }} />
+              <input aria-label="Supabase password" type="password" autoComplete="current-password" placeholder="Supabase password" value={supabasePassword} onChange={e => setSupabasePassword(e.target.value)} style={{ padding: '0.45rem', background: t.pageBg, color: t.pageText, border: `1px solid ${t.border}` }} />
+              <button type="submit" disabled={supabaseAuthBusy} style={{ padding: '0.5rem', background: ACCENT, border: 'none', color: '#fff', cursor: 'pointer', fontFamily: 'monospace', fontSize: '0.6rem' }}>{supabaseAuthBusy ? 'CONNECTING...' : 'CONNECT NUTRILIFT'}</button>
+              {supabaseAuthError && <div role="alert" style={{ color: '#c1442c', fontSize: '0.7rem' }}>{supabaseAuthError}</div>}
+            </form>
+          )}
         </div>
         
         <button

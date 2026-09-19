@@ -1,4 +1,4 @@
-# Actions-Tracker (Life OS PWA)
+# Actions-Tracker PWA
 
 Actions-Tracker is a structurally serious, local-first Personal Operating System built as a Progressive Web App (PWA) and wrapped for Android via Capacitor. It serves as an offline, private, single-device truth layer for your life data.
 
