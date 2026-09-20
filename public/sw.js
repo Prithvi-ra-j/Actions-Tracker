@@ -1,5 +1,5 @@
 const CACHE = "actions-tracker-v1";
-const ASSETS = ["/", "/index.html", "/manifest.webmanifest", "/icon.svg"];
+const ASSETS = ["/", "/index.html", "/manifest.webmanifest", "/icon.jpg"];
 
 self.addEventListener("install", event => {
   event.waitUntil(caches.open(CACHE).then(cache => cache.addAll(ASSETS)));
