@@ -15,7 +15,132 @@ import { computeGaps } from '../../helpers/gapEngine.js';
 import { calculateCapacity } from '../routineEngine.js';
 import { PERSONA } from '../../constants.js';
 
-export async function assembleContext(intent = 'audit') {
+const MEMORY_WINDOW_DAYS = 90;
+const MAX_SEMANTIC_MEMORIES = 12;
+const CONTEXT_BUDGETS = Object.freeze({ chat: 7000, audit: 15000 });
+
+function estimateTokens(value) {
+  return Math.ceil(JSON.stringify(value).length / 4);
+}
+
+export function compactContext(contextData, maxTokens) {
+  const originalTokens = estimateTokens(contextData);
+  const compacted = {
+    ...contextData,
+    context_budget_tokens: maxTokens,
+    recent_evidence_facts: [...(contextData.recent_evidence_facts || [])],
+    semantic_memories: [...(contextData.semantic_memories || [])],
+    active_habits: [...(contextData.active_habits || [])],
+  };
+
+  const removable = [
+    compacted.recent_evidence_facts,
+    compacted.semantic_memories,
+    compacted.active_habits,
+  ];
+  while (estimateTokens(compacted) > maxTokens && removable.some(items => items.length > 0)) {
+    const largest = removable
+      .filter(items => items.length > 0)
+      .sort((a, b) => b.length - a.length)[0];
+    largest.pop();
+  }
+
+  compacted.estimated_tokens = estimateTokens(compacted);
+  compacted.compacted = compacted.estimated_tokens < originalTokens;
+  return compacted;
+}
+
+export function projectEvidenceFacts(facts) {
+  return facts.map(fact => ({
+    id: fact.id,
+    type: fact.type,
+    value: fact.value,
+    date: fact.localDate,
+    source: fact.source?.type,
+  }));
+}
+
+export function deriveEvidenceMetrics(facts) {
+  const byType = new Map();
+  for (const fact of facts) {
+    const entry = byType.get(fact.type) || { count: 0, evidenceIds: [], values: [] };
+    entry.count += 1;
+    entry.evidenceIds.push(fact.id);
+    if (typeof fact.value === 'number') entry.values.push(fact.value);
+    byType.set(fact.type, entry);
+  }
+
+  return Object.fromEntries([...byType.entries()].map(([type, metric]) => [type, {
+    count: metric.count,
+    evidenceIds: metric.evidenceIds,
+    numericTotal: metric.values.reduce((total, value) => total + value, 0),
+    numericAverage: metric.values.length > 0
+      ? metric.values.reduce((total, value) => total + value, 0) / metric.values.length
+      : null,
+  }]));
+}
+
+export function validateEvidenceReferences(ids, contextData) {
+  const availableIds = new Set([
+    ...(contextData.recent_evidence_facts || []).map(fact => fact.id),
+    ...(contextData.semantic_memories || []).map(memory => memory.id),
+  ]);
+  const invalidIds = ids.filter(id => !availableIds.has(id));
+  if (invalidIds.length > 0) {
+    throw new Error(`Response references unavailable evidence: ${invalidIds.join(', ')}`);
+  }
+  return true;
+}
+
+export function validateClaimSupport(claims, contextData) {
+  validateEvidenceReferences(claims.flatMap(claim => claim.evidenceIds), contextData);
+  const evidence = [
+    ...(contextData.recent_evidence_facts || []),
+    ...(contextData.semantic_memories || []),
+  ];
+
+  for (const claim of claims) {
+    if (claim.evidenceIds.length === 0) throw new Error('Factual claims must cite evidence');
+    const claimTerms = new Set(String(claim.text).toLowerCase().match(/[a-z0-9]{3,}/g) || []);
+    const claimNumbers = String(claim.text).match(/\b\d+(?:\.\d+)?\b/g) || [];
+    const citedEvidence = evidence.filter(item => claim.evidenceIds.includes(item.id));
+    const evidenceText = citedEvidence.map(item => JSON.stringify(item).toLowerCase()).join(' ');
+    const hasTermMatch = [...claimTerms].some(term => evidenceText.includes(term));
+    const hasNumberMatch = claimNumbers.length === 0 || claimNumbers.some(number => evidenceText.includes(number));
+    if (!hasTermMatch || !hasNumberMatch) {
+      throw new Error(`Claim is not supported by cited evidence: ${claim.text}`);
+    }
+  }
+  return true;
+}
+
+export function selectRelevantMemories(memories, {
+  now = new Date(),
+  query = '',
+  windowDays = MEMORY_WINDOW_DAYS,
+  limit = MAX_SEMANTIC_MEMORIES,
+} = {}) {
+  const cutoff = now.getTime() - windowDays * 24 * 60 * 60 * 1000;
+  const queryTerms = new Set(String(query).toLowerCase().match(/[a-z0-9]{3,}/g) || []);
+
+  return memories
+    .filter(memory => {
+      const createdAt = Date.parse(memory.createdAt ?? '');
+      return Number.isFinite(createdAt) && createdAt >= cutoff;
+    })
+    .map(memory => {
+      const contentTerms = new Set(String(memory.content).toLowerCase().match(/[a-z0-9]{3,}/g) || []);
+      const directMatches = [...queryTerms].filter(term => contentTerms.has(term)).length;
+      const age = Math.max(0, now.getTime() - Date.parse(memory.createdAt));
+      const recency = 1 - Math.min(age / (windowDays * 24 * 60 * 60 * 1000), 1);
+      return { memory, score: directMatches * 2 + recency };
+    })
+    .sort((a, b) => b.score - a.score)
+    .map(entry => entry.memory)
+    .slice(0, limit);
+}
+
+export async function assembleContext(intent = 'audit', query = '') {
   // We only pull what's necessary based on the intent.
   // For a general audit, we want the current self model, latest score snapshot, active goals, and recent facts.
 
@@ -29,30 +154,33 @@ export async function assembleContext(intent = 'audit') {
     getRoutineConfig()
   ]);
 
-  // Filter to facts from the last 7 days to keep context dense and relevant
-  const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
-  const recentFacts = facts.filter(f => f.occurredAt >= sevenDaysAgo);
+  const factWindowDays = intent === 'audit' ? 30 : 7;
+  const factCutoff = new Date(Date.now() - factWindowDays * 24 * 60 * 60 * 1000).toISOString();
+  const recentFacts = facts.filter(f => f.occurredAt >= factCutoff);
 
   const activeGoals = goals.filter(g => g.status === 'active');
 
   const activeHabits = habits.filter(h => h.status === 'active');
   const routineCapacity = calculateCapacity(routineConfig, activeHabits);
+  const selectedMemories = selectRelevantMemories(semanticMemories, { query });
   const contextData = {
+    context_version: '1.0',
+    request: { intent },
     system_date: new Date().toISOString(),
     user_identity: selfModel?.identity || {},
-    semantic_memories: semanticMemories.map(m => m.content),
+    semantic_memories: selectedMemories.map(m => ({
+      id: m.id,
+      content: m.content,
+      confidence: m.confidence,
+      createdAt: m.createdAt,
+    })),
     latest_scores: snapshot?.stats || {},
     active_goals: activeGoals.map(g => ({
       title: g.title,
       targets: g.targets?.map(t => ({ name: t.name, completed: t.completed }))
     })),
-    recent_evidence_facts: recentFacts.map(f => ({
-      id: f.id,
-      type: f.type,
-      value: f.value,
-      date: f.localDate,
-      source: f.source?.type
-    })),
+    recent_evidence_facts: projectEvidenceFacts(recentFacts),
+    derived_metrics: deriveEvidenceMetrics(recentFacts),
     active_habits: activeHabits.map(h => ({
       id: h.id, name: h.name, domain: h.domain, phase: h.phase,
       masteryLevel: h.masteryRoadmap?.currentLevel,
@@ -69,9 +197,14 @@ export async function assembleContext(intent = 'audit') {
     },
     gaps: selfModel ? computeGaps(snapshot?.stats || {}, selfModel.desiredSelf?.dimensions || {}) : {},
     scoring_details: snapshot?.axisDetails || {},
+    missing_data: [
+      !snapshot && 'No score snapshot is available.',
+      !selfModel && 'No self model is available.',
+      recentFacts.length === 0 && `No facts were recorded in the last ${factWindowDays} days.`,
+    ].filter(Boolean),
     vision: selfModel?.desiredSelf?.vision || '',
     persona_statements: PERSONA,
   };
 
-  return JSON.stringify(contextData, null, 2);
+  return JSON.stringify(compactContext(contextData, CONTEXT_BUDGETS[intent] || CONTEXT_BUDGETS.chat), null, 2);
 }

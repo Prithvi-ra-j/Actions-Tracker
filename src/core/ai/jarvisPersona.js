@@ -44,6 +44,11 @@ The required JSON schema is:
       },
       "reasoning": "Why you are proposing this",
       "confidence": 0.0
-  }
+  },
+  "claims": [{
+    "text": "A factual statement grounded in the context",
+    "evidenceIds": ["fact_id_or_memory_id"]
+  }]
 }
+Claims are optional. Include them for factual assertions and cite only IDs present in the supplied context.
 `.trim();

@@ -5,11 +5,11 @@
  */
 
 import { addHabit, updateHabit, getHabit, archiveHabit as dbArchiveHabit } from '../../database/habitRepository.js';
-import { addQuest } from '../../database/questBoardRepository.js';
-import { addLearning, updateLearning } from '../../database/learningRepository.js';
-import { addExperiment } from '../../database/experimentRepository.js';
-import { updateSelfModel } from '../../database/selfModelRepository.js';
-import { addFact } from '../../database/factsRepository.js';
+import { addQuest, deleteQuest } from '../../database/questBoardRepository.js';
+import { addLearning, updateLearning, deleteLearning } from '../../database/learningRepository.js';
+import { addExperiment, deleteExperiment } from '../../database/experimentRepository.js';
+import { getSelfModel, updateSelfModel } from '../../database/selfModelRepository.js';
+import { addFact, getFact, getAllFacts } from '../../database/factsRepository.js';
 import { getRoutineConfig, updateRoutineConfig } from '../../database/routineRepository.js';
 import { generateOccurrencesForDate } from '../occurrenceEngine.js';
 import { localDateStr } from '../../helpers/dateHelpers.js';
@@ -22,13 +22,44 @@ function requireId(payload, actionType) {
   return payload.id;
 }
 
+export async function validateActionPreconditions(proposal) {
+  const validatedProposal = ActionProposalSchema.parse(proposal);
+  const existingHabitActions = new Set([
+    'modify_habit', 'pause_habit', 'archive_habit', 'modify_roadmap', 'update_mastery_level',
+  ]);
+
+  if (existingHabitActions.has(validatedProposal.actionType)) {
+    const habitId = requireId(validatedProposal.payload, validatedProposal.actionType);
+    const habit = await getHabit(habitId);
+    if (!habit) throw new Error(`Habit ${habitId} no longer exists; proposal is stale`);
+    if (validatedProposal.actionType === 'update_mastery_level' && !habit.masteryRoadmap) {
+      throw new Error(`Habit ${habitId} has no mastery roadmap`);
+    }
+  }
+
+  return validatedProposal;
+}
+
 async function recordActionFact(actionType, payload, result) {
+  const { executionKey, before } = result;
   await addFact({
     type: `jarvis_action.${actionType}`,
     objectId: result?.id ?? payload.id ?? null,
     value: 1,
-    meta: { payload, result, source: 'jarvis_conversational' },
+    meta: { payload, result, before, executionKey, source: 'jarvis_conversational' },
   });
+}
+
+function stableStringify(value) {
+  if (Array.isArray(value)) return `[${value.map(stableStringify).join(',')}]`;
+  if (value && typeof value === 'object') {
+    return `{${Object.keys(value).sort().map(key => `${JSON.stringify(key)}:${stableStringify(value[key])}`).join(',')}}`;
+  }
+  return JSON.stringify(value);
+}
+
+export function createExecutionKey(proposal) {
+  return `${proposal.actionType}:${stableStringify(proposal.payload)}`;
 }
 
 async function addRoutineSlot(payload, habitId) {
@@ -44,9 +75,20 @@ async function addRoutineSlot(payload, habitId) {
 }
 
 export async function executeAction(proposal) {
-  const validatedProposal = ActionProposalSchema.parse(proposal);
+  const validatedProposal = await validateActionPreconditions(proposal);
   const { actionType, payload } = validatedProposal;
-  let result = { actionType };
+  const executionKey = createExecutionKey(validatedProposal);
+  const priorAction = (await getAllFacts()).find(fact => fact.meta?.executionKey === executionKey);
+  if (priorAction) return { ...(priorAction.meta?.result || {}), idempotent: true };
+
+  const before = payload.id
+    ? await getHabit(payload.id)
+    : actionType === 'adjust_routine'
+      ? await getRoutineConfig()
+      : actionType === 'revise_target'
+        ? await getSelfModel()
+        : null;
+  let result = { actionType, executionKey, before };
   
   switch (actionType) {
     case 'add_habit': {
@@ -187,4 +229,38 @@ export async function executeAction(proposal) {
 
   await recordActionFact(actionType, payload, result);
   return result;
+}
+
+export async function undoAction(actionFactId) {
+  const actionFact = await getFact(actionFactId);
+  if (!actionFact?.type?.startsWith('jarvis_action.')) throw new Error('Action fact not found');
+  const actionType = actionFact.type.replace('jarvis_action.', '');
+  const { before, result } = actionFact.meta || {};
+
+  if (actionType === 'add_habit') {
+    const habit = await getHabit(result?.id);
+    if (habit) await dbArchiveHabit(result.id);
+  } else if (['modify_habit', 'pause_habit', 'archive_habit', 'modify_roadmap', 'update_mastery_level'].includes(actionType) && before?.id) {
+    await updateHabit(before.id, before);
+  } else if (actionType === 'add_quest') {
+    await deleteQuest(result.id);
+  } else if (actionType === 'add_learning') {
+    await deleteLearning(result.id);
+  } else if (actionType === 'suggest_experiment') {
+    await deleteExperiment(result.id);
+  } else if (actionType === 'adjust_routine') {
+    await updateRoutineConfig(before);
+  } else if (actionType === 'revise_target') {
+    await updateSelfModel(before);
+  } else {
+    throw new Error(`Undo is not supported for ${actionType}`);
+  }
+
+  await addFact({
+    type: 'jarvis_action.undo',
+    objectId: actionFact.objectId,
+    value: 1,
+    meta: { undoneActionFactId: actionFactId, source: 'jarvis_conversational' },
+  });
+  return { undoneActionFactId: actionFactId };
 }

@@ -9,12 +9,23 @@ import { JARVIS_SYSTEM_PROMPT } from './jarvisPersona.js';
 import { assembleContext } from './contextBuilder.js';
 import { AIInsightSchema } from './aiSchemas.js';
 import { ActionProposalSchema } from './actionSchemas.js';
+import { validateClaimSupport } from './contextBuilder.js';
 import { z } from 'zod';
 
 const ConversationalResponseSchema = z.object({
   message: z.string(),
-  proposal: ActionProposalSchema.optional()
+  proposal: ActionProposalSchema.optional(),
+  claims: z.array(z.object({
+    text: z.string(),
+    evidenceIds: z.array(z.string()),
+  })).optional(),
 });
+
+export function validateEvidenceClaims(response, contextText) {
+  const context = JSON.parse(contextText);
+  validateClaimSupport(response.claims || [], context);
+  return response;
+}
 
 /**
  * Generates an insight based on current user context.
@@ -31,7 +42,7 @@ export async function generateInsight(userQuery = "Analyze my current state and 
   ];
 
   try {
-    const rawResponse = await queryLLM(messages, { jsonMode: true, temperature: 0.2 });
+    const rawResponse = await queryLLM(messages, { jsonMode: true, temperature: 0.2, intent: 'audit', messages });
     let insight;
     try {
       insight = JSON.parse(rawResponse);
@@ -48,6 +59,9 @@ export async function generateInsight(userQuery = "Analyze my current state and 
       id: `insight_${Date.now()}`,
       ...validatedInsight,
       status: 'proposed',
+      contextVersion: JSON.parse(contextText).context_version,
+      promptVersion: '1.1',
+      modelId: 'configured-provider',
       createdAt: new Date().toISOString()
     };
   } catch (err) {
@@ -64,7 +78,7 @@ export async function generateInsight(userQuery = "Analyze my current state and 
  * @returns {Promise<object>} Returns { message, proposal }
  */
 export async function chatWithJarvis(userMessage, history = []) {
-  const contextText = await assembleContext('chat');
+  const contextText = await assembleContext('chat', userMessage);
   
   const messages = [
     { role: 'system', content: JARVIS_SYSTEM_PROMPT },
@@ -74,7 +88,7 @@ export async function chatWithJarvis(userMessage, history = []) {
   ];
   
   try {
-    const rawResponse = await queryLLM(messages, { jsonMode: true, temperature: 0.2 });
+    const rawResponse = await queryLLM(messages, { jsonMode: true, temperature: 0.2, intent: 'jarvis_chat', messages });
     let responseObj;
     try {
       responseObj = JSON.parse(rawResponse);
@@ -85,7 +99,7 @@ export async function chatWithJarvis(userMessage, history = []) {
     
     // Validate output
     const validated = ConversationalResponseSchema.parse(responseObj);
-    return validated;
+    return validateEvidenceClaims(validated, contextText);
   } catch (err) {
     console.error("[JarvisEngine] Chat failed:", err);
     throw err;

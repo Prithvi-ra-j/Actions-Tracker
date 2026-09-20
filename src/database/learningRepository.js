@@ -8,7 +8,7 @@
  * Mastery levels track progression from exposure → impact.
  */
 
-import { dbGet, dbPut, dbGetAll, dbGetAllByIndex } from './db.js';
+import { dbGet, dbPut, dbGetAll, dbGetAllByIndex, dbDelete } from './db.js';
 
 const STORE = 'learnings';
 const SCHEMA_VERSION = 1;
@@ -90,6 +90,10 @@ export async function updateLearning(id, fields) {
   const existing = await dbGet(STORE, id);
   if (!existing) throw new Error(`[learningRepository] Learning not found: ${id}`);
   await dbPut(STORE, { ...existing, ...fields, id, updatedAt: now() });
+}
+
+export async function deleteLearning(id) {
+  await dbDelete(STORE, id);
 }
 
 /**

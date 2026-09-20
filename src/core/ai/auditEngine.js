@@ -6,12 +6,9 @@
 
 import { queryLLM } from './llmClient.js';
 import { JARVIS_SYSTEM_PROMPT } from './jarvisPersona.js';
-import { getAllFacts } from '../../database/factsRepository.js';
-import { getLatestSnapshot } from '../../database/statSnapshotsRepository.js';
-import { getSelfModel } from '../../database/selfModelRepository.js';
-import { getAllGoals } from '../../database/goalsRepository.js';
 import { addAudit } from '../../database/auditRepository.js';
 import { AIAuditSchema } from './aiSchemas.js';
+import { assembleContext, validateEvidenceReferences } from './contextBuilder.js';
 
 const AUDIT_QUESTIONS_PROMPT = `
 You are generating a Monthly Audit. You must analyze the evidence and output a JSON object adhering to this schema:
@@ -47,40 +44,13 @@ Base your analysis on answering the following 14 questions internally before gen
 `;
 
 export async function runMonthlyAudit() {
-  const [facts, snapshot, selfModel, goals] = await Promise.all([
-    getAllFacts(),
-    getLatestSnapshot(),
-    getSelfModel(),
-    getAllGoals()
-  ]);
-
   const end = new Date();
   const start = new Date(end.getTime() - 30 * 24 * 60 * 60 * 1000);
   const startIso = start.toISOString();
   const endIso = end.toISOString();
 
-  // Filter to facts from the last 30 days
-  const recentFacts = facts.filter(f => f.occurredAt >= startIso && f.occurredAt <= endIso);
-  const activeGoals = goals.filter(g => g.status === 'active');
-
-  const contextData = {
-    system_date: endIso,
-    audit_period: { start: startIso, end: endIso },
-    user_identity: selfModel?.identity || {},
-    current_scores: snapshot?.stats || {},
-    active_goals: activeGoals.map(g => ({
-      title: g.title,
-      targets: g.targets?.map(t => ({ name: t.name, completed: t.completed }))
-    })),
-    recent_evidence_facts: recentFacts.map(f => ({
-      id: f.id,
-      type: f.type,
-      value: f.value,
-      date: f.localDate,
-      source: f.source?.type
-    }))
-  };
-
+  const contextData = JSON.parse(await assembleContext('audit'));
+  contextData.audit_period = { start: startIso, end: endIso };
   const contextText = JSON.stringify(contextData, null, 2);
 
   const messages = [
@@ -89,7 +59,7 @@ export async function runMonthlyAudit() {
   ];
 
   try {
-    const rawResponse = await queryLLM(messages, { jsonMode: true, temperature: 0.3, maxTokens: 2000 });
+    const rawResponse = await queryLLM(messages, { jsonMode: true, temperature: 0.3, maxTokens: 2000, intent: 'monthly_audit', messages });
     let auditData;
     try {
       auditData = JSON.parse(rawResponse);
@@ -101,13 +71,18 @@ export async function runMonthlyAudit() {
     // Assign period if not provided
     if (!auditData.period) auditData.period = { start: startIso, end: endIso };
     
+    validateEvidenceReferences(auditData.supportingEvidenceIds || [], contextData);
+
     // §30 Write Boundary Validation: Strict schema validation
     const validatedAudit = AIAuditSchema.parse(auditData);
 
     // Save to DB
     const id = await addAudit({
       ...validatedAudit,
-      analysisVersion: '1.0'
+      analysisVersion: '1.1',
+      contextVersion: contextData.context_version,
+      promptVersion: '1.1',
+      modelId: 'configured-provider',
     });
 
     return { id, ...validatedAudit };
