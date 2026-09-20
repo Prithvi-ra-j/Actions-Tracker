@@ -1,7 +1,7 @@
 <?xml version='1.0' encoding='utf-8'?>
 <resources>
-    <string name="app_name">Year End Goals</string>
-    <string name="title_activity_main">Year End Goals</string>
+    <string name="app_name">Actions</string>
+    <string name="title_activity_main">Actions</string>
     <string name="package_name">com.prithvi.yearendgoals</string>
     <string name="custom_url_scheme">com.prithvi.yearendgoals</string>
 </resources>
