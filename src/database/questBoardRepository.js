@@ -1,4 +1,4 @@
-import { dbGet, dbPut, dbGetAll } from './db.js';
+import { dbGet, dbPut, dbGetAll, dbDelete } from './db.js';
 
 /**
  * questBoard store — sub-goals per axis that feed Volume (§6).
@@ -150,6 +150,10 @@ export async function addQuest(questData) {
   const quest = { id, ...questData };
   await dbPut('questBoard', quest);
   return id;
+}
+
+export async function deleteQuest(id) {
+  await dbDelete('questBoard', id);
 }
 
 /**

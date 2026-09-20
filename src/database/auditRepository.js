@@ -66,6 +66,9 @@ export async function addAudit(fields) {
     nextPeriodFocus:      fields.nextPeriodFocus  ?? [],
     supportingEvidenceIds: fields.supportingEvidenceIds ?? [],
     analysisVersion:      fields.analysisVersion,
+    contextVersion:       fields.contextVersion ?? null,
+    promptVersion:        fields.promptVersion ?? null,
+    modelId:              fields.modelId ?? null,
     createdAt:            ts,
   };
   await dbPut(STORE, record);

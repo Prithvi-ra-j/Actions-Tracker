@@ -24,11 +24,27 @@ class ConversationManager {
     this.history.push({ role, content });
   }
 
+  summarizeOlderMessages(messages) {
+    const excerpts = messages
+      .filter(message => message.role !== 'system')
+      .map(message => `${message.role}: ${String(message.content).slice(0, 240)}`)
+      .join('\n');
+    return excerpts ? `Earlier conversation excerpts:\n${excerpts}` : '';
+  }
+
   /**
    * Retrieves the current conversation history.
    */
-  getHistory() {
-    return [...this.history];
+  getHistory(maxTurns = 8) {
+    const systemMessages = this.history.filter(message => message.role === 'system');
+    const conversationalMessages = this.history.filter(message => message.role !== 'system');
+    const olderMessages = conversationalMessages.slice(0, -maxTurns);
+    const summary = this.summarizeOlderMessages(olderMessages);
+    return [
+      ...systemMessages,
+      ...(summary ? [{ role: 'system', content: summary }] : []),
+      ...conversationalMessages.slice(-maxTurns),
+    ];
   }
 
   /**
