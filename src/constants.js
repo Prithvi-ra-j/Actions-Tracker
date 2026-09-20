@@ -1,5 +1,14 @@
 // ─── Static content ───────────────────────────────────────────────────────────
 
+export const LIFE_DIMENSIONS = [
+  { key: 'body', label: 'Body', icon: '⚔' },
+  { key: 'discipline', label: 'Discipline', icon: '⚡' },
+  { key: 'knowledge', label: 'Knowledge', icon: '∞' },
+  { key: 'social', label: 'Social', icon: '♥' },
+  { key: 'creativity', label: 'Creativity', icon: '◈' },
+  { key: 'strategy', label: 'Strategy', icon: '♟' },
+];
+
 export const PERSONA = [
   "He walks into a room and people notice — not because he announced himself, but because something about him is settled.",
   "He has read things, made things, trained his body, and thought seriously about how to live. You can feel it.",

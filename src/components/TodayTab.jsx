@@ -4,6 +4,7 @@ import { localDateStr, formatDisplayDate } from '../helpers/dateHelpers.js';
 import InsightsInbox from './InsightsInbox.jsx';
 import { GITA_QUOTES } from '../data/quotes.js';
 import { getGracePrompt } from '../core/occurrenceEngine.js';
+import HabitRoadmapEditor from './HabitRoadmapEditor.jsx';
 
 /**
  * Today Screen (§51)
@@ -134,6 +135,13 @@ export default function TodayTab({
       </div>
 
       {/* Your Habits */}
+      <div>
+        <div style={{ fontFamily: 'monospace', fontSize: '0.65rem', letterSpacing: '0.1em', color: t.muted, textTransform: 'uppercase', marginBottom: '1rem' }}>
+          Habit Roadmaps
+        </div>
+        <HabitRoadmapEditor t={t} />
+      </div>
+
       <div>
         <div style={{ fontFamily: 'monospace', fontSize: '0.65rem', letterSpacing: '0.1em', color: t.muted, textTransform: 'uppercase', marginBottom: '1rem' }}>
           Today's Habits

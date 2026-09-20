@@ -24,6 +24,7 @@
 import React, { useState, useMemo } from 'react';
 import { ACCENT } from '../constants.js';
 import { localDateStr } from '../helpers/dateHelpers.js';
+import { queryLLM } from '../core/ai/llmClient.js';
 
 // ─── Constants ─────────────────────────────────────────────────────────────────
 
@@ -300,6 +301,8 @@ function AddLearningForm({ t, books, onSave, onCancel }) {
 function LearningCard({ t, learning }) {
   const hasApplication = !!(learning.personalApplication?.trim());
   const hasRetention   = (learning.mastery?.retention ?? 0) > 0;
+  const state = hasApplication ? 'Applied' : hasRetention ? 'Understood' : 'Captured';
+  const stateColor = hasApplication ? ACCENT : hasRetention ? '#4a7ba6' : t.muted;
 
   return (
     <div style={{
@@ -313,32 +316,7 @@ function LearningCard({ t, learning }) {
           {learning.concept}
         </div>
         <div style={{ display: 'flex', gap: '0.3rem', flexShrink: 0 }}>
-          {hasApplication && (
-            <span style={{
-              fontFamily:    'monospace',
-              fontSize:      '0.5rem',
-              letterSpacing: '0.1em',
-              background:    'rgba(196,130,26,0.15)',
-              color:         ACCENT,
-              padding:       '0.15rem 0.4rem',
-              textTransform: 'uppercase',
-            }}>
-              Applied
-            </span>
-          )}
-          {hasRetention && (
-            <span style={{
-              fontFamily:    'monospace',
-              fontSize:      '0.5rem',
-              letterSpacing: '0.1em',
-              background:    'rgba(74,123,166,0.15)',
-              color:         '#4a7ba6',
-              padding:       '0.15rem 0.4rem',
-              textTransform: 'uppercase',
-            }}>
-              Retained
-            </span>
-          )}
+          <span style={{ fontFamily: 'monospace', fontSize: '0.5rem', letterSpacing: '0.1em', background: `${stateColor}18`, color: stateColor, padding: '0.15rem 0.4rem', textTransform: 'uppercase' }}>{state}</span>
         </div>
       </div>
 
@@ -359,6 +337,98 @@ function LearningCard({ t, learning }) {
   );
 }
 
+function VoiceLearningCapture({ t, books, onSave }) {
+  const [recording, setRecording] = useState(false);
+  const [transcript, setTranscript] = useState('');
+  const [draft, setDraft] = useState(null);
+  const [status, setStatus] = useState('');
+  const [sourceType, setSourceType] = useState('conversation');
+  const [sourceId, setSourceId] = useState('');
+  const [application, setApplication] = useState('');
+
+  const extractLearning = async text => {
+    try {
+      setStatus('Turning your note into a learning...');
+      const raw = await queryLLM([
+        { role: 'system', content: 'Convert spoken learning notes into JSON only. Infer sourceType only from explicit keywords such as book, video, article, podcast, conversation, experience, or other. Never invent a source title.' },
+        { role: 'user', content: `Spoken note: ${text}\nReturn {"concept":"","explanation":"","sourceType":"book|video|article|podcast|conversation|experience|other","personalApplication":""}. Leave personalApplication empty when no application was stated.` },
+      ], { jsonMode: true, temperature: 0.1, intent: 'learning_capture' });
+      const parsed = JSON.parse(raw.replace(/```json/g, '').replace(/```/g, '').trim());
+      setDraft(parsed);
+      setSourceType(parsed.sourceType || 'conversation');
+      setStatus('Review the capture, then save it to your learning library.');
+    } catch (error) {
+      setStatus(`Capture needs a retry: ${error.message}`);
+    }
+  };
+
+  const listen = () => {
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (!SpeechRecognition) {
+      setStatus('Voice capture is unavailable here. Type the note below instead.');
+      return;
+    }
+    const recognition = new SpeechRecognition();
+    recognition.lang = 'en-US';
+    recognition.interimResults = false;
+    recognition.onstart = () => { setRecording(true); setStatus('Listening...'); };
+    recognition.onresult = event => {
+      const text = event.results[0][0].transcript;
+      setTranscript(text);
+      extractLearning(text);
+    };
+    recognition.onerror = () => setStatus('I could not hear that. Try again or type it below.');
+    recognition.onend = () => setRecording(false);
+    recognition.start();
+  };
+
+  const save = async () => {
+    if (!draft?.concept || !draft?.explanation) return;
+    await onSave({
+      concept: draft.concept,
+      explanation: draft.explanation,
+      sourceType,
+      sourceId: sourceType === 'book' ? sourceId || null : null,
+      personalApplication: application.trim() || draft.personalApplication || null,
+    });
+    setTranscript('');
+    setDraft(null);
+    setApplication('');
+    setStatus('Saved to your library.');
+  };
+
+  return (
+    <div style={{ border: `1px solid ${ACCENT}`, background: t.subtleBg, padding: '1rem', marginBottom: '1rem' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', gap: '1rem', alignItems: 'flex-start' }}>
+        <div>
+          <div style={{ color: ACCENT, fontFamily: 'monospace', fontSize: '0.6rem', letterSpacing: '0.15em', textTransform: 'uppercase' }}>Speak a learning</div>
+          <div style={{ fontSize: '1rem', fontWeight: 700, marginTop: '0.35rem' }}>Tell me what stayed with you.</div>
+          <div style={{ color: t.muted, fontSize: '0.75rem', lineHeight: 1.5, marginTop: '0.35rem' }}>Mention book, video, conversation, or experience and I will sort the source.</div>
+        </div>
+        <button onClick={listen} disabled={recording} aria-label="Start voice capture" style={{ width: 52, height: 52, borderRadius: '50%', background: recording ? '#c1442c' : ACCENT, border: 'none', color: '#fff', fontSize: '1.2rem', cursor: recording ? 'default' : 'pointer', flexShrink: 0 }}>{recording ? '■' : '●'}</button>
+      </div>
+      <textarea value={transcript} onChange={e => { setTranscript(e.target.value); setDraft(null); }} placeholder="Or type the note, then press Enter to process..." rows={3} onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey && transcript.trim()) { e.preventDefault(); extractLearning(transcript.trim()); } }} style={{ width: '100%', boxSizing: 'border-box', marginTop: '1rem', padding: '0.7rem', background: t.pageBg, color: t.pageText, border: `1px solid ${t.border}`, resize: 'vertical', fontFamily: 'inherit' }} />
+      {status && <div style={{ color: t.muted, fontSize: '0.7rem', marginTop: '0.5rem' }}>{status}</div>}
+      {draft && (
+        <div style={{ marginTop: '1rem', borderTop: `1px solid ${t.border}`, paddingTop: '1rem' }}>
+          <div style={{ fontFamily: 'monospace', fontSize: '0.55rem', color: ACCENT, letterSpacing: '0.12em' }}>AI CAPTURE REVIEW</div>
+          <input value={draft.concept} onChange={e => setDraft({ ...draft, concept: e.target.value })} style={captureInput(t)} />
+          <textarea value={draft.explanation} onChange={e => setDraft({ ...draft, explanation: e.target.value })} rows={3} style={{ ...captureInput(t), resize: 'vertical' }} />
+          <div style={{ display: 'flex', gap: '0.35rem', flexWrap: 'wrap', marginBottom: '0.6rem' }}>
+            {SOURCE_TYPES.map(source => <button key={source.value} onClick={() => setSourceType(source.value)} style={{ ...captureChip(t), color: sourceType === source.value ? ACCENT : t.muted, borderColor: sourceType === source.value ? ACCENT : t.border }}>{source.label}</button>)}
+          </div>
+          {sourceType === 'book' && <select value={sourceId} onChange={e => setSourceId(e.target.value)} style={captureInput(t)}><option value="">Link a book (optional)</option>{(books || []).map(book => <option key={book.id} value={book.id}>{book.title}</option>)}</select>}
+          <textarea value={application} onChange={e => setApplication(e.target.value)} placeholder="Personal application, or leave empty: Not applied yet" rows={2} style={{ ...captureInput(t), resize: 'vertical' }} />
+          <button onClick={save} style={{ background: ACCENT, color: '#fff', border: 'none', padding: '0.6rem 1rem', fontFamily: 'monospace', fontSize: '0.65rem', cursor: 'pointer', textTransform: 'uppercase' }}>Save learning</button>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function captureInput(t) { return { width: '100%', boxSizing: 'border-box', marginTop: '0.6rem', padding: '0.6rem', background: t.pageBg, color: t.pageText, border: `1px solid ${t.border}`, fontFamily: 'inherit' }; }
+function captureChip(t) { return { background: 'transparent', border: `1px solid ${t.border}`, padding: '0.3rem 0.5rem', fontFamily: 'monospace', fontSize: '0.55rem', cursor: 'pointer' }; }
+
 // ─── Main component ────────────────────────────────────────────────────────────
 
 export default function LearnTab({
@@ -369,8 +439,11 @@ export default function LearnTab({
   onFinishBook,
   onAddLearning,
   onUpdateMastery,
+  onAddBook,
 }) {
   const [showAddForm, setShowAddForm] = useState(false);
+  const [showBookForm, setShowBookForm] = useState(false);
+  const [bookDraft, setBookDraft] = useState({ title: '', totalPages: '', category: 'philosophy' });
 
   const booksInProgress = useMemo(
     () => (books ?? []).filter(b => b.status === 'in_progress'),
@@ -406,6 +479,21 @@ export default function LearnTab({
       </div>
 
       {/* ── Continue Reading ─────────────────────────────────────────────────── */}
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'end' }}>
+        <SectionLabel t={t}>Your Library</SectionLabel>
+        <button onClick={() => setShowBookForm(!showBookForm)} style={{ ...captureChip(t), color: ACCENT, borderColor: ACCENT }}>+ Add book</button>
+      </div>
+      {showBookForm && (
+        <div style={{ display: 'grid', gap: '0.5rem', padding: '0.8rem', border: `1px solid ${t.border}`, background: t.subtleBg, marginBottom: '0.75rem' }}>
+          <input placeholder="Book title" value={bookDraft.title} onChange={e => setBookDraft({ ...bookDraft, title: e.target.value })} style={captureInput(t)} />
+          <input type="number" placeholder="Total pages" value={bookDraft.totalPages} onChange={e => setBookDraft({ ...bookDraft, totalPages: e.target.value })} style={captureInput(t)} />
+          <select value={bookDraft.category} onChange={e => setBookDraft({ ...bookDraft, category: e.target.value })} style={captureInput(t)}>
+            {['philosophy', 'history_biography', 'strategy', 'outside_goals'].map(category => <option key={category} value={category}>{category.replace('_', ' ')}</option>)}
+          </select>
+          <button onClick={async () => { if (bookDraft.title && bookDraft.totalPages) { await onAddBook({ ...bookDraft, totalPages: Number(bookDraft.totalPages) }); setBookDraft({ title: '', totalPages: '', category: 'philosophy' }); setShowBookForm(false); } }} style={{ background: ACCENT, border: 'none', color: '#fff', padding: '0.55rem', fontFamily: 'monospace', fontSize: '0.6rem' }}>Add to library</button>
+        </div>
+      )}
+
       <SectionLabel t={t}>Continue Reading</SectionLabel>
 
       {booksInProgress.length === 0 ? (
@@ -426,6 +514,8 @@ export default function LearnTab({
 
       {/* ── Add Learning ─────────────────────────────────────────────────────── */}
       <SectionLabel t={t}>Capture Learning</SectionLabel>
+
+      <VoiceLearningCapture t={t} books={books} onSave={onAddLearning} />
 
       {showAddForm ? (
         <AddLearningForm
