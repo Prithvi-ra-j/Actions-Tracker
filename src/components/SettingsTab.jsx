@@ -32,6 +32,9 @@ export default function SettingsTab({ t, dark, setDark, reminders, setReminders,
   const [aiApiKey, setAiApiKey] = useState('');
   const [aiBaseUrl, setAiBaseUrl] = useState('');
   const [aiModel, setAiModel] = useState('');
+  // API key verification state
+  const [verifyStatus, setVerifyStatus] = useState('');  // '', 'verifying', 'success', 'error'
+  const [verifyResult, setVerifyResult] = useState(null); // { model, latencyMs } or { error }
   
   const [memories, setMemories] = useState([]);
 
@@ -376,7 +379,7 @@ export default function SettingsTab({ t, dark, setDark, reminders, setReminders,
           <input 
             type="password" 
             value={aiApiKey}
-            onChange={(e) => setAiApiKey(e.target.value)}
+            onChange={(e) => { setAiApiKey(e.target.value); if (verifyStatus) setVerifyStatus(''); }}
             style={{ width: '100%', padding: '0.5rem', background: t.subtleBg, border: `1px solid ${t.borderSoft}`, color: t.pageText, fontFamily: 'monospace' }} 
             placeholder="gsk_..."
           />
@@ -387,7 +390,7 @@ export default function SettingsTab({ t, dark, setDark, reminders, setReminders,
           <input 
             type="text" 
             value={aiBaseUrl}
-            onChange={(e) => setAiBaseUrl(e.target.value)}
+            onChange={(e) => { setAiBaseUrl(e.target.value); if (verifyStatus) setVerifyStatus(''); }}
             style={{ width: '100%', padding: '0.5rem', background: t.subtleBg, border: `1px solid ${t.borderSoft}`, color: t.pageText, fontFamily: 'monospace' }} 
           />
         </div>
@@ -397,10 +400,83 @@ export default function SettingsTab({ t, dark, setDark, reminders, setReminders,
           <input 
             type="text" 
             value={aiModel}
-            onChange={(e) => setAiModel(e.target.value)}
+            onChange={(e) => { setAiModel(e.target.value); if (verifyStatus) setVerifyStatus(''); }}
             style={{ width: '100%', padding: '0.5rem', background: t.subtleBg, border: `1px solid ${t.borderSoft}`, color: t.pageText, fontFamily: 'monospace' }} 
           />
         </div>
+
+        {/* ── Verify Connection Button ──────────────────────────────────────── */}
+        <button
+          id="btn-verify-ai"
+          onClick={async () => {
+            setVerifyStatus('verifying');
+            setVerifyResult(null);
+            const { verifyLLMConnection } = await import('../core/ai/llmClient.js');
+            const result = await verifyLLMConnection(aiApiKey, aiBaseUrl, aiModel);
+            if (result.ok) {
+              setVerifyStatus('success');
+              setVerifyResult({ model: result.model, latencyMs: result.latencyMs });
+            } else {
+              setVerifyStatus('error');
+              setVerifyResult({ error: result.error });
+            }
+          }}
+          disabled={verifyStatus === 'verifying' || !aiApiKey.trim()}
+          style={{
+            width: '100%',
+            padding: '0.7rem',
+            background: verifyStatus === 'success' ? 'rgba(79,138,95,0.1)'
+                      : verifyStatus === 'error'   ? 'rgba(193,68,44,0.06)'
+                      : 'transparent',
+            border: `1px solid ${
+              verifyStatus === 'success' ? '#4f8a5f'
+              : verifyStatus === 'error' ? '#c1442c'
+              : !aiApiKey.trim() ? t.borderFaint
+              : ACCENT
+            }`,
+            color: verifyStatus === 'success' ? '#4f8a5f'
+                 : verifyStatus === 'error'   ? '#c1442c'
+                 : !aiApiKey.trim() ? t.muted
+                 : ACCENT,
+            fontFamily: 'monospace',
+            fontSize: '0.65rem',
+            letterSpacing: '0.1em',
+            textTransform: 'uppercase',
+            cursor: (verifyStatus === 'verifying' || !aiApiKey.trim()) ? 'default' : 'pointer',
+            opacity: verifyStatus === 'verifying' ? 0.75 : 1,
+            transition: 'all 0.3s',
+          }}
+        >
+          {verifyStatus === 'verifying' ? 'Verifying…'
+           : verifyStatus === 'success' ? 'Connection Verified'
+           : verifyStatus === 'error'   ? 'Verification Failed'
+           : 'Verify Connection'}
+        </button>
+
+        {/* Verify result details */}
+        {verifyStatus === 'success' && verifyResult && (
+          <div style={{
+            marginTop: '0.5rem', padding: '0.6rem',
+            background: 'rgba(79,138,95,0.08)',
+            border: '1px solid rgba(79,138,95,0.2)',
+            fontFamily: 'monospace', fontSize: '0.6rem', color: '#4f8a5f',
+            letterSpacing: '0.06em', lineHeight: 1.6,
+          }}>
+            <div>API key is valid and model is accessible.</div>
+            <div>Model: {verifyResult.model} · Latency: {verifyResult.latencyMs}ms</div>
+          </div>
+        )}
+        {verifyStatus === 'error' && verifyResult && (
+          <div style={{
+            marginTop: '0.5rem', padding: '0.6rem',
+            background: 'rgba(193,68,44,0.06)',
+            border: '1px solid rgba(193,68,44,0.2)',
+            fontFamily: 'monospace', fontSize: '0.6rem', color: '#c1442c',
+            letterSpacing: '0.06em', lineHeight: 1.6,
+          }}>
+            {verifyResult.error}
+          </div>
+        )}
       </div>
 
       {/* ── AI Memory ────────────────────────────────────────────────────────── */}

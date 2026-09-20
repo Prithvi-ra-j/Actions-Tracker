@@ -431,6 +431,20 @@ function captureChip(t) { return { background: 'transparent', border: `1px solid
 
 // ─── Main component ────────────────────────────────────────────────────────────
 
+// Valid categories for AI auto-fill mapping
+const VALID_CATEGORIES = ['philosophy', 'history_biography', 'strategy', 'outside_goals'];
+
+function mapToValidCategory(aiCategory) {
+  if (!aiCategory) return 'philosophy';
+  const lower = aiCategory.toLowerCase().replace(/[\s/]+/g, '_');
+  if (VALID_CATEGORIES.includes(lower)) return lower;
+  // Fuzzy match common AI responses
+  if (/histor|biograph|memoir/i.test(aiCategory)) return 'history_biography';
+  if (/strateg|business|leadership|management|economics|finance/i.test(aiCategory)) return 'strategy';
+  if (/philos|stoic|ethic|metaphys|logic/i.test(aiCategory)) return 'philosophy';
+  return 'outside_goals';
+}
+
 export default function LearnTab({
   t,
   books,
@@ -440,10 +454,44 @@ export default function LearnTab({
   onAddLearning,
   onUpdateMastery,
   onAddBook,
+  onStartBook,
 }) {
   const [showAddForm, setShowAddForm] = useState(false);
   const [showBookForm, setShowBookForm] = useState(false);
   const [bookDraft, setBookDraft] = useState({ title: '', totalPages: '', category: 'philosophy' });
+  const [autoFillStatus, setAutoFillStatus] = useState('');  // '', 'loading', 'done', 'error'
+  const [autoFillError, setAutoFillError] = useState('');
+
+  const handleAutoFill = async () => {
+    if (!bookDraft.title || bookDraft.title.trim().length < 3) return;
+    setAutoFillStatus('loading');
+    setAutoFillError('');
+    try {
+      const raw = await queryLLM([
+        { role: 'system', content: 'You are a librarian assistant. Given a book title, return JSON with the book details. Only return the JSON object, no other text.' },
+        { role: 'user', content: `Book title: "${bookDraft.title.trim()}"
+
+Return a JSON object with these fields:
+- "author": string (author name)
+- "totalPages": number (approximate page count of the most common edition)
+- "category": one of "philosophy", "history_biography", "strategy", or "outside_goals"
+- "description": string (1-2 sentence summary)
+
+Return ONLY the JSON object.` },
+      ], { jsonMode: true, temperature: 0.1, intent: 'book_autofill' });
+      const parsed = JSON.parse(raw.replace(/```json/g, '').replace(/```/g, '').trim());
+      setBookDraft(prev => ({
+        ...prev,
+        totalPages: parsed.totalPages ? String(parsed.totalPages) : prev.totalPages,
+        category: mapToValidCategory(parsed.category),
+      }));
+      setAutoFillStatus('done');
+    } catch (err) {
+      console.error('[LearnTab] AI auto-fill failed:', err);
+      setAutoFillStatus('error');
+      setAutoFillError(err.message || 'Auto-fill failed');
+    }
+  };
 
   const booksInProgress = useMemo(
     () => (books ?? []).filter(b => b.status === 'in_progress'),
@@ -478,38 +526,131 @@ export default function LearnTab({
         )}
       </div>
 
-      {/* ── Continue Reading ─────────────────────────────────────────────────── */}
+      {/* ── Your Library ──────────────────────────────────────────────────── */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'end' }}>
         <SectionLabel t={t}>Your Library</SectionLabel>
-        <button onClick={() => setShowBookForm(!showBookForm)} style={{ ...captureChip(t), color: ACCENT, borderColor: ACCENT }}>+ Add book</button>
+        <button onClick={() => { setShowBookForm(!showBookForm); setAutoFillStatus(''); setAutoFillError(''); }} style={{ ...captureChip(t), color: ACCENT, borderColor: ACCENT }}>+ Add book</button>
       </div>
       {showBookForm && (
         <div style={{ display: 'grid', gap: '0.5rem', padding: '0.8rem', border: `1px solid ${t.border}`, background: t.subtleBg, marginBottom: '0.75rem' }}>
-          <input placeholder="Book title" value={bookDraft.title} onChange={e => setBookDraft({ ...bookDraft, title: e.target.value })} style={captureInput(t)} />
+          <div style={{ display: 'flex', gap: '0.4rem', alignItems: 'center' }}>
+            <input placeholder="Book title" value={bookDraft.title} onChange={e => { setBookDraft({ ...bookDraft, title: e.target.value }); if (autoFillStatus === 'done') setAutoFillStatus(''); }} style={{ ...captureInput(t), flex: 1, marginBottom: 0 }} />
+            <button
+              onClick={handleAutoFill}
+              disabled={autoFillStatus === 'loading' || bookDraft.title.trim().length < 3}
+              style={{
+                background: autoFillStatus === 'loading' ? t.subtleBg : 'transparent',
+                border: `1px solid ${bookDraft.title.trim().length >= 3 ? ACCENT : t.border}`,
+                color: bookDraft.title.trim().length >= 3 ? ACCENT : t.muted,
+                fontFamily: 'monospace',
+                fontSize: '0.55rem',
+                letterSpacing: '0.1em',
+                padding: '0.45rem 0.65rem',
+                cursor: autoFillStatus === 'loading' || bookDraft.title.trim().length < 3 ? 'default' : 'pointer',
+                textTransform: 'uppercase',
+                whiteSpace: 'nowrap',
+              }}
+            >
+              {autoFillStatus === 'loading' ? 'Filling…' : 'Auto-fill'}
+            </button>
+          </div>
+          {autoFillStatus === 'done' && (
+            <div style={{ fontFamily: 'monospace', fontSize: '0.55rem', color: ACCENT, letterSpacing: '0.08em' }}>Auto-filled — review and adjust if needed</div>
+          )}
+          {autoFillStatus === 'error' && (
+            <div style={{ fontFamily: 'monospace', fontSize: '0.55rem', color: '#c1442c', letterSpacing: '0.08em' }}>{autoFillError || 'Auto-fill failed. Fill manually.'}</div>
+          )}
           <input type="number" placeholder="Total pages" value={bookDraft.totalPages} onChange={e => setBookDraft({ ...bookDraft, totalPages: e.target.value })} style={captureInput(t)} />
           <select value={bookDraft.category} onChange={e => setBookDraft({ ...bookDraft, category: e.target.value })} style={captureInput(t)}>
             {['philosophy', 'history_biography', 'strategy', 'outside_goals'].map(category => <option key={category} value={category}>{category.replace('_', ' ')}</option>)}
           </select>
-          <button onClick={async () => { if (bookDraft.title && bookDraft.totalPages) { await onAddBook({ ...bookDraft, totalPages: Number(bookDraft.totalPages) }); setBookDraft({ title: '', totalPages: '', category: 'philosophy' }); setShowBookForm(false); } }} style={{ background: ACCENT, border: 'none', color: '#fff', padding: '0.55rem', fontFamily: 'monospace', fontSize: '0.6rem' }}>Add to library</button>
+          <button onClick={async () => { if (bookDraft.title && bookDraft.totalPages) { await onAddBook({ ...bookDraft, totalPages: Number(bookDraft.totalPages) }); setBookDraft({ title: '', totalPages: '', category: 'philosophy' }); setShowBookForm(false); setAutoFillStatus(''); } }} style={{ background: ACCENT, border: 'none', color: '#fff', padding: '0.55rem', fontFamily: 'monospace', fontSize: '0.6rem', cursor: 'pointer', textTransform: 'uppercase', letterSpacing: '0.1em' }}>Add to library</button>
         </div>
       )}
 
-      <SectionLabel t={t}>Continue Reading</SectionLabel>
-
-      {booksInProgress.length === 0 ? (
-        <div style={{ fontFamily: 'monospace', fontSize: '0.7rem', color: t.muted, padding: '0.75rem 0', letterSpacing: '0.08em' }}>
-          No books in progress. Start one in your book list.
+      {/* ── Library Book List (all statuses) ──────────────────────────────── */}
+      {(books ?? []).length > 0 && (
+        <div style={{ marginBottom: '0.75rem' }}>
+          {(books ?? []).map(book => {
+            const statusLabel = book.status === 'in_progress' ? 'READING' : book.status === 'finished' ? 'FINISHED' : 'NOT STARTED';
+            const statusColor = book.status === 'in_progress' ? ACCENT : book.status === 'finished' ? '#4a7ba6' : t.muted;
+            const pct = book.totalPages > 0 ? Math.round((book.pagesRead / book.totalPages) * 100) : 0;
+            return (
+              <div key={book.id} style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.6rem',
+                padding: '0.6rem 0.5rem',
+                borderBottom: `1px solid ${t.borderSoft}`,
+              }}>
+                {/* Book info */}
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontSize: '0.85rem', fontWeight: 600, lineHeight: 1.3, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                    {book.title}
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', marginTop: '0.2rem' }}>
+                    <span style={{ fontFamily: 'monospace', fontSize: '0.5rem', letterSpacing: '0.1em', color: t.muted, textTransform: 'uppercase' }}>
+                      {book.category?.replace('_', ' ') ?? 'reading'}
+                    </span>
+                    <span style={{ color: t.borderSoft }}>·</span>
+                    <span style={{ fontFamily: 'monospace', fontSize: '0.5rem', letterSpacing: '0.1em', background: `${statusColor}18`, color: statusColor, padding: '0.1rem 0.35rem', textTransform: 'uppercase' }}>
+                      {statusLabel}
+                    </span>
+                    {book.status !== 'not_started' && (
+                      <>
+                        <span style={{ color: t.borderSoft }}>·</span>
+                        <span style={{ fontFamily: 'monospace', fontSize: '0.5rem', color: t.muted }}>
+                          {book.pagesRead}/{book.totalPages} ({pct}%)
+                        </span>
+                      </>
+                    )}
+                  </div>
+                </div>
+                {/* Action */}
+                {book.status === 'not_started' && onStartBook && (
+                  <button
+                    onClick={() => onStartBook(book.id, localDateStr())}
+                    style={{
+                      background: 'transparent',
+                      border: `1px solid ${ACCENT}`,
+                      color: ACCENT,
+                      fontFamily: 'monospace',
+                      fontSize: '0.5rem',
+                      letterSpacing: '0.1em',
+                      padding: '0.3rem 0.6rem',
+                      cursor: 'pointer',
+                      textTransform: 'uppercase',
+                      whiteSpace: 'nowrap',
+                    }}
+                  >
+                    Start
+                  </button>
+                )}
+              </div>
+            );
+          })}
         </div>
-      ) : (
-        booksInProgress.map(book => (
-          <BookCard
-            key={book.id}
-            t={t}
-            book={book}
-            onUpdatePages={onUpdatePages}
-            onFinishBook={onFinishBook}
-          />
-        ))
+      )}
+      {(books ?? []).length === 0 && !showBookForm && (
+        <div style={{ fontFamily: 'monospace', fontSize: '0.7rem', color: t.muted, padding: '0.75rem 0', letterSpacing: '0.08em' }}>
+          No books yet. Add your first book above.
+        </div>
+      )}
+
+      {/* ── Continue Reading ─────────────────────────────────────────────── */}
+      {booksInProgress.length > 0 && (
+        <>
+          <SectionLabel t={t}>Continue Reading</SectionLabel>
+          {booksInProgress.map(book => (
+            <BookCard
+              key={book.id}
+              t={t}
+              book={book}
+              onUpdatePages={onUpdatePages}
+              onFinishBook={onFinishBook}
+            />
+          ))}
+        </>
       )}
 
       {/* ── Add Learning ─────────────────────────────────────────────────────── */}

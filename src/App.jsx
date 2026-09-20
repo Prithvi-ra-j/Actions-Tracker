@@ -569,6 +569,16 @@ export default function App() {
     }
   }, []);
 
+  const handleStartBook = useCallback(async (bookId, dateStr) => {
+    try {
+      const { updateBookStatus, getAllBooks } = await import('./database/booksRepository.js');
+      await updateBookStatus(bookId, 'in_progress', dateStr);
+      setBooks(await getAllBooks());
+    } catch (err) {
+      console.error('[App] handleStartBook failed:', err);
+    }
+  }, []);
+
   const handleUpdatePages = useCallback(async (bookId, pagesAdded, dateStr) => {
     try {
       const { updateBookPagesRead, getAllBooks } = await import('./database/booksRepository.js');
@@ -805,6 +815,7 @@ export default function App() {
                 onFinishBook={handleFinishBook}
                 onAddLearning={handleAddLearning}
                 onAddBook={handleAddBook}
+                onStartBook={handleStartBook}
               />
             )}
 

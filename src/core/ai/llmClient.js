@@ -73,3 +73,67 @@ async function recordAICallTelemetry(options, model, startedAt, output, success,
     console.warn('[LLMClient] Failed to record AI telemetry:', error);
   }
 }
+
+/**
+ * Verify an LLM connection using explicit credentials (not persisted settings).
+ * Sends a minimal prompt to check the API key and model are valid.
+ * Returns { ok: true, model, latencyMs } on success or { ok: false, error } on failure.
+ */
+export async function verifyLLMConnection(apiKey, baseUrl, model) {
+  if (!apiKey) {
+    return { ok: false, error: 'API key is empty.' };
+  }
+  if (!baseUrl) {
+    return { ok: false, error: 'Base URL is empty.' };
+  }
+  if (!model) {
+    return { ok: false, error: 'Model name is empty.' };
+  }
+
+  const endpoint = baseUrl.endsWith('/chat/completions')
+    ? baseUrl
+    : `${baseUrl.replace(/\/$/, '')}/chat/completions`;
+
+  const startedAt = Date.now();
+
+  try {
+    const response = await fetch(endpoint, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${apiKey}`,
+      },
+      body: JSON.stringify({
+        model,
+        messages: [{ role: 'user', content: 'Reply with OK' }],
+        temperature: 0,
+        max_tokens: 4,
+      }),
+    });
+
+    const latencyMs = Date.now() - startedAt;
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      let userMessage;
+      if (response.status === 401) {
+        userMessage = 'Invalid API key.';
+      } else if (response.status === 404) {
+        userMessage = `Model "${model}" not found at this endpoint.`;
+      } else if (response.status === 429) {
+        userMessage = 'Rate limited — try again in a moment.';
+      } else {
+        userMessage = `API error (${response.status}): ${errorText.slice(0, 150)}`;
+      }
+      return { ok: false, error: userMessage };
+    }
+
+    const data = await response.json();
+    const content = data.choices?.[0]?.message?.content;
+    const actualModel = data.model || model;
+
+    return { ok: true, model: actualModel, latencyMs, response: content };
+  } catch (err) {
+    return { ok: false, error: `Connection failed: ${err.message}` };
+  }
+}
