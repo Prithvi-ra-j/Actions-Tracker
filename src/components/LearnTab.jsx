@@ -462,7 +462,7 @@ export default function LearnTab({
   const [autoFillStatus, setAutoFillStatus] = useState('');  // '', 'loading', 'done', 'error'
   const [autoFillError, setAutoFillError] = useState('');
 
-  const handleAutoFill = async () => {
+  const handleSingleStepAdd = async () => {
     if (!bookDraft.title || bookDraft.title.trim().length < 3) return;
     setAutoFillStatus('loading');
     setAutoFillError('');
@@ -473,23 +473,30 @@ export default function LearnTab({
 
 Return a JSON object with these fields:
 - "author": string (author name)
-- "totalPages": number (approximate page count of the most common edition)
+- "totalPages": number (approximate page count of the most common edition, default to 300 if unknown)
 - "category": one of "philosophy", "history_biography", "strategy", or "outside_goals"
 - "description": string (1-2 sentence summary)
 
 Return ONLY the JSON object.` },
       ], { jsonMode: true, temperature: 0.1, intent: 'book_autofill' });
       const parsed = JSON.parse(raw.replace(/```json/g, '').replace(/```/g, '').trim());
-      setBookDraft(prev => ({
-        ...prev,
-        totalPages: parsed.totalPages ? String(parsed.totalPages) : prev.totalPages,
+      
+      const newBook = {
+        title: bookDraft.title.trim(),
+        totalPages: parsed.totalPages ? Number(parsed.totalPages) : 300,
         category: mapToValidCategory(parsed.category),
-      }));
-      setAutoFillStatus('done');
+        author: parsed.author || 'Unknown',
+        description: parsed.description || ''
+      };
+      
+      await onAddBook(newBook);
+      setBookDraft({ title: '', totalPages: '', category: 'philosophy' });
+      setShowBookForm(false);
+      setAutoFillStatus('');
     } catch (err) {
-      console.error('[LearnTab] AI auto-fill failed:', err);
+      console.error('[LearnTab] AI book fetch failed:', err);
       setAutoFillStatus('error');
-      setAutoFillError(err.message || 'Auto-fill failed');
+      setAutoFillError('Failed to fetch book. Ensure your AI API key is set.');
     }
   };
 
@@ -532,39 +539,40 @@ Return ONLY the JSON object.` },
         <button onClick={() => { setShowBookForm(!showBookForm); setAutoFillStatus(''); setAutoFillError(''); }} style={{ ...captureChip(t), color: ACCENT, borderColor: ACCENT }}>+ Add book</button>
       </div>
       {showBookForm && (
-        <div style={{ display: 'grid', gap: '0.5rem', padding: '0.8rem', border: `1px solid ${t.border}`, background: t.subtleBg, marginBottom: '0.75rem' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', padding: '0.8rem', border: `1px solid ${t.border}`, background: t.subtleBg, marginBottom: '0.75rem' }}>
           <div style={{ display: 'flex', gap: '0.4rem', alignItems: 'center' }}>
-            <input placeholder="Book title" value={bookDraft.title} onChange={e => { setBookDraft({ ...bookDraft, title: e.target.value }); if (autoFillStatus === 'done') setAutoFillStatus(''); }} style={{ ...captureInput(t), flex: 1, marginBottom: 0 }} />
+            <input 
+              placeholder="Enter a book title or idea..." 
+              value={bookDraft.title} 
+              onChange={e => setBookDraft({ ...bookDraft, title: e.target.value })} 
+              onKeyDown={e => { if (e.key === 'Enter') handleSingleStepAdd(); }}
+              style={{ ...captureInput(t), flex: 1, marginBottom: 0 }} 
+            />
             <button
-              onClick={handleAutoFill}
+              onClick={handleSingleStepAdd}
               disabled={autoFillStatus === 'loading' || bookDraft.title.trim().length < 3}
               style={{
-                background: autoFillStatus === 'loading' ? t.subtleBg : 'transparent',
-                border: `1px solid ${bookDraft.title.trim().length >= 3 ? ACCENT : t.border}`,
-                color: bookDraft.title.trim().length >= 3 ? ACCENT : t.muted,
+                background: autoFillStatus === 'loading' ? t.subtleBg : ACCENT,
+                border: `1px solid ${autoFillStatus === 'loading' ? t.border : ACCENT}`,
+                color: autoFillStatus === 'loading' ? t.muted : '#fff',
                 fontFamily: 'monospace',
-                fontSize: '0.55rem',
+                fontSize: '0.65rem',
                 letterSpacing: '0.1em',
-                padding: '0.45rem 0.65rem',
+                padding: '0.55rem 0.75rem',
                 cursor: autoFillStatus === 'loading' || bookDraft.title.trim().length < 3 ? 'default' : 'pointer',
                 textTransform: 'uppercase',
                 whiteSpace: 'nowrap',
               }}
             >
-              {autoFillStatus === 'loading' ? 'Filling…' : 'Auto-fill'}
+              {autoFillStatus === 'loading' ? 'Finding...' : 'Add to Library'}
             </button>
           </div>
-          {autoFillStatus === 'done' && (
-            <div style={{ fontFamily: 'monospace', fontSize: '0.55rem', color: ACCENT, letterSpacing: '0.08em' }}>Auto-filled — review and adjust if needed</div>
+          {autoFillStatus === 'loading' && (
+            <div style={{ fontFamily: 'monospace', fontSize: '0.6rem', color: t.muted, letterSpacing: '0.08em', marginTop: '0.2rem' }}>AI is fetching book details...</div>
           )}
           {autoFillStatus === 'error' && (
-            <div style={{ fontFamily: 'monospace', fontSize: '0.55rem', color: '#c1442c', letterSpacing: '0.08em' }}>{autoFillError || 'Auto-fill failed. Fill manually.'}</div>
+            <div style={{ fontFamily: 'monospace', fontSize: '0.55rem', color: '#c1442c', letterSpacing: '0.08em' }}>{autoFillError}</div>
           )}
-          <input type="number" placeholder="Total pages" value={bookDraft.totalPages} onChange={e => setBookDraft({ ...bookDraft, totalPages: e.target.value })} style={captureInput(t)} />
-          <select value={bookDraft.category} onChange={e => setBookDraft({ ...bookDraft, category: e.target.value })} style={captureInput(t)}>
-            {['philosophy', 'history_biography', 'strategy', 'outside_goals'].map(category => <option key={category} value={category}>{category.replace('_', ' ')}</option>)}
-          </select>
-          <button onClick={async () => { if (bookDraft.title && bookDraft.totalPages) { await onAddBook({ ...bookDraft, totalPages: Number(bookDraft.totalPages) }); setBookDraft({ title: '', totalPages: '', category: 'philosophy' }); setShowBookForm(false); setAutoFillStatus(''); } }} style={{ background: ACCENT, border: 'none', color: '#fff', padding: '0.55rem', fontFamily: 'monospace', fontSize: '0.6rem', cursor: 'pointer', textTransform: 'uppercase', letterSpacing: '0.1em' }}>Add to library</button>
         </div>
       )}
 
