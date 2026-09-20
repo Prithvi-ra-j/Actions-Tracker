@@ -36,7 +36,7 @@ import ReviewPrompt from './components/ReviewPrompt.jsx';
 import SettingsTab   from './components/SettingsTab.jsx';
 import NavDrawer     from './components/NavDrawer.jsx';
 import { Haptics, ImpactStyle } from '@capacitor/haptics';
-import OnboardingScreen  from './components/OnboardingScreen.jsx';
+import OnboardingFlow from './components/onboarding/OnboardingFlow.jsx';
 import StatsTab          from './components/StatsTab.jsx';
 import LevelUpCeremony   from './components/LevelUpCeremony.jsx';
 import CompletionFeedback from './components/CompletionFeedback.jsx';
@@ -152,6 +152,7 @@ export default function App() {
   const [dbReady,         setDbReady]         = useState(false);
   const [dbError,         setDbError]         = useState(null);
   const [needsOnboarding, setNeedsOnboarding] = useState(false);
+  const [hasLegacyData,   setHasLegacyData]   = useState(false);
 
   // ── UI state ───────────────────────────────────────────────────────────────
   const [tab,          setTab]          = useState('daily');
@@ -260,6 +261,8 @@ export default function App() {
         const hasOldBaseline = allLogs.filter(l => l.type !== 'daily_checkbox').length > 0;
         if (!onboardingDone && !hasOldBaseline) {
           setNeedsOnboarding(true);
+        } else if (!onboardingDone && hasOldBaseline) {
+          setHasLegacyData(true);
         }
 
         setAllLogs(allLogs);
@@ -626,10 +629,9 @@ export default function App() {
   }
 
   // ── Main render ────────────────────────────────────────────────────────────
-  /* // FOR LATER USE: Temporarily disabled onboarding logic
-  if (needsOnboarding) {
+  if (needsOnboarding && import.meta.env.VITE_ENABLE_ONBOARDING_V3) {
     return (
-      <OnboardingScreen 
+      <OnboardingFlow 
         t={t} 
         onComplete={async () => {
           setNeedsOnboarding(false);
@@ -652,7 +654,6 @@ export default function App() {
       />
     );
   }
-  */
 
   return (
     <div style={{
@@ -752,6 +753,28 @@ export default function App() {
             fontFamily: 'monospace', fontSize: '0.48rem', color: '#c1442c', lineHeight: 1.5,
           }}>
             ⚠ Storage warning: {dbError}. Changes may not persist across restarts.
+          </div>
+        )}
+
+        {hasLegacyData && import.meta.env.VITE_ENABLE_ONBOARDING_V3 && (
+          <div style={{
+            padding: '1rem', marginBottom: '1rem',
+            background: 'rgba(74, 123, 166, 0.1)', border: '1px solid #4a7ba6',
+            color: '#4a7ba6', borderRadius: 4, display: 'flex', justifyContent: 'space-between', alignItems: 'center'
+          }}>
+            <div>
+              <div style={{ fontWeight: 'bold', marginBottom: '0.25rem' }}>Upgrade your baseline</div>
+              <div style={{ fontSize: '0.85rem', opacity: 0.9 }}>Recalibrate your stats and unlock new features.</div>
+            </div>
+            <button
+              onClick={() => {
+                // To be implemented in S1 (Recalibrate Mode)
+                console.log('Recalibrate clicked');
+              }}
+              style={{ padding: '0.5rem 1rem', background: '#4a7ba6', color: '#1c1916', border: 'none', borderRadius: 4, cursor: 'pointer', fontWeight: 'bold' }}
+            >
+              Start
+            </button>
           </div>
         )}
 

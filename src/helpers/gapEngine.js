@@ -24,8 +24,24 @@ export function computeGaps(currentState, desiredDims, historicalState = null) {
   const gaps = {};
 
   for (const dim of Object.keys(desiredDims)) {
-    const current = currentState[dim]?.value ?? 0;
+    // Adapter: handle both { value: ... } and just number directly.
+    const rawVal = currentState[dim];
+    const current = typeof rawVal === 'number' ? rawVal : rawVal?.value;
+
     const target  = desiredDims[dim]?.targetValue ?? 0;
+
+    if (current === undefined || current === null) {
+      gaps[dim] = {
+        currentValue: null,
+        targetValue: target,
+        delta: null,
+        priority: 'unknown',
+        trajectory: 0,
+        estimatedTargetDate: null,
+      };
+      continue;
+    }
+
     const delta   = Math.max(0, target - current); // gaps are always positive
 
     const priority =
@@ -37,7 +53,8 @@ export function computeGaps(currentState, desiredDims, historicalState = null) {
     let estimatedTargetDate = null;
 
     if (historicalState && historicalState[dim] !== undefined) {
-      const past = historicalState[dim]?.value ?? 0;
+      const pastRaw = historicalState[dim];
+      const past = typeof pastRaw === 'number' ? pastRaw : (pastRaw?.value ?? 0);
       trajectory = current - past;
 
       if (trajectory > 0 && delta > 0) {
@@ -69,12 +86,12 @@ export function computeGaps(currentState, desiredDims, historicalState = null) {
  * @returns {Array<{ dim: string, delta: number, priority: string, ... }>}
  */
 export function sortedGaps(gaps) {
-  const PRIORITY_ORDER = { high: 0, medium: 1, low: 2 };
+  const PRIORITY_ORDER = { high: 0, medium: 1, low: 2, unknown: 3 };
   return Object.entries(gaps)
     .map(([dim, g]) => ({ dim, ...g }))
     .sort((a, b) => {
       const pDiff = PRIORITY_ORDER[a.priority] - PRIORITY_ORDER[b.priority];
-      return pDiff !== 0 ? pDiff : b.delta - a.delta;
+      return pDiff !== 0 ? pDiff : (b.delta || 0) - (a.delta || 0);
     });
 }
 

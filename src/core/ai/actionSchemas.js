@@ -32,6 +32,9 @@ export const ActionProposalSchema = z.object({
   if (proposal.actionType === 'add_quest' && typeof proposal.payload.title !== 'string') {
     context.addIssue({ code: z.ZodIssueCode.custom, path: ['payload', 'title'], message: 'add_quest requires payload.title' });
   }
+  if (proposal.actionType === 'add_quest' && (!proposal.payload.metric || typeof proposal.payload.metric.type !== 'string')) {
+    context.addIssue({ code: z.ZodIssueCode.custom, path: ['payload', 'metric'], message: 'add_quest requires payload.metric object' });
+  }
   if (proposal.actionType === 'suggest_experiment' && typeof proposal.payload.hypothesis !== 'string') {
     context.addIssue({ code: z.ZodIssueCode.custom, path: ['payload', 'hypothesis'], message: 'suggest_experiment requires payload.hypothesis' });
   }

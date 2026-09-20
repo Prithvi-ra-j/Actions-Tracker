@@ -89,7 +89,7 @@ describe('actionExecutor IndexedDB integration', () => {
     await proposal('update_mastery_level', { id, currentLevel: 2 });
     await proposal('pause_habit', { id });
     await proposal('archive_habit', { id });
-    await proposal('add_quest', { title: 'Coverage quest', domain: 'body' });
+    await proposal('add_quest', { title: 'Coverage quest', domain: 'body', metric: { type: 'manual' } });
     await proposal('add_learning', { concept: 'Test concept', explanation: 'Test explanation' });
     await proposal('suggest_experiment', { domain: 'social', hypothesis: 'Test hypothesis', protocol: 'Test protocol' });
     await proposal('adjust_routine', { weeklyBudget: { total: 3, unit: 'hours' }, timeSlots: [], constraints: [] });

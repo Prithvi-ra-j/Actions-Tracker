@@ -117,7 +117,10 @@ export function calcConsistency(axis, axisLogs, axisConfig, today) {
 export function calcVolume(axisQuests, axisHabits = []) {
   if (!axisQuests || axisQuests.length === 0) return 0;
 
-  const total = axisQuests.reduce((sum, q) => {
+  let totalWeightedProgress = 0;
+  let totalWeight = 0;
+
+  for (const q of axisQuests) {
     let baseProgress = q.done
       ? 1.0
       : Math.min(q.currentValue / Math.max(q.targetValue, 1), 1.0);
@@ -135,10 +138,13 @@ export function calcVolume(axisQuests, axisHabits = []) {
     }
     
     const progress = baseProgress * (0.7 + 0.3 * masteryBonus);
-    return sum + progress;
-  }, 0);
+    
+    const w = q.weight ?? 1;
+    totalWeightedProgress += (progress * w);
+    totalWeight += w;
+  }
 
-  return clamp((total / axisQuests.length) * 100, 0, 100);
+  return clamp((totalWeightedProgress / totalWeight) * 100, 0, 100);
 }
 
 /**
@@ -175,13 +181,42 @@ export function calcMomentum(axis, axisLogs, axisConfig, today) {
   const priorStart  = subDays(windowEnd, windowDays * 2 - 1);
 
   const recentRate = countInRange(axisLogs, recentStart, windowEnd);
-  const priorRate  = countInRange(axisLogs, priorStart, priorEnd);
+  let priorRate  = countInRange(axisLogs, priorStart, priorEnd);
+
+  const oldestLog = axisLogs.reduce((oldest, l) => (!oldest || l.date < oldest ? l.date : oldest), today);
+  const accountAgeDays = Math.round((new Date(today + 'T00:00:00') - new Date(oldestLog + 'T00:00:00')) / (1000 * 60 * 60 * 24));
+
+  if (accountAgeDays < windowDays * 2 && axisConfig.baselineRatePerWeek !== undefined) {
+    const baselineSeed = Math.round(axisConfig.baselineRatePerWeek * (windowDays / 7));
+    priorRate = Math.max(priorRate, baselineSeed);
+  }
 
   const raw = ((recentRate - priorRate) / Math.max(priorRate, 1)) * 100;
   return clamp(raw, -20, 20);
 }
 
 // ── Layer 3 — Combined Stat ────────────────────────────────────────────────────
+
+export function getWeights(axisHabits = []) {
+  let weightC = 0.45;
+  let weightV = 0.40;
+  let weightM = 0.15;
+  
+  if (axisHabits && axisHabits.length > 0) {
+    const phases = { building: 0, maintaining: 0, advancing: 0 };
+    axisHabits.forEach(h => {
+      phases[h.phase || 'building']++;
+    });
+    
+    if (phases.advancing > 0) {
+      weightC = 0.15; weightV = 0.60; weightM = 0.25;
+    } else if (phases.maintaining > phases.building) {
+      weightC = 0.25; weightV = 0.50; weightM = 0.25;
+    }
+  }
+  
+  return { C: weightC, V: weightV, M: weightM };
+}
 
 /**
  * Computes the final stat for a single axis (0–99).
@@ -200,22 +235,7 @@ export function calcAxisStat(axis, axisLogs, axisConfig, axisQuests, today, axis
   const V = calcVolume(axisQuests, axisHabits);
   const M = calcMomentum(axis, axisLogs, axisConfig, today);
 
-  let weightC = 0.45;
-  let weightV = 0.40;
-  let weightM = 0.15;
-  
-  if (axisHabits && axisHabits.length > 0) {
-    const phases = { building: 0, maintaining: 0, advancing: 0 };
-    axisHabits.forEach(h => {
-      phases[h.phase || 'building']++;
-    });
-    
-    if (phases.advancing > 0) {
-      weightC = 0.15; weightV = 0.60; weightM = 0.25;
-    } else if (phases.maintaining > phases.building) {
-      weightC = 0.25; weightV = 0.50; weightM = 0.25;
-    }
-  }
+  const { C: weightC, V: weightV, M: weightM } = getWeights(axisHabits);
 
   let computed;
   if (!axisConfig.hasConsistencyTerm) {

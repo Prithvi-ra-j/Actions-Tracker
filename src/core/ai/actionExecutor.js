@@ -141,6 +141,8 @@ export async function executeAction(proposal) {
         targetValue: payload.targetValue || 1,
         unit: payload.unit || 'actions',
         currentValue: 0,
+        metric: payload.metric,
+        weight: payload.weight || 1,
         done: false,
       });
       result = { ...result, id };

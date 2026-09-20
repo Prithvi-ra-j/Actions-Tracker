@@ -19,11 +19,13 @@ The system uses an RPG-like axis model to track progression:
 - **Automatic Backup**: Backups are periodically exported as a JSON file to the device's file system for safekeeping against data corruption or app uninstalls.
 
 ## Technical Stack
-- **Frontend**: React (Vite)
+- **Frontend**: React (Vite) - *Note: Vite proxy uses port 3000 for Supabase connections.*
 - **Database**: IndexedDB (Native Browser / WebView)
-- **Container**: Capacitor for native Android features (File System, Notifications, Status Bar)
+- **Container**: Capacitor v6 for native Android features (File System, Notifications, Status Bar, Secure Storage)
 
 ## Setup and Build
+**Requirements:** Node 20+
+
 ```bash
 # Install dependencies
 npm install

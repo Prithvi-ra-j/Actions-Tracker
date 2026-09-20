@@ -12,9 +12,6 @@ export default defineConfig({
     __APP_VERSION__: JSON.stringify(packageJson.version),
   },
   build: {
-    outDir: 'dist',
-    rollupOptions: {
-      external: ['capacitor-secure-storage-plugin']
-    }
-  },
+    outDir: 'dist'
+  }
 });
