@@ -163,11 +163,11 @@ export async function deleteQuest(id) {
  *
  * @param {Array} allLogs — the full logs array from logsRepository
  */
-export async function syncQuestProgress(allLogs) {
+export async function syncQuestProgress(logs, facts = [], occurrences = []) {
   const quests = await getAllQuests();
 
   for (const quest of quests) {
-    const newValue = deriveQuestValue(quest, allLogs);
+    const newValue = deriveQuestValue(quest, { logs, facts, occurrences });
     const done = newValue >= quest.targetValue;
 
     if (quest.currentValue !== newValue || quest.done !== done) {
@@ -180,7 +180,48 @@ export async function syncQuestProgress(allLogs) {
  * Pure derivation of currentValue for a quest from logs.
  * Kept as a separate function so it can be unit-tested without DB.
  */
-export function deriveQuestValue(quest, allLogs) {
+export function deriveQuestValue(quest, context = {}) {
+  // Support both (quest, allLogs) and (quest, { logs, facts, occurrences })
+  const logs = Array.isArray(context) ? context : (context.logs || []);
+  const facts = context.facts || [];
+  const occurrences = context.occurrences || [];
+
+  if (quest.metric) {
+    const { metric } = quest;
+    switch (metric.type) {
+      case 'log_count':
+        return logs.filter(l => 
+          l.axis === metric.axis && 
+          metric.logTypes.includes(l.type) &&
+          (!metric.filter || l.meta?.[metric.filter.metaKey] === metric.filter.equals)
+        ).length;
+      case 'log_weighted_sum':
+        return logs.filter(l => l.axis === metric.axis && metric.weights[l.type] !== undefined)
+          .reduce((sum, l) => {
+            const w = metric.weights[l.type];
+            const multiplier = metric.metaWeightKey ? (l.meta?.[metric.metaWeightKey] ?? 1) : 1;
+            return sum + w * multiplier;
+          }, 0);
+      case 'distinct_days':
+        return new Set(logs.filter(l => l.axis === metric.axis && metric.logTypes.includes(l.type)).map(l => l.date)).size;
+      case 'habit_completions':
+        return occurrences.filter(o => o.habitId === metric.habitId && o.status === 'completed').length;
+      case 'fact_count':
+        return facts.filter(f => f.type === metric.factType).length;
+      case 'fact_sum':
+        return facts.filter(f => f.type === metric.factType).reduce((sum, f) => {
+          const val = metric.valuePath ? (f.value?.[metric.valuePath] ?? 0) : (f.value ?? 0);
+          return sum + val;
+        }, 0);
+      case 'manual':
+        return quest.currentValue ?? 0;
+      default:
+        return quest.currentValue ?? 0;
+    }
+  }
+
+  // Legacy switch logic below uses `logs`
+  const allLogs = logs;
   switch (quest.id) {
     case 'q-body-sessions':
       return allLogs.filter(l => l.axis === 'body' && l.type === 'gym_session').length;
@@ -227,6 +268,6 @@ export function deriveQuestValue(quest, allLogs) {
         .reduce((sum, l) => sum + (l.meta?.weight ?? 1.0), 0);
 
     default:
-      return 0;
+      return quest.currentValue ?? 0;
   }
 }

@@ -13,7 +13,7 @@ const isCapacitor = typeof window !== 'undefined' && window.Capacitor && window.
 
 export async function setSecureValue(key, value) {
   if (isCapacitor) {
-    const { SecureStoragePlugin } = await import(/* @vite-ignore */ 'capacitor-secure-storage-plugin');
+    const { SecureStoragePlugin } = await import('capacitor-secure-storage-plugin');
     await SecureStoragePlugin.set({ key, value });
   } else {
     memoryFallback.set(key, value);
@@ -23,7 +23,7 @@ export async function setSecureValue(key, value) {
 export async function getSecureValue(key) {
   if (isCapacitor) {
     try {
-      const { SecureStoragePlugin } = await import(/* @vite-ignore */ 'capacitor-secure-storage-plugin');
+      const { SecureStoragePlugin } = await import('capacitor-secure-storage-plugin');
       const res = await SecureStoragePlugin.get({ key });
       return res.value;
     } catch (e) {
@@ -36,7 +36,7 @@ export async function getSecureValue(key) {
 
 export async function clearSecureValue(key) {
   if (isCapacitor) {
-    const { SecureStoragePlugin } = await import(/* @vite-ignore */ 'capacitor-secure-storage-plugin');
+    const { SecureStoragePlugin } = await import('capacitor-secure-storage-plugin');
     await SecureStoragePlugin.remove({ key });
   } else {
     memoryFallback.delete(key);

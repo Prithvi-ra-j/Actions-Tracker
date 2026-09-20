@@ -8,6 +8,12 @@ export async function addLog(log) {
   return id;
 }
 
+export async function commitLog(log) {
+  // Similar to addLog but accepts a fully formed log object with id and createdAt
+  await dbPut('logs', log);
+  return log.id;
+}
+
 export async function getLogsByDateRange(startDate, endDate) {
   // Uses index if available, or fetch all and filter for now since IDB index range queries
   // require bound keys which we can simulate by filtering all logs, or creating an index range.

@@ -274,6 +274,28 @@ export function dbDelete(storeName, key) {
 }
 
 /**
+ * Executes a sequence of writes across multiple stores in a single atomic transaction.
+ * @param {string[]} storeNames
+ * @param {(tx: IDBTransaction) => void} sequenceFn
+ * @returns {Promise<void>}
+ */
+export function writeSequence(storeNames, sequenceFn) {
+  return new Promise((resolve, reject) => {
+    const tx = getDB().transaction(storeNames, 'readwrite');
+    tx.oncomplete = () => resolve();
+    tx.onerror = () => reject(tx.error);
+    tx.onabort = () => reject(tx.error);
+    
+    try {
+      sequenceFn(tx);
+    } catch (err) {
+      tx.abort();
+      reject(err);
+    }
+  });
+}
+
+/**
  * Returns all records in an object store.
  * @param {string} storeName
  * @returns {Promise<any[]>}

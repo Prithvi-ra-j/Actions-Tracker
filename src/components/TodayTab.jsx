@@ -5,6 +5,7 @@ import InsightsInbox from './InsightsInbox.jsx';
 import { GITA_QUOTES } from '../data/quotes.js';
 import { getGracePrompt } from '../core/occurrenceEngine.js';
 import HabitRoadmapEditor from './HabitRoadmapEditor.jsx';
+import SetupChecklist from './onboarding/SetupChecklist.jsx';
 
 /**
  * Today Screen (§51)

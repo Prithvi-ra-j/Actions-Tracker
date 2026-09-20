@@ -2,10 +2,11 @@ import React, { useState } from 'react';
 import { ACCENT } from '../constants.js';
 
 const LIFE_DIMS = [
-  { key: 'body',     label: 'Body & Health',      icon: '⚔' },
-  { key: 'mind',     label: 'Mind & Knowledge',   icon: '∞' },
-  { key: 'craft',    label: 'Craft & Creativity', icon: '◈' },
-  { key: 'strategy', label: 'Strategy & History', icon: '♟' },
+  { key: 'body',       label: 'Body & Health',      icon: '⚔' },
+  { key: 'knowledge',  label: 'Mind & Knowledge',   icon: '∞' },
+  { key: 'creativity', label: 'Craft & Creativity', icon: '◈' },
+  { key: 'strategy',   label: 'Strategy & History', icon: '♟' },
+  { key: 'social',     label: 'Social & Connection',icon: '🫂' },
 ];
 
 /**
@@ -14,12 +15,13 @@ const LIFE_DIMS = [
  * across the 4 primary life dimensions.
  */
 export default function ArchetypeCompiler({ t, vision, onSave, onCancel }) {
-  const [step, setStep] = useState(0); // 0 = intro, 1..4 = dimensions
+  const [step, setStep] = useState(0); // 0 = intro, 1..5 = dimensions
   const [targets, setTargets] = useState({
     body: { targetValue: 50, why: '' },
-    mind: { targetValue: 50, why: '' },
-    craft: { targetValue: 50, why: '' },
+    knowledge: { targetValue: 50, why: '' },
+    creativity: { targetValue: 50, why: '' },
     strategy: { targetValue: 50, why: '' },
+    social: { targetValue: 50, why: '' },
   });
 
   const handleNext = () => {
@@ -57,7 +59,7 @@ export default function ArchetypeCompiler({ t, vision, onSave, onCancel }) {
               "{vision || 'No vision set.'}"
             </div>
             <p style={{ fontSize: '0.9rem', lineHeight: 1.6, marginBottom: '2rem' }}>
-              To achieve this vision, you need specific capabilities. Let's break this abstract North Star down into concrete target stats for your Body, Mind, Craft, and Strategy.
+              To achieve this vision, you need specific capabilities. Let's break this abstract North Star down into concrete target stats for your Body, Knowledge, Creativity, Strategy, and Social axes.
             </p>
             <div style={{ display: 'flex', justifyContent: 'space-between' }}>
               <button onClick={onCancel} style={{ background: 'transparent', border: 'none', color: t.muted, cursor: 'pointer', fontFamily: 'monospace', fontSize: '0.8rem', textTransform: 'uppercase' }}>Cancel</button>
@@ -69,7 +71,7 @@ export default function ArchetypeCompiler({ t, vision, onSave, onCancel }) {
         {step > 0 && currentDim && (
           <div>
             <div style={{ fontFamily: 'monospace', fontSize: '0.7rem', color: ACCENT, letterSpacing: '0.2em', textTransform: 'uppercase', marginBottom: '0.5rem' }}>
-              Step {step} of 4 · {currentDim.label}
+              Step {step} of {LIFE_DIMS.length} · {currentDim.label}
             </div>
             <div style={{ fontSize: '2rem', marginBottom: '1rem' }}>{currentDim.icon}</div>
             
@@ -96,7 +98,7 @@ export default function ArchetypeCompiler({ t, vision, onSave, onCancel }) {
             <div style={{ display: 'flex', justifyContent: 'space-between' }}>
               <button onClick={() => setStep(step - 1)} style={{ background: 'transparent', border: 'none', color: t.muted, cursor: 'pointer', fontFamily: 'monospace', fontSize: '0.8rem', textTransform: 'uppercase' }}>← Back</button>
               <button onClick={handleNext} style={{ background: ACCENT, color: '#fff', border: 'none', padding: '0.6rem 1.2rem', borderRadius: '4px', fontFamily: 'monospace', fontSize: '0.8rem', cursor: 'pointer', textTransform: 'uppercase' }}>
-                {step === 4 ? 'Complete Compilation' : 'Next Dimension →'}
+                {step === LIFE_DIMS.length ? 'Complete Compilation' : 'Next Dimension →'}
               </button>
             </div>
           </div>

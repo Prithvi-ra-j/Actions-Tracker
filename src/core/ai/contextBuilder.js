@@ -140,6 +140,18 @@ export function selectRelevantMemories(memories, {
     .slice(0, limit);
 }
 
+export function normalizeDimKey(key) {
+  const map = {
+    body: 'body',
+    mind: 'knowledge',
+    craft: 'creativity',
+    strategy: 'strategy',
+    social: 'social',
+    discipline: 'discipline'
+  };
+  return map[key] || key;
+}
+
 export async function assembleContext(intent = 'audit', query = '') {
   // We only pull what's necessary based on the intent.
   // For a general audit, we want the current self model, latest score snapshot, active goals, and recent facts.
@@ -163,6 +175,14 @@ export async function assembleContext(intent = 'audit', query = '') {
   const activeHabits = habits.filter(h => h.status === 'active');
   const routineCapacity = calculateCapacity(routineConfig, activeHabits);
   const selectedMemories = selectRelevantMemories(semanticMemories, { query });
+
+  const normalizedDims = {};
+  if (selfModel?.desiredSelf?.dimensions) {
+    for (const [k, v] of Object.entries(selfModel.desiredSelf.dimensions)) {
+      normalizedDims[normalizeDimKey(k)] = v;
+    }
+  }
+
   const contextData = {
     context_version: '1.0',
     request: { intent },
@@ -195,7 +215,7 @@ export async function assembleContext(intent = 'audit', query = '') {
       conflicts: routineCapacity.conflicts,
       timeSlots: routineConfig?.timeSlots || [],
     },
-    gaps: selfModel ? computeGaps(snapshot?.stats || {}, selfModel.desiredSelf?.dimensions || {}) : {},
+    gaps: selfModel ? computeGaps(snapshot?.stats || {}, normalizedDims) : {},
     scoring_details: snapshot?.axisDetails || {},
     missing_data: [
       !snapshot && 'No score snapshot is available.',
