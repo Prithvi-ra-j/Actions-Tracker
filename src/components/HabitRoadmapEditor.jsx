@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { ACCENT } from '../constants.js';
 import { getAllHabits, updateHabit } from '../database/habitRepository.js';
+import { getOccurrencesForHabit } from '../database/habitOccurrenceRepository.js';
 
 const EMPTY_LEVEL = {
   name: '',
@@ -14,6 +15,21 @@ const EMPTY_LEVEL = {
 
 function roadmapFor(habit) {
   return habit.masteryRoadmap || { currentLevel: 1, levels: [{ level: 1, ...EMPTY_LEVEL }] };
+}
+
+async function readProgress(habit) {
+  const roadmap = roadmapFor(habit);
+  const occurrences = await getOccurrencesForHabit(habit.id);
+  const completed = occurrences.filter(occurrence => occurrence.status === 'completed').length;
+  const currentLevel = roadmap.currentLevel || 1;
+  const level = roadmap.levels[currentLevel - 1] || roadmap.levels[0];
+  return {
+    completed,
+    total: occurrences.length,
+    currentLevel,
+    levelName: level?.name || `Level ${currentLevel}`,
+    threshold: Number(level?.evidenceThreshold?.value || 0),
+  };
 }
 
 function fieldStyle(t) {
@@ -53,6 +69,7 @@ export default function HabitRoadmapEditor({ t }) {
   const [habits, setHabits] = useState([]);
   const [selectedId, setSelectedId] = useState(null);
   const [draft, setDraft] = useState(null);
+  const [progress, setProgress] = useState(null);
   const [message, setMessage] = useState(null);
 
   useEffect(() => {
@@ -62,6 +79,7 @@ export default function HabitRoadmapEditor({ t }) {
       if (active[0]) {
         setSelectedId(active[0].id);
         setDraft(roadmapFor(active[0]));
+        readProgress(active[0]).then(setProgress).catch(error => setMessage(error.message));
       }
     }).catch(error => setMessage(error.message));
   }, []);
@@ -70,6 +88,7 @@ export default function HabitRoadmapEditor({ t }) {
     const habit = habits.find(item => item.id === id);
     setSelectedId(id);
     setDraft(habit ? roadmapFor(habit) : null);
+    if (habit) readProgress(habit).then(setProgress).catch(error => setMessage(error.message));
     setMessage(null);
   };
 
@@ -97,6 +116,18 @@ export default function HabitRoadmapEditor({ t }) {
           </select>
           {draft && (
             <div style={{ marginTop: '0.6rem' }}>
+              {progress && (
+                <div style={{ border: `1px solid ${t.border}`, padding: '0.75rem', background: t.subtleBg, marginBottom: '0.75rem' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', fontFamily: 'monospace', fontSize: '0.6rem', color: t.muted }}>
+                    <span>PROGRESS · {progress.levelName}</span>
+                    <strong style={{ color: ACCENT }}>{progress.completed}/{progress.threshold || progress.total || 0}</strong>
+                  </div>
+                  <div style={{ height: 5, background: t.borderFaint, marginTop: '0.5rem' }}>
+                    <div style={{ height: '100%', width: `${Math.min(100, progress.threshold ? (progress.completed / progress.threshold) * 100 : (progress.total ? (progress.completed / progress.total) * 100 : 0))}%`, background: ACCENT }} />
+                  </div>
+                  <div style={{ fontSize: '0.7rem', color: t.muted, marginTop: '0.45rem' }}>{progress.completed} completed occurrences across {progress.total} scheduled records.</div>
+                </div>
+              )}
               <label style={{ display: 'block', fontFamily: 'monospace', fontSize: '0.6rem', color: t.muted }}>CURRENT LEVEL</label>
               <input aria-label="Current mastery level" type="number" min="1" max={draft.levels.length} value={draft.currentLevel || 1} onChange={e => setDraft({ ...draft, currentLevel: Number(e.target.value) })} style={{ ...fieldStyle(t), marginTop: '0.25rem' }} />
               {draft.levels.map((level, index) => <LevelEditor key={index} t={t} level={level} index={index} canRemove={draft.levels.length > 1} onChange={next => updateLevel(index, next)} onRemove={() => setDraft({ ...draft, levels: draft.levels.filter((_, itemIndex) => itemIndex !== index).map((item, itemIndex) => ({ ...item, level: itemIndex + 1 })) })} />)}

@@ -1,5 +1,5 @@
 import React, { useMemo, useState, useEffect } from 'react';
-import { ACCENT } from '../constants.js';
+import { ACCENT, LIFE_DIMENSIONS } from '../constants.js';
 import { getThresholdTitle } from '../helpers/statsEngine.js';
 import RadarChart from './RadarChart.jsx';
 import StatHistoryModal from './StatHistoryModal.jsx';
@@ -16,14 +16,7 @@ import StatHistoryModal from './StatHistoryModal.jsx';
 // Architectural domains mapped to stats engine keys
 import { COLORS } from '../theme.js';
 
-const AXES = [
-  { key: 'body',       label: 'Body',       color: COLORS.domains.body },
-  { key: 'discipline', label: 'Discipline', color: COLORS.domains.discipline },
-  { key: 'knowledge',  label: 'Knowledge',  color: COLORS.domains.knowledge },
-  { key: 'social',     label: 'Social',     color: COLORS.domains.social || '#ff9500' },
-  { key: 'creativity', label: 'Creativity', color: COLORS.domains.creativity },
-  { key: 'strategy',   label: 'Strategy',   color: COLORS.domains.strategy },
-];
+const AXES = LIFE_DIMENSIONS.map(axis => ({ ...axis, color: COLORS.domains[axis.key] || '#ff9500' }));
 
 function MiniBar({ value, max = 100, color, dark }) {
   const pct = Math.min(Math.max(value ?? 0, 0), max) / max * 100;

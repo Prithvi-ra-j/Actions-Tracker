@@ -119,17 +119,21 @@ export default function JarvisTab({ t, onQuestsChanged }) {
           Jarvis OS
         </div>
         <div style={{ fontSize: '1.6rem', fontWeight: 900, lineHeight: 1 }}>
-          Auditor & Interpreter
+          Your personal assistant
         </div>
         <div style={{ marginTop: '0.4rem', fontSize: '0.85rem', color: t.muted, fontStyle: 'italic', lineHeight: 1.5 }}>
-          No mercy. Only evidence.
+          Habits, goals, questions, and next steps.
         </div>
       </div>
 
       <div style={{ flex: 1, overflowY: 'auto', border: `1px solid ${t.border}`, background: t.subtleBg, padding: '1rem', display: 'flex', flexDirection: 'column', gap: '1rem', marginBottom: '1rem' }}>
         {messages.length === 0 && (
-          <div style={{ textAlign: 'center', color: t.muted, margin: 'auto', fontStyle: 'italic', fontSize: '0.9rem' }}>
-            Awaiting input. Ask Jarvis to analyze your habits, build a routine, or review your momentum.
+          <div style={{ margin: 'auto 0', padding: '1rem 0' }}>
+            <div style={{ fontSize: '1.15rem', fontWeight: 700, marginBottom: '0.4rem' }}>What should we work on?</div>
+            <div style={{ color: t.muted, fontSize: '0.8rem', lineHeight: 1.5 }}>Tell me what you want to change. I can help shape a habit, goal, quest, routine, or learning capture, then ask for your approval before changing anything.</div>
+            <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', marginTop: '1rem' }}>
+              {['Add a habit', 'Set a goal', 'Add a quest', 'Review today', 'Capture a learning'].map(prompt => <button key={prompt} onClick={() => setInput(`${prompt}: `)} style={{ background: 'transparent', border: `1px solid ${t.border}`, color: t.pageText, padding: '0.5rem 0.65rem', cursor: 'pointer', fontFamily: 'monospace', fontSize: '0.6rem' }}>{prompt}</button>)}
+            </div>
           </div>
         )}
         
@@ -248,7 +252,7 @@ export default function JarvisTab({ t, onQuestsChanged }) {
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={handleKeyDown}
-            placeholder="Ask Jarvis to review your routine or propose a new habit..."
+            placeholder="Tell Jarvis what you want to work on..."
             style={{
               flex: 1,
               background: t.pageBg,

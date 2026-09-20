@@ -41,7 +41,6 @@ import StatsTab          from './components/StatsTab.jsx';
 import LevelUpCeremony   from './components/LevelUpCeremony.jsx';
 import CompletionFeedback from './components/CompletionFeedback.jsx';
 import ProofFearCheckin  from './components/ProofFearCheckin.jsx';
-import ProfileTab        from './components/ProfileTab.jsx'; // Phase 15
 import LearnTab          from './components/LearnTab.jsx';   // Phase 7
 import JarvisTab         from './components/JarvisTab.jsx';  // Phase 11
 import AuditsTab         from './components/AuditsTab.jsx';  // Phase 12
@@ -54,7 +53,6 @@ const TABS = [
   { id: 'stats',      label: 'Stats'    },
   { id: 'learn',      label: 'Learn'    },
   { id: 'goals',      label: 'Goals'    },
-  { id: 'self',       label: 'Profile'  },
   // Secondary
   { id: 'jarvis',     label: 'Jarvis'   },
   { id: 'audits',     label: 'Audits'   },
@@ -561,6 +559,16 @@ export default function App() {
     }
   }, []);
 
+  const handleAddBook = useCallback(async (fields) => {
+    try {
+      const { addBook, getAllBooks } = await import('./database/booksRepository.js');
+      await addBook(fields);
+      setBooks(await getAllBooks());
+    } catch (err) {
+      console.error('[App] handleAddBook failed:', err);
+    }
+  }, []);
+
   const handleUpdatePages = useCallback(async (bookId, pagesAdded, dateStr) => {
     try {
       const { updateBookPagesRead, getAllBooks } = await import('./database/booksRepository.js');
@@ -796,13 +804,7 @@ export default function App() {
                 onUpdatePages={handleUpdatePages}
                 onFinishBook={handleFinishBook}
                 onAddLearning={handleAddLearning}
-              />
-            )}
-
-            {tab === 'self' && (
-              <ProfileTab
-                t={t}
-                dark={dark}
+                onAddBook={handleAddBook}
               />
             )}
 
