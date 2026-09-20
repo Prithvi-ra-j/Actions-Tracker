@@ -76,6 +76,31 @@ async function recordAICallTelemetry(options, model, startedAt, output, success,
 }
 
 /**
+ * Convenience wrapper for structured JSON requests.
+ * @param {string} prompt The user prompt.
+ * @param {import('zod').ZodSchema} schema The Zod schema to validate against.
+ * @param {object} options Additional options (system prompt, temperature).
+ */
+export async function queryLlmJson(prompt, schema, options = {}) {
+  const messages = [];
+  if (options.system) messages.push({ role: 'system', content: options.system });
+  messages.push({ role: 'user', content: prompt });
+  
+  const rawResponse = await queryLLM(messages, { 
+    ...options, 
+    jsonMode: true 
+  });
+
+  try {
+    const parsed = JSON.parse(rawResponse);
+    return schema.parse(parsed);
+  } catch (err) {
+    console.error('Failed to parse or validate LLM JSON output:', err);
+    throw err;
+  }
+}
+
+/**
  * Verify an LLM connection using explicit credentials (not persisted settings).
  * Sends a minimal prompt to check the API key and model are valid.
  * Returns { ok: true, model, latencyMs } on success or { ok: false, error } on failure.
