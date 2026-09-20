@@ -768,8 +768,7 @@ export default function App() {
             </div>
             <button
               onClick={() => {
-                // To be implemented in S1 (Recalibrate Mode)
-                console.log('Recalibrate clicked');
+                setNeedsOnboarding(true);
               }}
               style={{ padding: '0.5rem 1rem', background: '#4a7ba6', color: '#1c1916', border: 'none', borderRadius: 4, cursor: 'pointer', fontWeight: 'bold' }}
             >
