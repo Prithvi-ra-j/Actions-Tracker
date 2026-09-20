@@ -619,7 +619,7 @@ export default function App() {
       <div style={{ background: '#1c1916', minHeight: '100dvh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
         <img src="/icon.svg" alt="App Icon" style={{ width: 64, height: 64, marginBottom: '1rem', opacity: 0.8 }} />
         <div style={{ fontFamily: 'monospace', fontSize: '0.65rem', letterSpacing: '0.3em', color: ACCENT, textTransform: 'uppercase' }}>
-          Actions-Tracker
+          Actions
         </div>
       </div>
     );
@@ -695,7 +695,7 @@ export default function App() {
             </button>
 
             <span style={{ fontFamily: 'monospace', fontSize: '0.58rem', letterSpacing: '0.3em', color: t.headerText, textTransform: 'uppercase' }}>
-              Actions-Tracker
+              Actions
             </span>
           </div>
 

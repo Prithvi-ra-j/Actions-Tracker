@@ -55,7 +55,7 @@ export default function NavDrawer({ t, isOpen, onClose, tabs, currentTab, onSele
       >
         <div style={{ padding: '2rem 1.5rem', borderBottom: `1px solid ${t.border}` }}>
           <div style={{ fontFamily: 'monospace', fontSize: '0.65rem', letterSpacing: '0.3em', color: ACCENT, textTransform: 'uppercase' }}>
-            Actions-Tracker
+            Actions
           </div>
           <div style={{ fontSize: '1.2rem', fontWeight: 900, marginTop: '0.5rem', color: t.pageText }}>
             Menu

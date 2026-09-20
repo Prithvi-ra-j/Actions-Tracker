@@ -214,7 +214,7 @@ export async function scheduleAllReminders(reminders, todayRecord = {}, onlyToda
 
       await scheduleReminder(
         notifId,
-        'Actions-Tracker',
+        'Actions',
         notifBody,
         reminder.time,
         capWeekday
