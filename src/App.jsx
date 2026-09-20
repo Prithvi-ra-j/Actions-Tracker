@@ -620,7 +620,7 @@ export default function App() {
   if (!dbReady) {
     return (
       <div style={{ background: '#1c1916', minHeight: '100dvh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
-        <img src="/icon.svg" alt="App Icon" style={{ width: 64, height: 64, marginBottom: '1rem', opacity: 0.8 }} />
+        <img src="/icon.jpg" alt="App Icon" style={{ width: 64, height: 64, marginBottom: '1rem', opacity: 0.8, borderRadius: '12px' }} />
         <div style={{ fontFamily: 'monospace', fontSize: '0.65rem', letterSpacing: '0.3em', color: ACCENT, textTransform: 'uppercase' }}>
           Actions
         </div>
