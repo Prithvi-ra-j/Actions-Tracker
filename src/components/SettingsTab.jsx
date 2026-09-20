@@ -414,6 +414,14 @@ export default function SettingsTab({ t, dark, setDark, reminders, setReminders,
             const { verifyLLMConnection } = await import('../core/ai/llmClient.js');
             const result = await verifyLLMConnection(aiApiKey, aiBaseUrl, aiModel);
             if (result.ok) {
+              // Auto-save on success so the user doesn't have to hit the global save button
+              const { setSetting } = await import('../database/settingsRepository.js');
+              await setSetting('aiBaseUrl', aiBaseUrl);
+              await setSetting('aiModel', aiModel);
+
+              const { setSecureValue } = await import('../native/secureStorage.js');
+              await setSecureValue('aiApiKey', aiApiKey);
+
               setVerifyStatus('success');
               setVerifyResult({ model: result.model, latencyMs: result.latencyMs });
             } else {

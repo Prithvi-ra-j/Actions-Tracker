@@ -1,6 +1,6 @@
 {
-  "name": "Actions-Tracker",
-  "short_name": "Actions-Tracker",
+  "name": "Actions",
+  "short_name": "Actions",
   "description": "Personal OS for daily habits, goals, and growth tracking.",
   "start_url": "/",
   "display": "standalone",

@@ -203,7 +203,7 @@ function ProgressDots({ total, current, t }) {
 function PhaseWelcome({ t, name, setName, onNext }) {
   return (
     <>
-      <Label t={t}>Actions-Tracker</Label>
+      <Label t={t}>Actions</Label>
       <SectionTitle>Before we begin.</SectionTitle>
       <Subtitle t={t}>
         This isn't a productivity app. It's a record of who you are, where you are, and where you're going. Answer honestly — vague answers produce vague results.
