@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { ACCENT } from '../constants.js';
 import { saveTelemetryEvent, getAllTelemetry } from '../database/telemetryRepository.js';
+import { getSelfModel } from '../database/selfModelRepository.js';
+import { getAllLogs } from '../database/logsRepository.js';
 
 export default function ReviewPrompt({ t, currentStats }) {
   const [show, setShow] = useState(false);
@@ -9,22 +11,42 @@ export default function ReviewPrompt({ t, currentStats }) {
 
   useEffect(() => {
     async function checkReviewNeeded() {
-      // Very simple review trigger: Check if we haven't asked in the last 30 days
-      const events = await getAllTelemetry();
-      const reviews = events.filter(e => e.type === 'review_submitted');
-      
-      if (reviews.length === 0) {
-        // If no reviews ever, maybe we wait a bit, but for testing let's show it if it's been 30 days since onboarding.
-        // For simplicity here, we'll just show it if there's no review yet.
-        setShow(true);
-      } else {
-        reviews.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
-        const lastReview = new Date(reviews[0].timestamp);
-        const daysSince = (new Date() - lastReview) / (1000 * 60 * 60 * 24);
-        if (daysSince >= 30) {
-          setShow(true);
-        }
+      // A monthly review is only meaningful after onboarding has completed
+      // and the system has accumulated real evidence. Never show it on a
+      // fresh/empty install.
+      const [model, events, logs] = await Promise.all([
+        getSelfModel(),
+        getAllTelemetry(),
+        getAllLogs(),
+      ]);
+
+      if (!model.onboardingCompletedAt) {
+        setShow(false);
+        return;
       }
+
+      const meaningfulLogs = logs.filter(l =>
+        !['onboarding_assessment', 'proof_check_in'].includes(l.type)
+      );
+
+      const onboardingDate = new Date(model.onboardingCompletedAt);
+      const daysSinceOnboarding =
+        (Date.now() - onboardingDate.getTime()) / (1000 * 60 * 60 * 24);
+
+      const reviews = events
+        .filter(e => e.type === 'review_submitted')
+        .sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+
+      if (reviews.length === 0) {
+        setShow(daysSinceOnboarding >= 30 && meaningfulLogs.length > 0);
+        return;
+      }
+
+      const lastReview = new Date(reviews[0].timestamp);
+      const daysSinceReview =
+        (Date.now() - lastReview.getTime()) / (1000 * 60 * 60 * 24);
+
+      setShow(daysSinceReview >= 30 && meaningfulLogs.length > 0);
     }
     checkReviewNeeded();
   }, []);
