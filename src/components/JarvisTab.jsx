@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { ACCENT } from '../constants.js';
-import { chatWithJarvis } from '../core/ai/jarvisEngine.js';
+import { chatWithJarvis, generateInsight } from '../core/ai/jarvisEngine.js';
 import { executeAction, undoAction } from '../core/ai/actionExecutor.js';
 import { computeImpact } from '../core/ai/impactEngine.js';
 import { conversationManager } from '../core/ai/conversationManager.js';
@@ -43,6 +43,8 @@ export default function JarvisTab({ t, onQuestsChanged }) {
   const [contextOpen, setContextOpen] = useState(false);
   const [confirmingProposal, setConfirmingProposal] = useState(null);
   const [conversationReady, setConversationReady] = useState(false);
+  const [reviewLoading, setReviewLoading] = useState(false);
+  const [proactiveInsight, setProactiveInsight] = useState(null);
   const messagesEndRef = useRef(null);
 
   useEffect(() => {
@@ -78,6 +80,21 @@ export default function JarvisTab({ t, onQuestsChanged }) {
       });
     } catch (err) {
       recordAppError(err, { source: 'jarvis_ui', operation: 'persist_conversation' });
+    }
+  };
+
+  const handleRunReview = async () => {
+    if (reviewLoading) return;
+    setReviewLoading(true);
+    setError(null);
+    try {
+      const insight = await generateInsight('Run a focused Life OS review. Identify the highest-signal contradiction, bottleneck, trend change, capacity issue, or experiment decision. Separate observations from hypotheses and give concrete next actions.');
+      setProactiveInsight(insight);
+    } catch (err) {
+      recordAppError(err, { source: 'jarvis_ui', operation: 'run_review' });
+      setError(`Review failed: ${err.message}`);
+    } finally {
+      setReviewLoading(false);
     }
   };
 
@@ -253,6 +270,7 @@ export default function JarvisTab({ t, onQuestsChanged }) {
             <div style={{ fontSize: '1.4rem', fontWeight: 900, lineHeight: 1 }}>Life OS operator</div>
           </div>
           <div style={{ display: 'flex', gap: '0.35rem' }}>
+            <button onClick={handleRunReview} disabled={reviewLoading} style={{...smallButton(t), color: ACCENT}}>{reviewLoading ? 'Reviewing…' : 'Run review'}</button>
             <button onClick={() => setContextOpen(v => !v)} style={smallButton(t)}>{contextOpen ? 'Hide context' : 'Context'}</button>
             <button onClick={handleClearConversation} style={smallButton(t)}>Clear</button>
           </div>
@@ -271,6 +289,24 @@ export default function JarvisTab({ t, onQuestsChanged }) {
 
       {contextOpen && (
         <ContextDrawer t={t} messages={messages} />
+      )}
+
+      {proactiveInsight && (
+        <div style={{ margin: '0 1rem 0.8rem', padding: '1rem', border: `1px solid ${t.borderSoft}`, borderRadius: '10px', background: t.subtleBg }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', gap: '1rem', alignItems: 'center' }}>
+            <div style={{ fontFamily: 'monospace', fontSize: '0.62rem', color: ACCENT, letterSpacing: '0.08em' }}>PROACTIVE SYSTEM REVIEW</div>
+            <button onClick={() => setProactiveInsight(null)} style={smallButton(t)}>Dismiss</button>
+          </div>
+          <div style={{ marginTop: '0.6rem', fontWeight: 700 }}>{proactiveInsight.title || proactiveInsight.summary || 'Review complete'}</div>
+          <div style={{ marginTop: '0.45rem', color: t.muted, fontSize: '0.82rem', lineHeight: 1.5 }}>
+            {proactiveInsight.summary || proactiveInsight.message || proactiveInsight.description || 'Jarvis identified a review item. Open Audit mode for a deeper conversation.'}
+          </div>
+          {Array.isArray(proactiveInsight.recommendations) && proactiveInsight.recommendations.length > 0 && (
+            <div style={{ marginTop: '0.65rem', color: t.muted, fontSize: '0.78rem' }}>
+              {proactiveInsight.recommendations.slice(0, 4).map((item, index) => <div key={index}>· {typeof item === 'string' ? item : item.text || item.action || JSON.stringify(item)}</div>)}
+            </div>
+          )}
+        </div>
       )}
 
       <div style={{ flex: 1, overflowY: 'auto', padding: '0 1rem 2rem', display: 'flex', flexDirection: 'column', gap: '1.4rem' }}>
