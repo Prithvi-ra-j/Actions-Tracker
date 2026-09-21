@@ -170,12 +170,18 @@ export async function assembleContext(intent = 'audit', query = '') {
 
   const factWindowDays = intent === 'audit' ? 30 : 7;
   const factCutoff = new Date(Date.now() - factWindowDays * 24 * 60 * 60 * 1000).toISOString();
-  const recentFacts = facts.filter(f => f.occurredAt >= factCutoff);
+  const retractedFactIds = new Set(
+    facts
+      .filter(f => f.type === 'retraction' && f.meta?.retractedFactId)
+      .map(f => f.meta.retractedFactId)
+  );
+  const activeFacts = facts.filter(f => !retractedFactIds.has(f.id) && f.type !== 'retraction');
+  const recentFacts = activeFacts.filter(f => f.occurredAt >= factCutoff);
 
   const trendNowCutoff = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
   const trendPriorCutoff = new Date(Date.now() - 14 * 24 * 60 * 60 * 1000).toISOString();
-  const trendNow = facts.filter(f => f.occurredAt >= trendNowCutoff);
-  const trendPrior = facts.filter(f => f.occurredAt >= trendPriorCutoff && f.occurredAt < trendNowCutoff);
+  const trendNow = activeFacts.filter(f => f.occurredAt >= trendNowCutoff);
+  const trendPrior = activeFacts.filter(f => f.occurredAt >= trendPriorCutoff && f.occurredAt < trendNowCutoff);
   const countByType = rows => rows.reduce((acc, fact) => {
     acc[fact.type] = (acc[fact.type] || 0) + 1;
     return acc;
