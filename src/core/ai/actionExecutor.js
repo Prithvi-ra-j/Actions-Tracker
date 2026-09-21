@@ -42,7 +42,7 @@ export async function validateActionPreconditions(proposal) {
 
 async function recordActionFact(actionType, payload, result) {
   const { executionKey, before } = result;
-  await addFact({
+  return addFact({
     type: `jarvis_action.${actionType}`,
     objectId: result?.id ?? payload.id ?? null,
     value: 1,
@@ -79,7 +79,11 @@ export async function executeAction(proposal) {
   const { actionType, payload } = validatedProposal;
   const executionKey = createExecutionKey(validatedProposal);
   const priorAction = (await getAllFacts()).find(fact => fact.meta?.executionKey === executionKey);
-  if (priorAction) return { ...(priorAction.meta?.result || {}), idempotent: true };
+  if (priorAction) return {
+    ...(priorAction.meta?.result || {}),
+    actionFactId: priorAction.id,
+    idempotent: true,
+  };
 
   const before = payload.id
     ? await getHabit(payload.id)
@@ -229,8 +233,8 @@ export async function executeAction(proposal) {
       throw new Error(`[actionExecutor] Unsupported actionType: ${actionType}`);
   }
 
-  await recordActionFact(actionType, payload, result);
-  return result;
+  const actionFactId = await recordActionFact(actionType, payload, result);
+  return { ...result, actionFactId, idempotent: false };
 }
 
 export async function undoAction(actionFactId) {
