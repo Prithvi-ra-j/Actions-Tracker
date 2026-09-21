@@ -14,6 +14,8 @@ export function AIInput({ t, onSubmit, placeholder, loadingText = "Thinking..." 
       await onSubmit(text);
       setText(''); // clear on success
     } catch (err) {
+      const { recordAppError } = await import('../../core/errorLogger.js');
+      recordAppError(err, { source: 'onboarding', operation: 'ai_input_submit' });
       setError(err.message);
     } finally {
       setLoading(false);
