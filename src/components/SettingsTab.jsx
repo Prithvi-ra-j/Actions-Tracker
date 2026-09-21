@@ -9,6 +9,7 @@ import { exportDatabase, importDatabase } from '../database/db.js';
 import { isBrowserFallback } from '../native/secureStorage.js';
 import { isSupabaseConfigured } from '../integrations/supabase/supabaseClient.js';
 import { getCurrentSupabaseUser, signInWithPassword, signOutSupabase } from '../integrations/supabase/supabaseAuth.js';
+import { getErrorLogs, clearErrorLogs } from '../core/errorLogger.js';
 
 /**
  * Settings panel — opened via the ⚙ icon in the header (not a tab).
@@ -28,6 +29,8 @@ export default function SettingsTab({ t, dark, setDark, reminders, setReminders,
   const [permStatus, setPermStatus] = useState('unknown');
   const [saving,     setSaving]     = useState(false);
   const [saved,      setSaved]      = useState(false);
+  const [errorLogs, setErrorLogs] = useState([]);
+  const [loadingErrorLogs, setLoadingErrorLogs] = useState(false);
   
   const [aiApiKey, setAiApiKey] = useState('');
   const [aiBaseUrl, setAiBaseUrl] = useState('');
@@ -182,18 +185,6 @@ export default function SettingsTab({ t, dark, setDark, reminders, setReminders,
       alert('Sync failed: ' + err.message);
     } finally {
       setSyncing(false);
-    }
-  }
-
-  async function handleLoadDummyData() {
-    if (window.confirm("WARNING: This will completely wipe all your current data and replace it with dummy test data. Are you sure?")) {
-      try {
-        const { generateDummyData } = await import('../scripts/dummyDataGenerator.js');
-        await generateDummyData();
-        window.location.reload();
-      } catch (err) {
-        alert("Failed to generate dummy data: " + err.message);
-      }
     }
   }
 
@@ -631,32 +622,61 @@ export default function SettingsTab({ t, dark, setDark, reminders, setReminders,
         </div>
       </div>
 
-      {/* ── Developer Tools ───────────────────────────────────────────────────── */}
+      {/* ── Diagnostics ───────────────────────────────────────────────────────── */}
       <div style={{ border: `1px solid ${t.border}`, borderLeft: `4px solid #c1442c`, padding: '1rem', marginBottom: '1.5rem' }}>
         <div style={{ fontFamily: 'monospace', fontSize: '0.65rem', letterSpacing: '0.15em', color: '#c1442c', textTransform: 'uppercase', marginBottom: '0.5rem' }}>
-          Developer Tools
+          Diagnostics
         </div>
-        <div style={{ fontSize: '0.9rem', marginBottom: '1rem', lineHeight: 1.5, color: t.muted }}>
-          Wipe current database and load comprehensive dummy test data (including edge cases, stats, active/completed quests, AI insights, etc).
+        <div style={{ fontSize: '0.85rem', marginBottom: '0.8rem', lineHeight: 1.5, color: t.muted }}>
+          Runtime failures from React, JavaScript, network requests, and application code are recorded locally for troubleshooting. Sensitive fields are redacted.
         </div>
-        
-        <button
-          onClick={handleLoadDummyData}
-          style={{
-            padding: '0.7rem',
-            background: 'rgba(193, 68, 44, 0.1)',
-            border: `1px solid #c1442c`,
-            color: '#c1442c',
-            fontFamily: 'monospace',
-            fontSize: '0.65rem',
-            letterSpacing: '0.1em',
-            cursor: 'pointer',
-            textTransform: 'uppercase',
-            width: '100%'
-          }}
-        >
-          Wipe & Load Dummy Data
-        </button>
+        <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '0.75rem' }}>
+          <button
+            type="button"
+            onClick={async () => {
+              setLoadingErrorLogs(true);
+              setErrorLogs(await getErrorLogs(50));
+              setLoadingErrorLogs(false);
+            }}
+            style={{ flex: 1, padding: '0.6rem', background: 'transparent', border: `1px solid ${t.border}`, color: t.pageText, fontFamily: 'monospace', fontSize: '0.6rem', cursor: 'pointer' }}
+          >
+            {loadingErrorLogs ? 'LOADING...' : 'REFRESH LOGS'}
+          </button>
+          <button
+            type="button"
+            onClick={async () => {
+              if (!window.confirm('Clear all recorded error logs?')) return;
+              await clearErrorLogs();
+              setErrorLogs([]);
+            }}
+            style={{ padding: '0.6rem', background: 'transparent', border: '1px solid #c1442c', color: '#c1442c', fontFamily: 'monospace', fontSize: '0.6rem', cursor: 'pointer' }}
+          >
+            CLEAR
+          </button>
+        </div>
+        {errorLogs.length === 0 ? (
+          <div style={{ padding: '0.7rem', background: t.subtleBg, color: t.muted, fontFamily: 'monospace', fontSize: '0.65rem' }}>
+            No error logs loaded. Tap REFRESH LOGS.
+          </div>
+        ) : (
+          <div style={{ display: 'grid', gap: '0.5rem', maxHeight: '360px', overflowY: 'auto' }}>
+            {errorLogs.map((entry) => (
+              <details key={entry.id} style={{ background: t.subtleBg, border: `1px solid ${t.borderSoft}`, padding: '0.6rem' }}>
+                <summary style={{ cursor: 'pointer', fontFamily: 'monospace', fontSize: '0.65rem', color: entry.severity === 'error' ? '#c1442c' : ACCENT }}>
+                  {entry.severity?.toUpperCase() || 'ERROR'} · {entry.source || 'unknown'} · {entry.operation || 'unknown'} · {new Date(entry.timestamp).toLocaleString()}
+                </summary>
+                <div style={{ marginTop: '0.5rem', fontSize: '0.75rem', lineHeight: 1.45 }}>
+                  {entry.message}
+                </div>
+                {entry.stack && (
+                  <pre style={{ whiteSpace: 'pre-wrap', overflowWrap: 'anywhere', marginTop: '0.5rem', color: t.muted, fontSize: '0.6rem', fontFamily: 'monospace' }}>
+                    {entry.stack}
+                  </pre>
+                )}
+              </details>
+            ))}
+          </div>
+        )}
       </div>
 
       {/* ── Info note ─────────────────────────────────────────────────────────── */}
