@@ -102,8 +102,12 @@ jobs:
             SINCE_LABEL="(first release)"
           fi
 
-          # One bullet per commit, skip merge commits, cap at 40 lines
-          COMMITS=$(git log "$RANGE" --pretty=format:'- %s (%h)' --no-merges | head -40)
+          # One bullet per commit, skip merge commits, cap at 40.
+          # --max-count avoids piping into head, which would cause SIGPIPE (exit 141).
+          COMMITS=$(git log "$RANGE" \
+            --no-merges \
+            --max-count=40 \
+            --pretty=format:'- %s (%h)')
 
           if [ -z "$COMMITS" ]; then
             COMMITS="- No individual commits recorded ${SINCE_LABEL}"
