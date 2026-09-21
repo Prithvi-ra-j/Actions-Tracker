@@ -7,7 +7,7 @@
  * Target state should now be managed directly on the Goal object or via Facts.
  */
 
-import { dbGet, dbPut, dbGetAllByIndex, dbGetAll } from './db.js';
+import { dbGet, dbPut, dbDelete, dbGetAllByIndex, dbGetAll } from './db.js';
 import { createGoal } from '../models/lifeObjectSchema.js';
 import { GOALS as LEGACY_GOALS } from '../constants.js';
 
@@ -107,4 +107,9 @@ export async function updateGoal(id, fields) {
 
   await dbPut(STORE, updated);
   return updated;
+}
+
+
+export async function deleteGoal(id) {
+  await dbDelete(STORE, id);
 }
