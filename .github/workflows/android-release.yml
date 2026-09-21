@@ -128,6 +128,13 @@ jobs:
             echo "${EOF_MARKER}"
           } >> "$GITHUB_OUTPUT"
 
+      - name: Set up JDK 17 (Temurin)
+        # AGP 8.2.1 + Gradle 8.2.1 require JDK 17 (matches android-build.yml)
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
       - name: Validate signing configuration
         env:
           ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
@@ -190,13 +197,6 @@ jobs:
 
           echo "Keystore validation succeeded."
 
-      - name: Set up JDK 17 (Temurin)
-        # AGP 8.2.1 + Gradle 8.2.1 require JDK 17 (matches android-build.yml)
-        uses: actions/setup-java@v4
-        with:
-          distribution: temurin
-          java-version: "17"
-
       - name: Make Gradle wrapper executable
         run: chmod +x android/gradlew
 
@@ -212,6 +212,10 @@ jobs:
             -PandroidVersionName="${{ steps.version.outputs.name }}" \
             -PandroidVersionCode="${{ steps.version.outputs.code }}" \
             --no-daemon
+
+      - name: Verify APK signature
+        run: |
+          "$ANDROID_HOME/build-tools/$(ls "$ANDROID_HOME/build-tools" | sort -V | tail -1)/apksigner" verify --verbose android/app/build/outputs/apk/release/app-release.apk
 
       - name: Rename APK
         run: |
