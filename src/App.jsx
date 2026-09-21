@@ -629,7 +629,7 @@ export default function App() {
   }
 
   // ── Main render ────────────────────────────────────────────────────────────
-  if (needsOnboarding && import.meta.env.VITE_ENABLE_ONBOARDING_V3) {
+  if (needsOnboarding) {
     return (
       <OnboardingFlow 
         t={t} 
@@ -756,7 +756,7 @@ export default function App() {
           </div>
         )}
 
-        {hasLegacyData && import.meta.env.VITE_ENABLE_ONBOARDING_V3 && (
+        {hasLegacyData && (
           <div style={{
             padding: '1rem', marginBottom: '1rem',
             background: 'rgba(74, 123, 166, 0.1)', border: '1px solid #4a7ba6',
