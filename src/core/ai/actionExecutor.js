@@ -27,7 +27,7 @@ function requireId(payload, actionType) {
 export async function validateActionPreconditions(proposal) {
   const validatedProposal = ActionProposalSchema.parse(proposal);
   const existingHabitActions = new Set([
-    'modify_habit', 'pause_habit', 'archive_habit', 'modify_roadmap', 'update_mastery_level', 'modify_goal', 'update_experiment',
+    'modify_habit', 'pause_habit', 'archive_habit', 'modify_roadmap', 'update_mastery_level',
   ]);
 
   if (existingHabitActions.has(validatedProposal.actionType)) {
