@@ -6,8 +6,9 @@
 
 import { addHabit, updateHabit, getHabit, archiveHabit as dbArchiveHabit } from '../../database/habitRepository.js';
 import { addQuest, deleteQuest } from '../../database/questBoardRepository.js';
+import { addGoal, getGoal, updateGoal, deleteGoal } from '../../database/goalsRepository.js';
 import { addLearning, updateLearning, deleteLearning } from '../../database/learningRepository.js';
-import { addExperiment, deleteExperiment } from '../../database/experimentRepository.js';
+import { addExperiment, getExperiment, updateExperiment, deleteExperiment } from '../../database/experimentRepository.js';
 import { getSelfModel, updateSelfModel } from '../../database/selfModelRepository.js';
 import { addMemory, rejectMemory } from '../../database/memoryRepository.js';
 import { addFact, getFact, getAllFacts } from '../../database/factsRepository.js';
@@ -26,7 +27,7 @@ function requireId(payload, actionType) {
 export async function validateActionPreconditions(proposal) {
   const validatedProposal = ActionProposalSchema.parse(proposal);
   const existingHabitActions = new Set([
-    'modify_habit', 'pause_habit', 'archive_habit', 'modify_roadmap', 'update_mastery_level',
+    'modify_habit', 'pause_habit', 'archive_habit', 'modify_roadmap', 'update_mastery_level', 'modify_goal', 'update_experiment',
   ]);
 
   if (existingHabitActions.has(validatedProposal.actionType)) {
@@ -36,6 +37,13 @@ export async function validateActionPreconditions(proposal) {
     if (validatedProposal.actionType === 'update_mastery_level' && !habit.masteryRoadmap) {
       throw new Error(`Habit ${habitId} has no mastery roadmap`);
     }
+  }
+
+  if (validatedProposal.actionType === 'modify_goal') {
+    if (!(await getGoal(validatedProposal.payload.id))) throw new Error(`Goal ${validatedProposal.payload.id} no longer exists; proposal is stale`);
+  }
+  if (validatedProposal.actionType === 'update_experiment') {
+    if (!(await getExperiment(validatedProposal.payload.id))) throw new Error(`Experiment ${validatedProposal.payload.id} no longer exists; proposal is stale`);
   }
 
   return validatedProposal;
@@ -87,7 +95,11 @@ export async function executeAction(proposal) {
   };
 
   const before = payload.id
-    ? await getHabit(payload.id)
+    ? actionType === 'modify_goal'
+      ? await getGoal(payload.id)
+      : actionType === 'update_experiment'
+        ? await getExperiment(payload.id)
+        : await getHabit(payload.id)
     : actionType === 'adjust_routine'
       ? await getRoutineConfig()
       : actionType === 'revise_target'
@@ -139,6 +151,32 @@ export async function executeAction(proposal) {
       break;
     }
     
+    case 'add_goal': {
+      const id = await addGoal({
+        ...payload,
+        label: payload.label || payload.title,
+        title: payload.title || payload.label,
+      });
+      result = { ...result, id };
+      break;
+    }
+
+    case 'modify_goal': {
+      const id = requireId(payload, actionType);
+      const { id: ignoredId, ...updates } = payload;
+      await updateGoal(id, updates);
+      result = { ...result, id };
+      break;
+    }
+
+    case 'update_experiment': {
+      const id = requireId(payload, actionType);
+      const { id: ignoredId, ...updates } = payload;
+      await updateExperiment(id, updates);
+      result = { ...result, id };
+      break;
+    }
+
     case 'add_quest': {
       const id = await addQuest({
         title: payload.title,
@@ -314,6 +352,12 @@ export async function undoAction(actionFactId) {
     if (habit) await dbArchiveHabit(result.id);
   } else if (['modify_habit', 'pause_habit', 'archive_habit', 'modify_roadmap', 'update_mastery_level'].includes(actionType) && before?.id) {
     await updateHabit(before.id, before);
+  } else if (actionType === 'add_goal') {
+    await deleteGoal(result.id);
+  } else if (actionType === 'modify_goal' && before?.id) {
+    await updateGoal(before.id, before);
+  } else if (actionType === 'update_experiment' && before?.id) {
+    await updateExperiment(before.id, before);
   } else if (actionType === 'add_quest') {
     await deleteQuest(result.id);
   } else if (actionType === 'add_learning') {
