@@ -1,7 +1,9 @@
-import { saveTelemetryEvent } from '../database/telemetryRepository.js';
+import { dbPut, dbGetAll, getDB } from '../database/db.js';
 
 const MAX_TEXT = 2000;
 const recentErrors = new Map();
+const pendingErrors = [];
+let dbReady = false;
 
 const SENSITIVE_KEYS = /api[-_]?key|authorization|password|passwd|token|secret|cookie|session|credential/i;
 
@@ -79,7 +81,11 @@ export async function recordAppError(error, context = {}) {
       if (now - timestamp > 10000) recentErrors.delete(key);
     }
 
-    await saveTelemetryEvent('error', new Date().toISOString().split('T')[0], {
+    const record = {
+      id: crypto.randomUUID(),
+      type: 'error',
+      date: new Date().toISOString().split('T')[0],
+      timestamp: new Date().toISOString(),
       severity: context.severity || 'error',
       source,
       operation,
@@ -90,11 +96,48 @@ export async function recordAppError(error, context = {}) {
       metadata: redact(context.metadata || {}),
       url: typeof window !== 'undefined' ? redactString(window.location?.href || '') : null,
       userAgent: typeof navigator !== 'undefined' ? redactString(navigator.userAgent || '') : null,
-      timestamp: new Date().toISOString(),
-    });
+    };
+
+    if (!dbReady) {
+      pendingErrors.push(record);
+      if (pendingErrors.length > 100) pendingErrors.shift();
+      return;
+    }
+    await dbPut('telemetry', record);
   } catch {
     // Never throw from the error logger.
   }
+}
+
+export async function markErrorLoggerReady() {
+  dbReady = true;
+  const queued = pendingErrors.splice(0);
+  for (const record of queued) { try { await dbPut('telemetry', record); } catch { /* best effort */ } }
+}
+
+export async function getErrorLogs(limit = 100) {
+  try {
+    const all = await dbGetAll('telemetry');
+    return all.filter(item => item.type === 'error').sort((a, b) => String(b.timestamp).localeCompare(String(a.timestamp))).slice(0, limit);
+  } catch { return []; }
+}
+
+export async function clearErrorLogs() {
+  try {
+    await new Promise((resolve, reject) => {
+      const tx = getDB().transaction('telemetry', 'readwrite');
+      const request = tx.objectStore('telemetry').openCursor();
+      request.onsuccess = event => {
+        const cursor = event.target.result;
+        if (!cursor) return;
+        if (cursor.value?.type === 'error') cursor.delete();
+        cursor.continue();
+      };
+      tx.oncomplete = resolve;
+      tx.onerror = () => reject(tx.error);
+      tx.onabort = () => reject(tx.error);
+    });
+  } catch { /* best effort */ }
 }
 
 export function installGlobalErrorLogging() {
@@ -157,7 +200,17 @@ export function installGlobalErrorLogging() {
   if (originalFetch) {
     window.fetch = async (...args) => {
       try {
-        return await originalFetch(...args);
+        const response = await originalFetch(...args);
+        if (response.status >= 500) {
+          const request = args[0];
+          const requestUrl = typeof request === 'string' ? request : request?.url;
+          recordAppError(new Error('HTTP ' + response.status + ' ' + response.statusText), {
+            source: 'network',
+            operation: 'http_response_error',
+            metadata: { url: requestUrl, status: response.status, statusText: response.statusText },
+          });
+        }
+        return response;
       } catch (error) {
         const request = args[0];
         const requestUrl = typeof request === 'string' ? request : request?.url;
