@@ -82,6 +82,7 @@ export default function JarvisTab({ t, onQuestsChanged }) {
   };
 
   const handleApproveProposal = async (proposal) => {
+    setError(null);
     setExecuting(true);
     try {
       const result = await executeAction(proposal);
@@ -110,6 +111,7 @@ export default function JarvisTab({ t, onQuestsChanged }) {
   };
 
   const handleModifyProposal = (proposal) => {
+    setError(null);
     setModificationContext(proposal);
     setInput('');
   };
@@ -236,6 +238,11 @@ export default function JarvisTab({ t, onQuestsChanged }) {
                         <div style={{ fontFamily: 'monospace', fontSize: '0.7rem', color: t.pageText, textTransform: 'uppercase', letterSpacing: '0.05em', fontWeight: 600 }}>
                           Action Proposal: {msg.proposal.actionType}
                         </div>
+                        {msg.proposalStatus === 'executed' && (
+                          <div style={{ marginLeft: 'auto', color: '#4f8a5f', fontFamily: 'monospace', fontSize: '0.65rem', fontWeight: 700 }}>
+                            ✓ EXECUTED
+                          </div>
+                        )}
                       </div>
                       
                       <div style={{ padding: '1rem' }}>
