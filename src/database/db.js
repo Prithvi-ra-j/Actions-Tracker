@@ -15,7 +15,7 @@
 import { APP_VERSION, SCHEMA_VERSION } from '../version.js';
 
 const DB_NAME = 'actions-tracker';
-const DB_VERSION = 10;
+const DB_VERSION = 11;
 
 /** @type {IDBDatabase|null} */
 let _db = null;
@@ -171,6 +171,12 @@ export function initDB() {
       // Phase 13: Scheduled Analysis (§33)
       if (!db.objectStoreNames.contains('insights')) {
         db.createObjectStore('insights', { keyPath: 'id' });
+      }
+
+      // DB v11 — Jarvis persistent conversations
+      if (!db.objectStoreNames.contains('jarvisConversations')) {
+        const conversationsStore = db.createObjectStore('jarvisConversations', { keyPath: 'id' });
+        conversationsStore.createIndex('updatedAt', 'updatedAt', { unique: false });
       }
 
       // DB v10 — Architecture Phase 2 (New Entities)
@@ -365,6 +371,7 @@ const ALL_STORES = [
   'insights',                         // Phase 13 insights
   // DB v10 — Architecture Phase 2
   'decisions', 'experiments', 'creativeWorks', 'observations',
+  'jarvisConversations',
   // Step 3 — Routine Engine
   'routineConfig'
 ];
