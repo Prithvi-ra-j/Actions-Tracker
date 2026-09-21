@@ -14,6 +14,7 @@ import { getRoutineConfig } from '../../database/routineRepository.js';
 import { computeGaps } from '../../helpers/gapEngine.js';
 import { calculateCapacity } from '../routineEngine.js';
 import { PERSONA } from '../../constants.js';
+import { getAllExperiments } from '../../database/experimentRepository.js';
 
 const MEMORY_WINDOW_DAYS = 90;
 const MAX_SEMANTIC_MEMORIES = 12;
@@ -156,19 +157,40 @@ export async function assembleContext(intent = 'audit', query = '') {
   // We only pull what's necessary based on the intent.
   // For a general audit, we want the current self model, latest score snapshot, active goals, and recent facts.
 
-  const [facts, snapshot, selfModel, goals, semanticMemories, habits, routineConfig] = await Promise.all([
+  const [facts, snapshot, selfModel, goals, semanticMemories, habits, routineConfig, experiments] = await Promise.all([
     getAllFacts(),
     getLatestSnapshot(),
     getSelfModel(),
     getAllGoals(),
     getSemanticMemories(),
     getAllHabits(),
-    getRoutineConfig()
+    getRoutineConfig(),
+    getAllExperiments(),
   ]);
 
   const factWindowDays = intent === 'audit' ? 30 : 7;
   const factCutoff = new Date(Date.now() - factWindowDays * 24 * 60 * 60 * 1000).toISOString();
   const recentFacts = facts.filter(f => f.occurredAt >= factCutoff);
+
+  const trendNowCutoff = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
+  const trendPriorCutoff = new Date(Date.now() - 14 * 24 * 60 * 60 * 1000).toISOString();
+  const trendNow = facts.filter(f => f.occurredAt >= trendNowCutoff);
+  const trendPrior = facts.filter(f => f.occurredAt >= trendPriorCutoff && f.occurredAt < trendNowCutoff);
+  const countByType = rows => rows.reduce((acc, fact) => {
+    acc[fact.type] = (acc[fact.type] || 0) + 1;
+    return acc;
+  }, {});
+  const trendNowCounts = countByType(trendNow);
+  const trendPriorCounts = countByType(trendPrior);
+  const trendMetrics = [...new Set([...Object.keys(trendNowCounts), ...Object.keys(trendPriorCounts)])]
+    .map(type => ({
+      type,
+      current7d: trendNowCounts[type] || 0,
+      prior7d: trendPriorCounts[type] || 0,
+      delta: (trendNowCounts[type] || 0) - (trendPriorCounts[type] || 0),
+    }))
+    .sort((a, b) => Math.abs(b.delta) - Math.abs(a.delta))
+    .slice(0, 12);
 
   const activeGoals = goals.filter(g => g.status === 'active');
 
@@ -201,6 +223,16 @@ export async function assembleContext(intent = 'audit', query = '') {
     })),
     recent_evidence_facts: projectEvidenceFacts(recentFacts),
     derived_metrics: deriveEvidenceMetrics(recentFacts),
+    trend_metrics_7d_vs_prior_7d: trendMetrics,
+    active_experiments: (experiments || []).filter(experiment => !experiment.conclusion).slice(-8).map(experiment => ({
+      id: experiment.id,
+      domain: experiment.domain,
+      hypothesis: experiment.hypothesis,
+      protocol: experiment.protocol,
+      result: experiment.result,
+      conclusion: experiment.conclusion,
+      createdAt: experiment.createdAt,
+    })),
     active_habits: activeHabits.map(h => ({
       id: h.id, name: h.name, domain: h.domain, phase: h.phase,
       masteryLevel: h.masteryRoadmap?.currentLevel,
