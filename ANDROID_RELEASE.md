@@ -41,7 +41,25 @@ Add these repository Actions secrets:
 - `ANDROID_KEY_ALIAS`
 - `ANDROID_KEY_PASSWORD`
 
-Encode the keystore locally:
+### Windows PowerShell
+
+From the repository root, run:
+
+```powershell
+.\\scripts\\encode-keystore.ps1 .\\actions-tracker-release.keystore
+```
+
+Copy the entire single-line output into `ANDROID_KEYSTORE_BASE64`.
+
+You can also run:
+
+```powershell
+[Convert]::ToBase64String([IO.File]::ReadAllBytes((Resolve-Path ".\\actions-tracker-release.keystore")))
+```
+
+Do not use a certificate/PEM file, `certutil -encode`, or paste quotes around the Base64 value.
+
+### macOS/Linux
 
 ```bash
 base64 -w 0 actions-tracker-release.keystore
@@ -54,6 +72,8 @@ base64 actions-tracker-release.keystore | tr -d '\\n'
 ```
 
 Paste the resulting value into `ANDROID_KEYSTORE_BASE64`.
+
+The workflow now decodes the secret and runs `keytool` against the resulting file before Gradle. A malformed or incomplete secret fails early with a clear message instead of reaching `packageRelease`.
 
 The workflow restores the keystore only inside the temporary GitHub runner and never writes it to the repository.
 
