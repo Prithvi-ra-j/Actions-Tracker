@@ -14,7 +14,9 @@ import { z } from 'zod';
 
 const ConversationalResponseSchema = z.object({
   message: z.string(),
-  proposal: ActionProposalSchema.optional(),
+  // LLMs commonly emit proposal:null for ordinary conversation. Treat that
+  // the same as an omitted proposal instead of rejecting the whole response.
+  proposal: ActionProposalSchema.nullable().optional(),
   claims: z.array(z.object({
     text: z.string(),
     evidenceIds: z.array(z.string()),
@@ -25,6 +27,40 @@ export function validateEvidenceClaims(response, contextText) {
   const context = JSON.parse(contextText);
   validateClaimSupport(response.claims || [], context);
   return response;
+}
+
+const EXISTING_ENTITY_ACTIONS = new Set([
+  'modify_habit',
+  'pause_habit',
+  'archive_habit',
+  'modify_roadmap',
+  'update_mastery_level',
+]);
+
+function normalizeConversationalResponse(responseObj, modificationContext = null) {
+  const normalized = { ...responseObj };
+
+  // Normalize null to the same internal representation as an omitted proposal.
+  if (normalized.proposal === null) delete normalized.proposal;
+
+  // The UI supplies the exact proposal being modified. Preserve its entity ID
+  // deterministically instead of depending on the LLM to reproduce an opaque ID.
+  if (
+    normalized.proposal &&
+    modificationContext?.payload?.id &&
+    EXISTING_ENTITY_ACTIONS.has(normalized.proposal.actionType) &&
+    !normalized.proposal.payload?.id
+  ) {
+    normalized.proposal = {
+      ...normalized.proposal,
+      payload: {
+        ...normalized.proposal.payload,
+        id: modificationContext.payload.id,
+      },
+    };
+  }
+
+  return normalized;
 }
 
 /**
@@ -77,12 +113,29 @@ export async function generateInsight(userQuery = "Analyze my current state and 
  * @param {Array} history Previous messages [{ role, content }] (optional).
  * @returns {Promise<object>} Returns { message, proposal }
  */
-export async function chatWithJarvis(userMessage, history = []) {
+export async function chatWithJarvis(userMessage, history = [], modificationContext = null) {
   const contextText = await assembleContext('chat', userMessage);
+
+  const modificationInstruction = modificationContext
+    ? {
+        role: 'system',
+        content: [
+          'The user is modifying an existing approved proposal from this conversation.',
+          'Return a new proposal describing the requested change.',
+          'Preserve the existing target ID for any action that modifies an existing entity.',
+          'Existing proposal context:',
+          JSON.stringify({
+            actionType: modificationContext.actionType,
+            payload: modificationContext.payload,
+          }),
+        ].join('\n'),
+      }
+    : null;
   
   const messages = [
     { role: 'system', content: JARVIS_SYSTEM_PROMPT },
     { role: 'system', content: `Here is the CURRENT system state and evidence:\n\n${contextText}` },
+    ...(modificationInstruction ? [modificationInstruction] : []),
     ...history,
     { role: 'user', content: userMessage }
   ];
@@ -97,8 +150,10 @@ export async function chatWithJarvis(userMessage, history = []) {
       responseObj = JSON.parse(cleaned);
     }
     
-    // Validate output
-    const validated = ConversationalResponseSchema.parse(responseObj);
+    // Normalize the common null-proposal case before schema validation and
+    // deterministically retain the target ID during proposal modifications.
+    const normalized = normalizeConversationalResponse(responseObj, modificationContext);
+    const validated = ConversationalResponseSchema.parse(normalized);
     return validateEvidenceClaims(validated, contextText);
   } catch (err) {
     console.error("[JarvisEngine] Chat failed:", err);
