@@ -177,6 +177,20 @@ export function computeImpact(proposal, currentState) {
       impact.affectedDomains.push(payload.dimension);
       impact.scoringImpact = 'Changes the target gap, not the current evidence score.';
       break;
+
+    case 'log_evidence':
+      if (payload.domain) impact.affectedDomains.push(payload.domain);
+      impact.scoringImpact = 'Adds a raw evidence event; downstream scores may change only when the scoring/evidence engine recognizes its type.';
+      break;
+
+    case 'propose_memory':
+      impact.scoringImpact = 'Creates a reviewable AI memory proposal. It is not authoritative until the user confirms it.';
+      break;
+
+    case 'create_plan':
+      impact.scoringImpact = `Executes ${Array.isArray(payload.steps) ? payload.steps.length : 0} ordered actions as one approved plan.`;
+      impact.risks.push('Plan writes are executed sequentially; failed plans attempt to roll back completed steps.');
+      break;
   }
   
   return impact;
