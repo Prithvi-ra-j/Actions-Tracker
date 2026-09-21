@@ -21,6 +21,7 @@ import { HealthConnectConnector } from './core/sync/connectors/HealthConnectConn
 import { NutriLiftConnector } from './core/sync/connectors/NutriLiftConnector.js';
 import { bootstrapAnalysisScheduler } from './core/ai/analysisScheduler.js';
 import { installGlobalErrorLogging, markErrorLoggerReady } from './core/errorLogger.js';
+import { checkForUpdate } from './core/updateChecker.js';
 
 // ── Helpers ─────────────────────────────────────────────────────────────────────────────
 import { computeAllStats, computeAxisDetails, getThresholdTitle } from './helpers/statsEngine.js';
@@ -45,6 +46,7 @@ import ProofFearCheckin  from './components/ProofFearCheckin.jsx';
 import LearnTab          from './components/LearnTab.jsx';   // Phase 7
 import JarvisTab         from './components/JarvisTab.jsx';  // Phase 11
 import AuditsTab         from './components/AuditsTab.jsx';  // Phase 12
+import UpdateBanner      from './components/UpdateBanner.jsx';
 
 // ─────────────────────────────────────────────────────────────────────────────
 
@@ -154,6 +156,7 @@ export default function App() {
   const [dbError,         setDbError]         = useState(null);
   const [needsOnboarding, setNeedsOnboarding] = useState(false);
   const [hasLegacyData,   setHasLegacyData]   = useState(false);
+  const [updateInfo,      setUpdateInfo]       = useState(null);
 
   // ── UI state ───────────────────────────────────────────────────────────────
   const [tab,          setTab]          = useState('daily');
@@ -338,6 +341,9 @@ export default function App() {
 
         // Phase 13: Boot background analysis scheduler
         bootstrapAnalysisScheduler();
+
+        // Check GitHub Releases for a newer APK (non-fatal, session-cached)
+        checkForUpdate().then(info => { if (info) setUpdateInfo(info); }).catch(() => {});
 
         // Phase 3B: Shadow comparison on boot
         setTimeout(() => {
@@ -765,6 +771,9 @@ export default function App() {
 
       {/* ── CONTENT ─────────────────────────────────────────────────────────── */}
       <div style={{ maxWidth: 560, margin: '0 auto', padding: '1.5rem' }}>
+
+        {/* Update available banner */}
+        <UpdateBanner updateInfo={updateInfo} />
 
         {/* DB error notice (non-fatal) */}
         {dbError && (

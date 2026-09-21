@@ -21,6 +21,9 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          # Fetch full history so the changelog step can compare tags
+          fetch-depth: 0
 
       - name: Setup Node
         uses: actions/setup-node@v4
@@ -66,6 +69,54 @@ jobs:
 
           echo "name=$VERSION" >> "$GITHUB_OUTPUT"
           echo "code=$VERSION_CODE" >> "$GITHUB_OUTPUT"
+
+      - name: Stamp version.js with release version
+        # Replaces APP_VERSION in src/version.js so the baked-in version string
+        # inside the APK matches the tag. Runs only in the GitHub runner —
+        # nothing is committed back to the repo.
+        run: |
+          sed -i "s/export const APP_VERSION *= *'[^']*'/export const APP_VERSION = '${{ steps.version.outputs.name }}'/" src/version.js
+          echo "Stamped version.js:"
+          grep APP_VERSION src/version.js
+
+      - name: Generate changelog
+        id: changelog
+        shell: bash
+        run: |
+          # Find the previous tag to bound the log range.
+          # If none exists (first release), use the full history.
+          CURRENT_TAG="v${{ steps.version.outputs.name }}"
+          PREV_TAG=$(git tag --sort=-version:refname | grep -v "^${CURRENT_TAG}$" | head -1)
+
+          if [ -n "$PREV_TAG" ]; then
+            RANGE="${PREV_TAG}..HEAD"
+            SINCE_LABEL="since ${PREV_TAG}"
+          else
+            RANGE="HEAD"
+            SINCE_LABEL="(first release)"
+          fi
+
+          # One bullet per commit, skip merge commits, cap at 40 lines
+          COMMITS=$(git log "$RANGE" --pretty=format:'- %s (%h)' --no-merges | head -40)
+
+          if [ -z "$COMMITS" ]; then
+            COMMITS="- No individual commits recorded ${SINCE_LABEL}"
+          fi
+
+          # Write multiline output using a random heredoc delimiter
+          EOF_MARKER=$(openssl rand -hex 8)
+          {
+            echo "body<<${EOF_MARKER}"
+            echo "## What changed ${SINCE_LABEL}"
+            echo ""
+            echo "$COMMITS"
+            echo ""
+            echo "---"
+            echo "- APK: \`Actions-Tracker-v${{ steps.version.outputs.name }}.apk\`"
+            echo "- versionCode: \`${{ steps.version.outputs.code }}\`"
+            echo "- Data persists across update — do **not** uninstall"
+            echo "${EOF_MARKER}"
+          } >> "$GITHUB_OUTPUT"
 
       - name: Validate signing configuration
         env:
@@ -117,5 +168,5 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           tag_name: v${{ steps.version.outputs.name }}
-          generate_release_notes: true
+          body: ${{ steps.changelog.outputs.body }}
           files: release/Actions-Tracker-v${{ steps.version.outputs.name }}.apk

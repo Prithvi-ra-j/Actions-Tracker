@@ -1,0 +1,85 @@
+/* UpdateBanner.css — in-app update notification strip */
+
+.update-banner {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.6rem 1rem;
+  margin-bottom: 1rem;
+  background: rgba(196, 130, 26, 0.08);
+  border: 1px solid rgba(196, 130, 26, 0.35);
+  border-radius: 4px;
+  animation: update-slide-in 0.3s ease-out both;
+}
+
+@keyframes update-slide-in {
+  from { opacity: 0; transform: translateY(-6px); }
+  to   { opacity: 1; transform: translateY(0);    }
+}
+
+.update-banner__icon {
+  font-size: 1rem;
+  flex-shrink: 0;
+  line-height: 1;
+}
+
+.update-banner__text {
+  flex: 1;
+  min-width: 0;
+}
+
+.update-banner__title {
+  font-family: monospace;
+  font-size: 0.68rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: #c4821a;
+  font-weight: bold;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.update-banner__subtitle {
+  font-family: monospace;
+  font-size: 0.58rem;
+  letter-spacing: 0.06em;
+  color: rgba(196, 130, 26, 0.65);
+  margin-top: 0.15rem;
+}
+
+.update-banner__btn {
+  flex-shrink: 0;
+  padding: 0.35rem 0.8rem;
+  background: #c4821a;
+  color: #1c1916;
+  border: none;
+  border-radius: 3px;
+  font-family: monospace;
+  font-size: 0.62rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  font-weight: bold;
+  cursor: pointer;
+  transition: opacity 0.15s;
+}
+
+.update-banner__btn:hover {
+  opacity: 0.85;
+}
+
+.update-banner__dismiss {
+  flex-shrink: 0;
+  background: transparent;
+  border: none;
+  color: rgba(196, 130, 26, 0.5);
+  cursor: pointer;
+  font-size: 1rem;
+  line-height: 1;
+  padding: 0.1rem 0.2rem;
+  transition: color 0.15s;
+}
+
+.update-banner__dismiss:hover {
+  color: rgba(196, 130, 26, 0.9);
+}
