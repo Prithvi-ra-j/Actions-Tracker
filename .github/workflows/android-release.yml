@@ -2,6 +2,11 @@ name: Android Release
 
 on:
   workflow_dispatch:
+    inputs:
+      version:
+        description: "Release version, e.g. 1.5.1"
+        required: true
+        type: string
   push:
     tags:
       - 'v*'
@@ -36,43 +41,60 @@ jobs:
         id: version
         shell: bash
         run: |
-          VERSION="${GITHUB_REF_NAME#v}"
+          if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
+            VERSION="${{ inputs.version }}"
+          else
+            VERSION="${GITHUB_REF_NAME#v}"
+          fi
+
           if [[ ! "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
-            echo "Tag must look like v1.5.0"
+            echo "Version must look like 1.5.0"
             exit 1
           fi
 
           IFS='.' read -r LEVEL PHASE PATCH <<< "$VERSION"
 
-          if (( LEVEL > 2147483 || PHASE > 999 || PATCH > 999 )); then
-            echo "Version component is out of supported range."
+          if (( LEVEL > 2147 || PHASE > 999 || PATCH > 999 )); then
+            echo "Version is outside the supported Android versionCode range."
             exit 1
           fi
 
-          # Stable integer mapping for Android versionCode.
+          # 1.5.0 -> 1005001, 1.5.1 -> 1005002, etc.
           VERSION_CODE=$((LEVEL * 1000000 + PHASE * 1000 + PATCH))
 
           echo "name=$VERSION" >> "$GITHUB_OUTPUT"
           echo "code=$VERSION_CODE" >> "$GITHUB_OUTPUT"
 
-      - name: Set Android version
+      - name: Validate signing configuration
         env:
-          VERSION_NAME: ${{ steps.version.outputs.name }}
-          VERSION_CODE: ${{ steps.version.outputs.code }}
+          ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
         run: |
-          python - <<'PY'
-          from pathlib import Path
-          import os
-          path = Path("android/app/build.gradle")
-          text = path.read_text()
-          text = text.replace('versionCode 1', f'versionCode {os.environ["VERSION_CODE"]}', 1)
-          text = text.replace('versionName "1.0"', f'versionName "{os.environ["VERSION_NAME"]}"', 1)
-          path.write_text(text)
-          PY
+          test -n "$ANDROID_KEYSTORE_BASE64" || { echo "Missing ANDROID_KEYSTORE_BASE64"; exit 1; }
+          test -n "$ANDROID_KEYSTORE_PASSWORD" || { echo "Missing ANDROID_KEYSTORE_PASSWORD"; exit 1; }
+          test -n "$ANDROID_KEY_ALIAS" || { echo "Missing ANDROID_KEY_ALIAS"; exit 1; }
+          test -n "$ANDROID_KEY_PASSWORD" || { echo "Missing ANDROID_KEY_PASSWORD"; exit 1; }
 
-      - name: Build release APK
+      - name: Restore signing key
+        env:
+          ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+        run: |
+          echo "$ANDROID_KEYSTORE_BASE64" | base64 --decode > "$RUNNER_TEMP/actions-tracker-release.keystore"
+
+      - name: Build signed release APK
         working-directory: android
-        run: ./gradlew assembleRelease --no-daemon
+        env:
+          ANDROID_KEYSTORE_FILE: ${{ runner.temp }}/actions-tracker-release.keystore
+          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        run: |
+          ./gradlew assembleRelease \
+            -PandroidVersionName="${{ steps.version.outputs.name }}" \
+            -PandroidVersionCode="${{ steps.version.outputs.code }}" \
+            --no-daemon
 
       - name: Rename APK
         run: |
@@ -82,6 +104,6 @@ jobs:
       - name: Publish GitHub Release
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: ${{ github.ref_name }}
+          tag_name: v${{ steps.version.outputs.name }}
           generate_release_notes: true
           files: release/Actions-Tracker-v${{ steps.version.outputs.name }}.apk
