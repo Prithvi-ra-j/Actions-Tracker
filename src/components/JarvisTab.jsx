@@ -373,6 +373,16 @@ export default function JarvisTab({ t, onQuestsChanged }) {
                 <circle cx="12" cy="7.2" r="1" fill="currentColor"/>
               </svg>
             </button>
+            <button
+              className="jarvis-icon-btn"
+              onClick={() => setSheet({ type: 'more' })}
+              aria-label="More options"
+              title="More options"
+            >
+              <svg width="17" height="17" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                <circle cx="5" cy="12" r="1.7"/><circle cx="12" cy="12" r="1.7"/><circle cx="19" cy="12" r="1.7"/>
+              </svg>
+            </button>
           </div>
         </div>
 
@@ -551,11 +561,20 @@ export default function JarvisTab({ t, onQuestsChanged }) {
         />
       )}
 
+      {sheet?.type === 'more' && (
+        <MoreSheet
+          onClose={() => setSheet(null)}
+          onClear={() => setSheet({ type: 'clear' })}
+        />
+      )}
+
       {sheet?.type === 'clear' && (
         <ClearConversationSheet
-          t={t}
-          onCancel={() => setSheet(null)}
-          onConfirm={handleClearConversation}
+          onCancel={() => setSheet({ type: 'more' })}
+          onConfirm={async () => {
+            await handleClearConversation();
+            setSheet(null);
+          }}
         />
       )}
     </div>
@@ -757,6 +776,17 @@ function ActionConfirmSheet({ t, proposal, onCancel, onConfirm }) {
       <div className="jarvis-sheet-actions">
         <button className="jarvis-sheet-danger" onClick={onConfirm}>Confirm</button>
         <button className="jarvis-sheet-secondary" onClick={onCancel}>Cancel</button>
+      </div>
+    </Sheet>
+  );
+}
+
+function MoreSheet({ onClose, onClear }) {
+  return (
+    <Sheet title="More" onClose={onClose}>
+      <div className="jarvis-sheet-actions">
+        <button className="jarvis-sheet-secondary" onClick={onClose}>Close</button>
+        <button className="jarvis-sheet-danger" onClick={onClear}>Clear conversation</button>
       </div>
     </Sheet>
   );
