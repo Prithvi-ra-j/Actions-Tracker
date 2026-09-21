@@ -9,6 +9,7 @@ import { addQuest, deleteQuest } from '../../database/questBoardRepository.js';
 import { addLearning, updateLearning, deleteLearning } from '../../database/learningRepository.js';
 import { addExperiment, deleteExperiment } from '../../database/experimentRepository.js';
 import { getSelfModel, updateSelfModel } from '../../database/selfModelRepository.js';
+import { addMemory, rejectMemory } from '../../database/memoryRepository.js';
 import { addFact, getFact, getAllFacts } from '../../database/factsRepository.js';
 import { getRoutineConfig, updateRoutineConfig } from '../../database/routineRepository.js';
 import { generateOccurrencesForDate } from '../occurrenceEngine.js';
@@ -209,6 +210,71 @@ export async function executeAction(proposal) {
       break;
     }
 
+    case 'log_evidence': {
+      const evidenceFactId = await addFact({
+        type: payload.evidenceType || 'manual_evidence',
+        objectId: payload.objectId || null,
+        value: payload.value ?? null,
+        meta: {
+          text: payload.text,
+          domain: payload.domain || null,
+          source: 'jarvis_conversational',
+        },
+        context: payload.context || {},
+        occurredAt: payload.occurredAt || new Date().toISOString(),
+      });
+      result = { ...result, id: evidenceFactId, evidenceFactId };
+      break;
+    }
+
+    case 'propose_memory': {
+      const id = await addMemory({
+        type: payload.type || 'semantic',
+        content: payload.content,
+        confidence: typeof payload.confidence === 'number' ? payload.confidence : 0.6,
+        status: 'proposed',
+        supportingFactIds: payload.supportingFactIds || [],
+        source: 'ai',
+        tags: payload.tags || [],
+      });
+      result = { ...result, id, status: 'proposed' };
+      break;
+    }
+
+    case 'create_plan': {
+      const childActionFactIds = [];
+      const childResults = [];
+      try {
+        for (const step of payload.steps) {
+          const stepProposal = {
+            actionType: step.actionType,
+            payload: step.payload,
+            impact: {
+              affectedDomains: [],
+              scoringImpact: 'Part of an approved Jarvis plan.',
+              routineImpact: 'See plan-level impact.',
+              identityAlignment: '',
+              disciplineImpact: '',
+              risks: [],
+              dependencies: [],
+            },
+            reasoning: 'Approved as part of a Jarvis plan.',
+            confidence: validatedProposal.confidence,
+          };
+          const stepResult = await executeAction(stepProposal);
+          childResults.push(stepResult);
+          if (stepResult.actionFactId) childActionFactIds.push(stepResult.actionFactId);
+        }
+      } catch (error) {
+        for (const childFactId of [...childActionFactIds].reverse()) {
+          try { await undoAction(childFactId); } catch (rollbackError) { console.error('[actionExecutor] Plan rollback failed:', rollbackError); }
+        }
+        throw new Error(`Plan failed and completed steps were rolled back: ${error.message}`);
+      }
+      result = { ...result, id: `plan_${Date.now()}`, childActionFactIds, childResults };
+      break;
+    }
+
     case 'revise_target': {
       if (!payload.dimension || typeof payload.targetValue !== 'number') {
         throw new Error('revise_target requires dimension and numeric targetValue');
@@ -258,6 +324,22 @@ export async function undoAction(actionFactId) {
     await updateRoutineConfig(before);
   } else if (actionType === 'revise_target') {
     await updateSelfModel(before);
+  } else if (actionType === 'log_evidence') {
+    const evidenceFactId = result?.evidenceFactId || result?.id;
+    if (evidenceFactId) {
+      await addFact({
+        type: 'retraction',
+        objectId: evidenceFactId,
+        value: 1,
+        meta: { retractedFactId: evidenceFactId, reason: 'user_undo', source: 'jarvis_conversational' },
+      });
+    }
+  } else if (actionType === 'propose_memory') {
+    if (result?.id) await rejectMemory(result.id);
+  } else if (actionType === 'create_plan') {
+    for (const childFactId of [...(result?.childActionFactIds || [])].reverse()) {
+      try { await undoAction(childFactId); } catch (error) { console.error('[actionExecutor] Plan child undo failed:', error); }
+    }
   } else {
     throw new Error(`Undo is not supported for ${actionType}`);
   }
