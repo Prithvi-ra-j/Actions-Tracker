@@ -18,16 +18,21 @@ android {
     }
     signingConfigs {
         release {
-            def keystoreFile = System.getenv("ANDROID_KEYSTORE_FILE")
-            def keystorePassword = System.getenv("ANDROID_KEYSTORE_PASSWORD")
-            def keyAlias = System.getenv("ANDROID_KEY_ALIAS")
-            def keyPassword = System.getenv("ANDROID_KEY_PASSWORD")
+            // Use distinct variable names (ks*) to avoid shadowing the AGP DSL
+            // setters keyAlias() and keyPassword(). In Groovy, a local variable
+            // with the same name as a DSL method causes `keyAlias keyAlias` to
+            // resolve as property access on the String (→ null) rather than the
+            // intended DSL setter call, which makes AGP throw "Value is null".
+            def ksFile     = System.getenv("ANDROID_KEYSTORE_FILE")
+            def ksPassword = System.getenv("ANDROID_KEYSTORE_PASSWORD")
+            def ksAlias    = System.getenv("ANDROID_KEY_ALIAS")
+            def ksKeyPwd   = System.getenv("ANDROID_KEY_PASSWORD")
 
-            if (keystoreFile && keystorePassword && keyAlias && keyPassword) {
-                storeFile file(keystoreFile)
-                storePassword keystorePassword
-                keyAlias keyAlias
-                keyPassword keyPassword
+            if (ksFile && ksPassword && ksAlias && ksKeyPwd) {
+                storeFile file(ksFile)
+                storePassword ksPassword
+                keyAlias ksAlias
+                keyPassword ksKeyPwd
             }
         }
     }
