@@ -4,11 +4,11 @@ const ACTION_TYPES = [
   'add_habit', 'modify_habit', 'pause_habit', 'archive_habit',
   'add_quest', 'modify_roadmap', 'adjust_routine', 'update_mastery_level',
   'add_learning', 'suggest_experiment', 'revise_target',
-  'log_evidence', 'propose_memory', 'create_plan',
+  'log_evidence', 'propose_memory', 'create_plan', 'add_goal', 'modify_goal', 'update_experiment',
 ];
 
 const ACTIONS_REQUIRING_ID = new Set([
-  'modify_habit', 'pause_habit', 'archive_habit', 'modify_roadmap', 'update_mastery_level',
+  'modify_habit', 'pause_habit', 'archive_habit', 'modify_roadmap', 'update_mastery_level', 'modify_goal', 'update_experiment',
 ]);
 
 const PlanStepSchema = z.object({
@@ -33,6 +33,12 @@ export const ActionProposalSchema = z.object({
 }).superRefine((proposal, context) => {
   if (ACTIONS_REQUIRING_ID.has(proposal.actionType) && typeof proposal.payload.id !== 'string') {
     context.addIssue({ code: z.ZodIssueCode.custom, path: ['payload', 'id'], message: 'This action requires payload.id' });
+  }
+  if (proposal.actionType === 'add_goal' && typeof proposal.payload.label !== 'string' && typeof proposal.payload.title !== 'string') {
+    context.addIssue({ code: z.ZodIssueCode.custom, path: ['payload', 'label'], message: 'add_goal requires payload.label or payload.title' });
+  }
+  if (proposal.actionType === 'update_experiment' && typeof proposal.payload.id !== 'string') {
+    context.addIssue({ code: z.ZodIssueCode.custom, path: ['payload', 'id'], message: 'update_experiment requires payload.id' });
   }
   if (proposal.actionType === 'add_habit' && typeof proposal.payload.name !== 'string') {
     context.addIssue({ code: z.ZodIssueCode.custom, path: ['payload', 'name'], message: 'add_habit requires payload.name' });
