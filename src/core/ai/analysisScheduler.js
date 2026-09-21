@@ -9,6 +9,8 @@ import { generateInsight } from './jarvisEngine.js';
 import { addInsight } from '../../database/insightsRepository.js';
 import { getSetting, setSetting } from '../../database/settingsRepository.js';
 import { saveTelemetryEvent } from '../../database/telemetryRepository.js';
+import { getSelfModel } from '../../database/selfModelRepository.js';
+import { getAllLogs } from '../../database/logsRepository.js';
 import { runMonthlyAudit } from './auditEngine.js';
 
 export async function bootstrapAnalysisScheduler() {
@@ -59,10 +61,33 @@ async function runScheduledAnalysis() {
   }
 
   // Monthly Audit Trigger (§32)
+  // Do not generate an audit for a fresh install. The user must have
+  // completed onboarding, accumulated real evidence, and had the system
+  // running long enough for a 30-day period to be meaningful.
   const currentMonth = today.substring(0, 7); // YYYY-MM
   const lastMonthlyMonth = await getSetting('lastMonthlyAuditMonth');
-  
-  if (lastMonthlyMonth !== currentMonth) {
+  const [selfModel, allLogs] = await Promise.all([
+    getSelfModel(),
+    getAllLogs(),
+  ]);
+
+  const meaningfulLogs = allLogs.filter(l =>
+    !['onboarding_assessment', 'proof_check_in'].includes(l.type)
+  );
+
+  const onboardingDate = selfModel.onboardingCompletedAt
+    ? new Date(selfModel.onboardingCompletedAt)
+    : null;
+  const daysSinceOnboarding = onboardingDate
+    ? (Date.now() - onboardingDate.getTime()) / (1000 * 60 * 60 * 24)
+    : 0;
+
+  const auditEligible =
+    !!onboardingDate &&
+    daysSinceOnboarding >= 30 &&
+    meaningfulLogs.length > 0;
+
+  if (lastMonthlyMonth !== currentMonth && auditEligible) {
     console.log(`[AnalysisScheduler] Running monthly audit for ${currentMonth}...`);
     const startTime = Date.now();
     await saveTelemetryEvent('analysis_started', today, { analysisType: 'monthly_audit', durationMs: 0 });
@@ -76,4 +101,3 @@ async function runScheduledAnalysis() {
       await saveTelemetryEvent('analysis_failed', today, { analysisType: 'monthly_audit', durationMs: Date.now() - startTime });
     }
   }
-}
