@@ -297,13 +297,11 @@ export default function JarvisTab({ t, onQuestsChanged }) {
             <div style={{ fontFamily: 'monospace', fontSize: '0.62rem', color: ACCENT, letterSpacing: '0.08em' }}>PROACTIVE SYSTEM REVIEW</div>
             <button onClick={() => setProactiveInsight(null)} style={smallButton(t)}>Dismiss</button>
           </div>
-          <div style={{ marginTop: '0.6rem', fontWeight: 700 }}>{proactiveInsight.title || proactiveInsight.summary || 'Review complete'}</div>
-          <div style={{ marginTop: '0.45rem', color: t.muted, fontSize: '0.82rem', lineHeight: 1.5 }}>
-            {proactiveInsight.summary || proactiveInsight.message || proactiveInsight.description || 'Jarvis identified a review item. Open Audit mode for a deeper conversation.'}
-          </div>
-          {Array.isArray(proactiveInsight.recommendations) && proactiveInsight.recommendations.length > 0 && (
+          <div style={{ marginTop: '0.6rem', fontWeight: 700 }}>{proactiveInsight.type || 'Review'}</div>
+          <div style={{ marginTop: '0.45rem', color: t.muted, fontSize: '0.82rem', lineHeight: 1.5 }}>{proactiveInsight.statement}</div>
+          {Array.isArray(proactiveInsight.recommendedActions) && proactiveInsight.recommendedActions.length > 0 && (
             <div style={{ marginTop: '0.65rem', color: t.muted, fontSize: '0.78rem' }}>
-              {proactiveInsight.recommendations.slice(0, 4).map((item, index) => <div key={index}>· {typeof item === 'string' ? item : item.text || item.action || JSON.stringify(item)}</div>)}
+              {proactiveInsight.recommendedActions.slice(0, 4).map((item, index) => <div key={index}>· {item}</div>)}
             </div>
           )}
         </div>
