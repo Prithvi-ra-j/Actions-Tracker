@@ -162,7 +162,26 @@ export async function chatWithJarvis(userMessage, history = [], modificationCont
     // deterministically retain the target ID during proposal modifications.
     const normalized = normalizeConversationalResponse(responseObj, modificationContext);
     const validated = ConversationalResponseSchema.parse(normalized);
-    return validateEvidenceClaims(validated, contextText);
+    const context = JSON.parse(contextText);
+    validateEvidenceClaims(validated, contextText);
+
+    return {
+      ...validated,
+      contextUsed: {
+        contextVersion: context.context_version,
+        evidenceCount: context.recent_evidence_facts?.length ?? 0,
+        memoryCount: context.semantic_memories?.length ?? 0,
+        activeHabitCount: context.active_habits?.length ?? 0,
+        activeGoalCount: context.active_goals?.length ?? 0,
+        activeHabits: (context.active_habits || []).slice(0, 8).map(habit => ({
+          id: habit.id, name: habit.name, domain: habit.domain,
+        })),
+        activeGoals: (context.active_goals || []).slice(0, 8).map(goal => goal.title),
+        recentEvidence: (context.recent_evidence_facts || []).slice(-8).map(fact => ({
+          id: fact.id, type: fact.type, date: fact.date,
+        })),
+      },
+    };
   } catch (err) {
     console.error("[JarvisEngine] Chat failed:", err);
     throw err;
