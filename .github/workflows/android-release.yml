@@ -29,7 +29,9 @@ jobs:
           cache: npm
 
       - name: Install dependencies
-        run: npm ci
+        # Health Connect 0.7 declares a Capacitor 5 peer while this app uses
+        # Capacitor 6; use the tested compatibility override (matches android-build.yml).
+        run: npm install --legacy-peer-deps
 
       - name: Build web app
         run: npm run build
@@ -82,6 +84,16 @@ jobs:
           ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
         run: |
           echo "$ANDROID_KEYSTORE_BASE64" | base64 --decode > "$RUNNER_TEMP/actions-tracker-release.keystore"
+
+      - name: Set up JDK 17 (Temurin)
+        # AGP 8.2.1 + Gradle 8.2.1 require JDK 17 (matches android-build.yml)
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Make Gradle wrapper executable
+        run: chmod +x android/gradlew
 
       - name: Build signed release APK
         working-directory: android

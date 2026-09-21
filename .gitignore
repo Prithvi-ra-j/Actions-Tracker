@@ -36,3 +36,7 @@ skills/
 db__pass.txt
 implementation_plan_go thorugh ti once thorughly using claude
 
+
+# Android signing — never commit keystores
+*.keystore
+*.jks
