@@ -1,5 +1,5 @@
 import React from 'react';
-import { saveErrorLog } from '../database/telemetryRepository.js';
+import { recordAppError } from '../core/errorLogger.js';
 
 export class ErrorBoundary extends React.Component {
   constructor(props) {
@@ -13,7 +13,12 @@ export class ErrorBoundary extends React.Component {
 
   componentDidCatch(error, errorInfo) {
     console.error('ErrorBoundary caught an error:', error, errorInfo);
-    saveErrorLog(error, errorInfo);
+    recordAppError(error, {
+      source: 'react',
+      operation: 'component_render',
+      component: this.constructor?.name || 'ErrorBoundary',
+      metadata: { componentStack: errorInfo?.componentStack },
+    });
   }
 
   render() {
