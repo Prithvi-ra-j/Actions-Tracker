@@ -73,6 +73,8 @@ export default function JarvisTab({ t, onQuestsChanged }) {
       }]);
       
     } catch (err) {
+      const { recordAppError } = await import('../core/errorLogger.js');
+      recordAppError(err, { source: 'jarvis_ui', operation: 'chat' });
       setError(err.message);
       // Remove optimistic message on fail, or show error message
       setMessages(prev => [...prev, { role: 'assistant', isError: true, content: 'Failed to communicate with Jarvis.' }]);
