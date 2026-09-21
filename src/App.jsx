@@ -209,24 +209,6 @@ export default function App() {
   const doneTargets = lifeGoals.reduce((acc, goal) => acc + (goal.targets?.filter(t => t.completed)?.length ?? 0), 0);
   const dailyDone   = [todayRecord.body, todayRecord.philosophy, todayRecord.art, todayRecord.history].filter(Boolean).length;
 
-  // Refresh the execution view after Jarvis writes a habit. The original
-  // callback only recomputed stats, leaving today's occurrence list stale.
-  const refreshAfterJarvisAction = useCallback(async () => {
-    try {
-      const { generateOccurrencesForDate } = await import('./core/occurrenceEngine.js');
-      await generateOccurrencesForDate(today);
-      const enriched = await loadEnrichedOccurrences(
-        daysAgoDate(today, 2),
-        today,
-        today
-      );
-      setTodayOccurrences(enriched);
-      await recomputeStats();
-    } catch (err) {
-      console.error('[App] Failed to refresh after Jarvis action:', err);
-    }
-  }, [today, recomputeStats]);
-
   // ── Initialise DB and load all data ───────────────────────────────────────
   useEffect(() => {
     async function bootstrap() {
@@ -388,6 +370,24 @@ export default function App() {
     bootstrap();
     setupStatusBar();
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Refresh the execution view after Jarvis writes a habit. The original
+  // callback only recomputed stats, leaving today's occurrence list stale.
+  const refreshAfterJarvisAction = useCallback(async () => {
+    try {
+      const { generateOccurrencesForDate } = await import('./core/occurrenceEngine.js');
+      await generateOccurrencesForDate(today);
+      const enriched = await loadEnrichedOccurrences(
+        daysAgoDate(today, 2),
+        today,
+        today
+      );
+      setTodayOccurrences(enriched);
+      await recomputeStats();
+    } catch (err) {
+      console.error('[App] Failed to refresh after Jarvis action:', err);
+    }
+  }, [today, recomputeStats]);
 
   // ── Android back-button handler ────────────────────────────────────────    // Re-registers whenever the relevant state changes so the handler is current.
   useEffect(() => {
