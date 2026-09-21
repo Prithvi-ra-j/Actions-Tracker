@@ -1,6 +1,7 @@
 /**
- * Conversation Manager for Jarvis
- * Handles multi-turn conversational state, keeping track of messages in memory.
+ * Conversation Manager for Jarvis.
+ * Keeps the LLM-facing history bounded while the UI persists the durable
+ * conversation transcript in IndexedDB.
  */
 
 class ConversationManager {
@@ -8,18 +9,20 @@ class ConversationManager {
     this.history = [];
   }
 
-  /**
-   * Initializes the conversation with a system prompt and context.
-   */
   initialize(systemPrompt) {
-    this.history = [
-      { role: 'system', content: systemPrompt }
-    ];
+    this.history = systemPrompt ? [{ role: 'system', content: systemPrompt }] : [];
   }
 
-  /**
-   * Appends a message to the conversation history.
-   */
+  hydrateFromUiMessages(messages = []) {
+    this.history = [];
+    for (const message of messages) {
+      if (!message || !['user', 'assistant', 'system'].includes(message.role)) continue;
+      const content = message.llmContent ?? message.content;
+      if (!content) continue;
+      this.history.push({ role: message.role, content });
+    }
+  }
+
   appendMessage(role, content) {
     this.history.push({ role, content });
   }
@@ -32,9 +35,6 @@ class ConversationManager {
     return excerpts ? `Earlier conversation excerpts:\n${excerpts}` : '';
   }
 
-  /**
-   * Retrieves the current conversation history.
-   */
   getHistory(maxTurns = 8) {
     const systemMessages = this.history.filter(message => message.role === 'system');
     const conversationalMessages = this.history.filter(message => message.role !== 'system');
@@ -47,9 +47,6 @@ class ConversationManager {
     ];
   }
 
-  /**
-   * Clears the history.
-   */
   clear() {
     this.history = [];
   }
