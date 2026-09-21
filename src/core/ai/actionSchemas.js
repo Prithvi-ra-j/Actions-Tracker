@@ -1,24 +1,32 @@
 import { z } from 'zod';
 
+const ACTION_TYPES = [
+  'add_habit', 'modify_habit', 'pause_habit', 'archive_habit',
+  'add_quest', 'modify_roadmap', 'adjust_routine', 'update_mastery_level',
+  'add_learning', 'suggest_experiment', 'revise_target',
+  'log_evidence', 'propose_memory', 'create_plan',
+];
+
 const ACTIONS_REQUIRING_ID = new Set([
   'modify_habit', 'pause_habit', 'archive_habit', 'modify_roadmap', 'update_mastery_level',
 ]);
 
+const PlanStepSchema = z.object({
+  actionType: z.enum(ACTION_TYPES.filter(type => type !== 'create_plan')),
+  payload: z.record(z.any()),
+});
+
 export const ActionProposalSchema = z.object({
-  actionType: z.enum([
-    'add_habit', 'modify_habit', 'pause_habit', 'archive_habit',
-    'add_quest', 'modify_roadmap', 'adjust_routine', 'update_mastery_level',
-    'add_learning', 'suggest_experiment', 'revise_target',
-  ]),
-  payload: z.record(z.any()), 
+  actionType: z.enum(ACTION_TYPES),
+  payload: z.record(z.any()),
   impact: z.object({
     affectedDomains: z.array(z.string()),
-    scoringImpact: z.string(),           
-    routineImpact: z.string(),           
-    identityAlignment: z.string(),       
-    disciplineImpact: z.string(),        
-    risks: z.array(z.string()),          
-    dependencies: z.array(z.string()),   
+    scoringImpact: z.string(),
+    routineImpact: z.string(),
+    identityAlignment: z.string(),
+    disciplineImpact: z.string(),
+    risks: z.array(z.string()),
+    dependencies: z.array(z.string()),
   }),
   reasoning: z.string(),
   confidence: z.number().min(0).max(1),
@@ -37,5 +45,19 @@ export const ActionProposalSchema = z.object({
   }
   if (proposal.actionType === 'suggest_experiment' && typeof proposal.payload.hypothesis !== 'string') {
     context.addIssue({ code: z.ZodIssueCode.custom, path: ['payload', 'hypothesis'], message: 'suggest_experiment requires payload.hypothesis' });
+  }
+  if (proposal.actionType === 'log_evidence' && typeof proposal.payload.text !== 'string') {
+    context.addIssue({ code: z.ZodIssueCode.custom, path: ['payload', 'text'], message: 'log_evidence requires payload.text' });
+  }
+  if (proposal.actionType === 'propose_memory' && typeof proposal.payload.content !== 'string') {
+    context.addIssue({ code: z.ZodIssueCode.custom, path: ['payload', 'content'], message: 'propose_memory requires payload.content' });
+  }
+  if (proposal.actionType === 'create_plan') {
+    if (!Array.isArray(proposal.payload.steps) || proposal.payload.steps.length < 1 || proposal.payload.steps.length > 8) {
+      context.addIssue({ code: z.ZodIssueCode.custom, path: ['payload', 'steps'], message: 'create_plan requires 1-8 steps' });
+    } else {
+      const parsed = z.array(PlanStepSchema).safeParse(proposal.payload.steps);
+      if (!parsed.success) context.addIssue({ code: z.ZodIssueCode.custom, path: ['payload', 'steps'], message: 'Plan contains an invalid step' });
+    }
   }
 });
