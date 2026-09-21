@@ -217,7 +217,7 @@ export default function JarvisTab({ t, onQuestsChanged }) {
                   </div>
                   
                   {/* Action Proposal (Artifact style) */}
-                  {msg.proposal && msg.proposalStatus !== 'executed' && (
+                  {msg.proposal && (
                     <div style={{
                       marginTop: '1.25rem',
                       background: t.subtleBg,
@@ -262,6 +262,7 @@ export default function JarvisTab({ t, onQuestsChanged }) {
                           </div>
                         )}
                         
+                        {msg.proposalStatus !== 'executed' ? (
                         <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
                           <button 
                             onClick={() => handleApproveProposal(msg.proposal)}
@@ -298,6 +299,11 @@ export default function JarvisTab({ t, onQuestsChanged }) {
                             Decline
                           </button>
                         </div>
+                        ) : (
+                          <div style={{ fontFamily: 'monospace', fontSize: '0.7rem', color: '#4f8a5f' }}>
+                            This action has already been executed.
+                          </div>
+                        )}
                       </div>
                     </div>
                   )}
@@ -338,7 +344,7 @@ export default function JarvisTab({ t, onQuestsChanged }) {
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={handleKeyDown}
-            placeholder="Tell Jarvis what to do..."
+            placeholder={modificationContext ? "Describe the change you want..." : "Tell Jarvis what to do..."}
             style={{
               flex: 1,
               background: 'transparent',
