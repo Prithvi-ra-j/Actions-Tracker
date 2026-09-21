@@ -134,6 +134,7 @@ export default function SettingsTab({ t, dark, setDark, reminders, setReminders,
         alert(`Import successful — ${totalRecords} records restored across ${storeCount} stores.\nThe app will now reload.`);
         window.location.reload();
       } catch (err) {
+        recordAppError(err, { source: 'settings', operation: 'database_import' });
         alert('Import failed:\n\n' + err.message);
       }
     };
@@ -163,6 +164,7 @@ export default function SettingsTab({ t, dark, setDark, reminders, setReminders,
       setSupabaseUser(result.user);
       setSupabasePassword('');
     } catch (err) {
+      recordAppError(err, { source: 'settings', operation: 'supabase_sign_in' });
       setSupabaseAuthError(err.message);
     } finally {
       setSupabaseAuthBusy(false);
@@ -182,6 +184,7 @@ export default function SettingsTab({ t, dark, setDark, reminders, setReminders,
       const summary = await onRunSync();
       setSyncSummary(summary);
     } catch (err) {
+      recordAppError(err, { source: 'settings', operation: 'data_sync' });
       alert('Sync failed: ' + err.message);
     } finally {
       setSyncing(false);
