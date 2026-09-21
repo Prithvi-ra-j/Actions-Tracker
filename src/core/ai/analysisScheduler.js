@@ -101,3 +101,4 @@ async function runScheduledAnalysis() {
       await saveTelemetryEvent('analysis_failed', today, { analysisType: 'monthly_audit', durationMs: Date.now() - startTime });
     }
   }
+}
