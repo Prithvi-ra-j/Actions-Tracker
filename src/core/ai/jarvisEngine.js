@@ -43,20 +43,28 @@ function normalizeConversationalResponse(responseObj, modificationContext = null
   // Normalize null to the same internal representation as an omitted proposal.
   if (normalized.proposal === null) delete normalized.proposal;
 
-  // The UI supplies the exact proposal being modified. Preserve its entity ID
-  // deterministically instead of depending on the LLM to reproduce an opaque ID.
-  if (
-    normalized.proposal &&
-    modificationContext?.payload?.id &&
-    EXISTING_ENTITY_ACTIONS.has(normalized.proposal.actionType) &&
-    !normalized.proposal.payload?.id
-  ) {
+  // The UI supplies the exact proposal being modified. Preserve its
+  // existing payload so a short edit such as "make it one hour" does not
+  // accidentally drop the habit name, frequency, domain, etc.
+  if (normalized.proposal && modificationContext) {
+    const sameAction = normalized.proposal.actionType === modificationContext.actionType;
+    const mergedPayload = sameAction
+      ? { ...modificationContext.payload, ...normalized.proposal.payload }
+      : { ...normalized.proposal.payload };
+
+    // Existing-entity mutations must retain the opaque database ID. The UI
+    // knows it; the model should not have to invent or remember it.
+    if (
+      EXISTING_ENTITY_ACTIONS.has(normalized.proposal.actionType) &&
+      modificationContext.payload?.id &&
+      !mergedPayload.id
+    ) {
+      mergedPayload.id = modificationContext.payload.id;
+    }
+
     normalized.proposal = {
       ...normalized.proposal,
-      payload: {
-        ...normalized.proposal.payload,
-        id: modificationContext.payload.id,
-      },
+      payload: mergedPayload,
     };
   }
 
