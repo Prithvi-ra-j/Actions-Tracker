@@ -140,11 +140,55 @@ jobs:
           test -n "$ANDROID_KEY_ALIAS" || { echo "Missing ANDROID_KEY_ALIAS"; exit 1; }
           test -n "$ANDROID_KEY_PASSWORD" || { echo "Missing ANDROID_KEY_PASSWORD"; exit 1; }
 
-      - name: Restore signing key
+      - name: Restore and validate signing key
         env:
           ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
         run: |
-          echo "$ANDROID_KEYSTORE_BASE64" | base64 --decode > "$RUNNER_TEMP/actions-tracker-release.keystore"
+          python - <<'PY'
+          import base64
+          import os
+          import re
+          from pathlib import Path
+
+          encoded = os.environ["ANDROID_KEYSTORE_BASE64"].strip()
+
+          if "-----BEGIN" in encoded or "-----END" in encoded:
+              raise SystemExit(
+                  "ANDROID_KEYSTORE_BASE64 contains PEM text. "
+                  "Store the binary keystore encoded as Base64, not a PEM/certificate file."
+              )
+
+          normalized = re.sub(r"\\s+", "", encoded)
+
+          try:
+              decoded = base64.b64decode(normalized, validate=True)
+          except Exception as exc:
+              raise SystemExit(
+                  "ANDROID_KEYSTORE_BASE64 is not valid Base64. "
+                  "Regenerate it from the actual .keystore/.jks file."
+              ) from exc
+
+          target = Path(os.environ["RUNNER_TEMP"]) / "actions-tracker-release.keystore"
+          target.write_bytes(decoded)
+
+          if target.stat().st_size < 1024:
+              raise SystemExit(
+                  f"Decoded keystore is only {target.stat().st_size} bytes; "
+                  "the GitHub secret is almost certainly incomplete or was generated from the wrong file."
+              )
+
+          print(f"Decoded keystore size: {target.stat().st_size} bytes")
+          PY
+
+          keytool -list -v \
+            -keystore "$RUNNER_TEMP/actions-tracker-release.keystore" \
+            -storepass "$ANDROID_KEYSTORE_PASSWORD" \
+            -alias "$ANDROID_KEY_ALIAS" \
+            -noprompt > "$RUNNER_TEMP/keytool-check.txt"
+
+          echo "Keystore validation succeeded."
 
       - name: Set up JDK 17 (Temurin)
         # AGP 8.2.1 + Gradle 8.2.1 require JDK 17 (matches android-build.yml)
