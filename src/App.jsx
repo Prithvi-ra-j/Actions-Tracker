@@ -20,6 +20,7 @@ import { registerConnector } from './core/sync/syncManager.js';
 import { HealthConnectConnector } from './core/sync/connectors/HealthConnectConnector.js';
 import { NutriLiftConnector } from './core/sync/connectors/NutriLiftConnector.js';
 import { bootstrapAnalysisScheduler } from './core/ai/analysisScheduler.js';
+import { installGlobalErrorLogging, markErrorLoggerReady } from './core/errorLogger.js';
 
 // ── Helpers ─────────────────────────────────────────────────────────────────────────────
 import { computeAllStats, computeAxisDetails, getThresholdTitle } from './helpers/statsEngine.js';
@@ -215,6 +216,8 @@ export default function App() {
       try {
         await saveTelemetryEvent('app_started', localDateStr(), { type: 'boot' }).catch(() => {});
         await initDB();
+        await markErrorLoggerReady();
+        installGlobalErrorLogging();
         await runAutoBackup().catch(() => {});
         await migrateFromLocalStorage();
         await saveTelemetryEvent('db_migration_success', localDateStr(), {}).catch(() => {});
