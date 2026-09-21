@@ -1,102 +1,162 @@
-name: Build Android APK
+name: Build Installable Android APK
 
-# ─────────────────────────────────────────────
-# Triggers
-# ─────────────────────────────────────────────
 on:
-  push:
-    branches:
-      - main
-  workflow_dispatch:   # allows manual run from the Actions tab
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Android version to build, e.g. 1.5.1"
+        required: true
+        type: string
 
-# ─────────────────────────────────────────────
-# Jobs
-# ─────────────────────────────────────────────
+permissions:
+  contents: read
+
 jobs:
   build-apk:
-    name: Build debug APK
+    name: Build signed release APK
     runs-on: ubuntu-latest
 
     steps:
-      # ── 1. Checkout ──────────────────────────────────────────────────────
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      # ── 2. Node.js ───────────────────────────────────────────────────────
-      # No .nvmrc found; using Node 20 LTS — compatible with Vite 5 + React 18
       - name: Set up Node.js 20
         uses: actions/setup-node@v4
         with:
           node-version: "20"
+          cache: npm
 
-      # ── 3. npm cache ──────────────────────────────────────────────────────
-      - name: Cache npm dependencies
-        uses: actions/cache@v4
-        with:
-          path: ~/.npm
-          key: ${{ runner.os }}-npm-${{ hashFiles('**/package-lock.json') }}
-          restore-keys: |
-            ${{ runner.os }}-npm-
-
-      # ── 4. Install dependencies ───────────────────────────────────────────
-      - name: Install npm dependencies
-        # Health Connect 0.7 declares a Capacitor 5 peer while this app uses
-        # Capacitor 6; use the tested compatibility override.
+      - name: Install dependencies
         run: npm install --legacy-peer-deps
 
-      # ── 5. Build web assets ───────────────────────────────────────────────
-      - name: Build web app (Vite)
+      - name: Build web app
         run: npm run build
 
-      # ── 6. Sync into Android project ──────────────────────────────────────
-      - name: Sync web assets into Android (cap sync)
+      - name: Sync Capacitor
         run: npx cap sync android
 
-      # ── 7. JDK 17 ────────────────────────────────────────────────────────
-      # AGP 8.2.1 + Gradle 8.2.1 require JDK 17 (Google's official minimum).
-      # JDK 21 is also compatible but 17 is the safest match for this AGP.
+      - name: Determine Android version
+        id: version
+        shell: bash
+        run: |
+          VERSION="${{ inputs.version }}"
+
+          if [[ ! "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "Version must look like 1.5.0"
+            exit 1
+          fi
+
+          IFS='.' read -r LEVEL PHASE PATCH <<< "$VERSION"
+
+          if (( LEVEL > 2147 || PHASE > 999 || PATCH > 999 )); then
+            echo "Version is outside the supported Android versionCode range."
+            exit 1
+          fi
+
+          VERSION_CODE=$((LEVEL * 1000000 + PHASE * 1000 + PATCH))
+
+          echo "name=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "code=$VERSION_CODE" >> "$GITHUB_OUTPUT"
+
+      - name: Stamp version.js
+        run: |
+          sed -i "s/export const APP_VERSION *= *'[^']*'/export const APP_VERSION = '${{ steps.version.outputs.name }}'/" src/version.js
+
+      - name: Validate signing configuration
+        env:
+          ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        run: |
+          test -n "$ANDROID_KEYSTORE_BASE64" || { echo "Missing ANDROID_KEYSTORE_BASE64"; exit 1; }
+          test -n "$ANDROID_KEYSTORE_PASSWORD" || { echo "Missing ANDROID_KEYSTORE_PASSWORD"; exit 1; }
+          test -n "$ANDROID_KEY_ALIAS" || { echo "Missing ANDROID_KEY_ALIAS"; exit 1; }
+          test -n "$ANDROID_KEY_PASSWORD" || { echo "Missing ANDROID_KEY_PASSWORD"; exit 1; }
+
+      - name: Restore and validate signing key
+        env:
+          ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+        run: |
+          python - <<'PY'
+          import base64
+          import os
+          import re
+          from pathlib import Path
+
+          encoded = os.environ["ANDROID_KEYSTORE_BASE64"].strip()
+
+          if "-----BEGIN" in encoded or "-----END" in encoded:
+              raise SystemExit(
+                  "ANDROID_KEYSTORE_BASE64 contains PEM text. "
+                  "Encode the actual .keystore/.jks binary file as Base64."
+              )
+
+          normalized = re.sub(r"\\s+", "", encoded)
+
+          try:
+              decoded = base64.b64decode(normalized, validate=True)
+          except Exception as exc:
+              raise SystemExit(
+                  "ANDROID_KEYSTORE_BASE64 is invalid Base64. "
+                  "Regenerate it from the actual keystore file."
+              ) from exc
+
+          target = Path(os.environ["RUNNER_TEMP"]) / "actions-tracker-release.keystore"
+          target.write_bytes(decoded)
+
+          if target.stat().st_size < 1024:
+              raise SystemExit(
+                  f"Decoded keystore is only {target.stat().st_size} bytes; "
+                  "the GitHub secret is incomplete or is not a keystore."
+              )
+
+          print(f"Decoded keystore size: {target.stat().st_size} bytes")
+          PY
+
+          keytool -list -keystore "$RUNNER_TEMP/actions-tracker-release.keystore" \
+            -storepass "$ANDROID_KEYSTORE_PASSWORD" \
+            -alias "$ANDROID_KEY_ALIAS" \
+            -noprompt > "$RUNNER_TEMP/keytool-check.txt"
+
+          echo "Keystore validation succeeded."
+
       - name: Set up JDK 17 (Temurin)
         uses: actions/setup-java@v4
         with:
           distribution: temurin
           java-version: "17"
 
-      # ── 8. Gradle cache ───────────────────────────────────────────────────
-      # Caches the Gradle wrapper download, caches, and build-script jars.
-      # The cache key includes the wrapper properties so a Gradle upgrade
-      # automatically invalidates and re-downloads.
-      - name: Cache Gradle files
-        uses: actions/cache@v4
-        with:
-          path: |
-            ~/.gradle/caches
-            ~/.gradle/wrapper
-          key: ${{ runner.os }}-gradle-${{ hashFiles('android/gradle/wrapper/gradle-wrapper.properties', 'android/**/*.gradle') }}
-          restore-keys: |
-            ${{ runner.os }}-gradle-
-
-      # ── 9. Make gradlew executable ────────────────────────────────────────
       - name: Make Gradle wrapper executable
         run: chmod +x android/gradlew
 
-      # ── 10. Build debug APK ───────────────────────────────────────────────
-      # Runs assembleDebug which produces a debug-signed APK using the
-      # Android SDK's built-in debug keystore (~/.android/debug.keystore).
-      # The debug keystore is regenerated by the Android build tools on each
-      # fresh runner — see note on signing consistency below.
-      - name: Build debug APK
+      - name: Build signed release APK
         working-directory: android
-        run: ./gradlew assembleDebug --no-daemon
         env:
-          # Increase JVM heap; the runner default is sometimes too low for AGP
-          GRADLE_OPTS: "-Dorg.gradle.jvmargs=-Xmx2048m -Dorg.gradle.daemon=false"
+          ANDROID_KEYSTORE_FILE: ${{ runner.temp }}/actions-tracker-release.keystore
+          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        run: |
+          ./gradlew assembleRelease \
+            -PandroidVersionName="${{ steps.version.outputs.name }}" \
+            -PandroidVersionCode="${{ steps.version.outputs.code }}" \
+            --no-daemon
 
-      # ── 11. Upload APK artifact ───────────────────────────────────────────
-      - name: Upload debug APK
+      - name: Verify APK signature
+        env:
+          VERSION: ${{ steps.version.outputs.name }}
+        run: |
+          "$ANDROID_HOME/build-tools/$(ls "$ANDROID_HOME/build-tools" | sort -V | tail -1)/apksigner" verify --verbose android/app/build/outputs/apk/release/app-release.apk
+          mkdir -p release
+          cp android/app/build/outputs/apk/release/app-release.apk "release/Actions-Tracker-v$VERSION.apk"
+
+      - name: Upload signed APK artifact
         uses: actions/upload-artifact@v4
         with:
-          name: Actions-apk
-          path: android/app/build/outputs/apk/debug/app-debug.apk
-          # Keep artifacts for 30 days (GitHub's default for public repos is 90)
+          name: Actions-Tracker-v${{ steps.version.outputs.name }}
+          path: release/Actions-Tracker-v${{ steps.version.outputs.name }}.apk
           retention-days: 30
-          if-no-files-found: error   # fail loudly if the APK wasn't produced
+          if-no-files-found: error
