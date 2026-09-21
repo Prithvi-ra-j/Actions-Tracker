@@ -86,9 +86,13 @@ jobs:
           # Find the previous tag to bound the log range.
           # If none exists (first release), use the full history.
           CURRENT_TAG="v${{ steps.version.outputs.name }}"
-          # grep -v returns exit 1 when no lines match (first release has no previous tag).
-          # Wrap in subshell with || true so pipefail doesn't kill the step.
-          PREV_TAG=$(git tag --sort=-version:refname | { grep -v "^${CURRENT_TAG}$" || true; } | head -1)
+          # Two-step approach avoids both:
+          #   - grep -v exit 1 (no matches) → pipefail kills the step
+          #   - head -1 SIGPIPE (exit 141)  → pipefail kills the step
+          # Collect all filtered tags into a variable first; head -1 then
+          # operates on an echo, not a live pipe, so no SIGPIPE is possible.
+          ALL_TAGS=$(git tag --sort=-version:refname | grep -v "^${CURRENT_TAG}$" || true)
+          PREV_TAG=$(echo "$ALL_TAGS" | head -1)
 
           if [ -n "$PREV_TAG" ]; then
             RANGE="${PREV_TAG}..HEAD"
