@@ -68,9 +68,10 @@ export function StepCommit({ t, draft, onNext, onComplete }) {
     try {
       const plan = buildCommitPlan(draft, null);
       
-      // We must add the completion flag to settings
-      plan.settings.onboardingCompletedAt = new Date().toISOString();
-      plan.settings.onboardingVersion = 3;
+      // Persist completion where the app's onboarding gate reads it.
+      const completedAt = new Date().toISOString();
+      plan.selfModel.onboardingCompletedAt = completedAt;
+      plan.selfModel.onboardingVersion = 3;
 
       await commitOnboardingPlan(plan);
       setStatus('success');
