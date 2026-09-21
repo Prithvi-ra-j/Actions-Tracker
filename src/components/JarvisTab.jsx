@@ -18,6 +18,7 @@ export default function JarvisTab({ t, onQuestsChanged }) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [executing, setExecuting] = useState(false);
+  const [modificationContext, setModificationContext] = useState(null);
   const messagesEndRef = useRef(null);
 
   useEffect(() => {
@@ -40,7 +41,8 @@ export default function JarvisTab({ t, onQuestsChanged }) {
 
     try {
       const history = conversationManager.getHistory();
-      const response = await chatWithJarvis(userText, history);
+      const response = await chatWithJarvis(userText, history, modificationContext);
+      setModificationContext(null);
       
       conversationManager.appendMessage('user', userText);
       conversationManager.appendMessage('assistant', JSON.stringify(response));
@@ -63,10 +65,11 @@ export default function JarvisTab({ t, onQuestsChanged }) {
         enrichedProposal = { ...response.proposal, impact };
       }
 
-      setMessages(prev => [...prev, { 
-        role: 'assistant', 
-        content: response.message, 
-        proposal: enrichedProposal 
+      setMessages(prev => [...prev, {
+        role: 'assistant',
+        content: response.message,
+        proposal: enrichedProposal,
+        proposalStatus: enrichedProposal ? 'pending' : undefined,
       }]);
       
     } catch (err) {
@@ -81,10 +84,15 @@ export default function JarvisTab({ t, onQuestsChanged }) {
   const handleApproveProposal = async (proposal) => {
     setExecuting(true);
     try {
-      await executeAction(proposal);
-      setMessages(prev => [...prev, { 
-        role: 'system', 
-        content: `Action executed: ${proposal.actionType}` 
+      const result = await executeAction(proposal);
+      setMessages(prev => prev.map(message =>
+        message.proposal === proposal
+          ? { ...message, proposalStatus: 'executed' }
+          : message
+      ));
+      setMessages(prev => [...prev, {
+        role: 'system',
+        content: `Action executed: ${proposal.actionType}${result?.id ? ` (${result.id})` : ''}`
       }]);
       if (onQuestsChanged) onQuestsChanged();
     } catch (err) {
@@ -102,7 +110,8 @@ export default function JarvisTab({ t, onQuestsChanged }) {
   };
 
   const handleModifyProposal = (proposal) => {
-    setInput(`Modify the ${proposal.actionType} proposal: `);
+    setModificationContext(proposal);
+    setInput('');
   };
 
   const handleKeyDown = (e) => {
@@ -208,7 +217,7 @@ export default function JarvisTab({ t, onQuestsChanged }) {
                   </div>
                   
                   {/* Action Proposal (Artifact style) */}
-                  {msg.proposal && (
+                  {msg.proposal && msg.proposalStatus !== 'executed' && (
                     <div style={{
                       marginTop: '1.25rem',
                       background: t.subtleBg,
