@@ -191,6 +191,18 @@ export function computeImpact(proposal, currentState) {
       impact.scoringImpact = `Executes ${Array.isArray(payload.steps) ? payload.steps.length : 0} ordered actions as one approved plan.`;
       impact.risks.push('Plan writes are executed sequentially; failed plans attempt to roll back completed steps.');
       break;
+
+    case 'add_goal':
+      impact.scoringImpact = 'Adds a new target structure; current evidence score is unchanged until evidence accumulates.';
+      break;
+
+    case 'modify_goal':
+      impact.scoringImpact = 'Changes the goal definition or target structure; current evidence is preserved.';
+      break;
+
+    case 'update_experiment':
+      impact.scoringImpact = 'Updates experiment state or results so Jarvis can evaluate the hypothesis against observed evidence.';
+      break;
   }
   
   return impact;
