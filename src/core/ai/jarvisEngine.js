@@ -20,7 +20,7 @@ const ConversationalResponseSchema = z.object({
   claims: z.array(z.object({
     text: z.string(),
     evidenceIds: z.array(z.string()),
-  })).optional(),
+  })).nullable().optional(),
 });
 
 export function validateEvidenceClaims(response, contextText) {
