@@ -371,24 +371,6 @@ export default function App() {
     setupStatusBar();
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Refresh the execution view after Jarvis writes a habit. The original
-  // callback only recomputed stats, leaving today's occurrence list stale.
-  const refreshAfterJarvisAction = useCallback(async () => {
-    try {
-      const { generateOccurrencesForDate } = await import('./core/occurrenceEngine.js');
-      await generateOccurrencesForDate(today);
-      const enriched = await loadEnrichedOccurrences(
-        daysAgoDate(today, 2),
-        today,
-        today
-      );
-      setTodayOccurrences(enriched);
-      await recomputeStats();
-    } catch (err) {
-      console.error('[App] Failed to refresh after Jarvis action:', err);
-    }
-  }, [today, recomputeStats]);
-
   // ── Android back-button handler ────────────────────────────────────────    // Re-registers whenever the relevant state changes so the handler is current.
   useEffect(() => {
     registerBackHandler(() => {
@@ -440,6 +422,24 @@ export default function App() {
       console.error('[App] recomputeStats failed:', err);
     }
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Refresh the execution view after Jarvis writes a habit. The original
+  // callback only recomputed stats, leaving today's occurrence list stale.
+  const refreshAfterJarvisAction = useCallback(async () => {
+    try {
+      const { generateOccurrencesForDate } = await import('./core/occurrenceEngine.js');
+      await generateOccurrencesForDate(today);
+      const enriched = await loadEnrichedOccurrences(
+        daysAgoDate(today, 2),
+        today,
+        today
+      );
+      setTodayOccurrences(enriched);
+      await recomputeStats();
+    } catch (err) {
+      console.error('[App] Failed to refresh after Jarvis action:', err);
+    }
+  }, [today, recomputeStats]);
 
   // ── Handlers ──────────────────────────────────────────────────────────────
   const triggerHaptic = () => {
