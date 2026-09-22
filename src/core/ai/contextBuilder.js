@@ -213,7 +213,7 @@ export async function assembleContext(intent = 'audit', query = '') {
   }
 
   const contextData = {
-    context_version: '1.0',
+    context_version: '1.1',
     request: { intent },
     domain_progress_models: Object.fromEntries(
       (selfModel?.focusAxes || []).map(axis => [axis, DOMAIN_PROGRESS_MODELS[axis]])
