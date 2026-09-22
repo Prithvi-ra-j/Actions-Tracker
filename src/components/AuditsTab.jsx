@@ -56,7 +56,7 @@ export default function AuditsTab({ t }) {
           <div style={{ fontFamily: 'monospace', fontSize: '0.65rem', letterSpacing: '0.25em', color: ACCENT, textTransform: 'uppercase', marginBottom: '0.4rem' }}>
             System Audit
           </div>
-          <div style={{ fontSize: '1.6rem', fontWeight: 900, lineHeight: 1 }}>
+          <div style={{ fontSize: '1.45rem', fontWeight: 900, lineHeight: 1 }}>
             Monthly Reviews
           </div>
         </div>
@@ -104,14 +104,14 @@ export default function AuditsTab({ t }) {
                 }}
               >
                 <div style={{ textAlign: 'left' }}>
-                  <div style={{ fontWeight: 600, fontSize: '1.1rem' }}>
+                  <div style={{ fontWeight: 600, fontSize: '1rem' }}>
                     Audit: {startDate} — {endDate}
                   </div>
                   <div style={{ fontFamily: 'monospace', fontSize: '0.65rem', color: t.muted, marginTop: '0.3rem' }}>
                     Generated: {new Date(audit.createdAt).toLocaleString()}
                   </div>
                 </div>
-                <div style={{ fontSize: '1.2rem', color: t.muted }}>
+                <div style={{ fontSize: '1.05rem', color: t.muted }}>
                   {isExpanded ? '−' : '+'}
                 </div>
               </button>
