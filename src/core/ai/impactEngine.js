@@ -192,6 +192,14 @@ export function computeImpact(proposal, currentState) {
       impact.risks.push('Plan writes are executed sequentially; failed plans attempt to roll back completed steps.');
       break;
 
+    case 'complete_onboarding':
+      impact.affectedDomains.push(...(Array.isArray(payload.focusAxes) ? payload.focusAxes : []));
+      impact.scoringImpact = 'Establishes the user profile, starting context, and desired outcomes. It does not create habits, quests, or a schedule.';
+      impact.identityAlignment = 'Stores the user-defined identity and desired direction.';
+      impact.routineImpact = 'No routine is invented during onboarding; Jarvis designs execution later through conversation.';
+      impact.dependencies = ['User review and approval of the onboarding summary.'];
+      break;
+
     case 'add_goal':
       impact.scoringImpact = 'Adds a new target structure; current evidence score is unchanged until evidence accumulates.';
       break;
