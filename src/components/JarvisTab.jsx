@@ -98,7 +98,10 @@ export default function JarvisTab({ t, onQuestsChanged, onboardingMode = false, 
 
   useEffect(() => {
     const onEscape = event => {
-      if (event.key === 'Escape') setSheet(null);
+      if (event.key !== 'Escape') return;
+      setSheet(null);
+      setCommandMenuOpen(false);
+      setModeMenuOpen(false);
     };
     window.addEventListener('keydown', onEscape);
     return () => window.removeEventListener('keydown', onEscape);
