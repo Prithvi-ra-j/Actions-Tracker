@@ -323,22 +323,36 @@ export default function App() {
         setHasSundayReflection(allLogs.some(l => l.type === 'journal_entry' && l.date === today));
 
         // ── Monthly proof/fear check-in (spec §12) ────────────────────────────
-        // Due if no check-in ever, or 30+ days since last one
+        // The first check-in is anchored to the user's FIRST REAL DATA DATE.
+        // It must never appear merely because the app was opened/restarted.
+        // After the first check-in, subsequent check-ins are 30 days apart.
+        const realActivityLogs = allLogs
+          .filter(l => !['onboarding_assessment', 'proof_check_in'].includes(l.type))
+          .filter(l => typeof l.date === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(l.date))
+          .sort((a, b) => a.date.localeCompare(b.date));
+
+        const firstDataDate = realActivityLogs[0]?.date ?? null;
         const lastCheckin = allLogs
           .filter(l => l.type === 'proof_check_in')
           .sort((a, b) => b.date.localeCompare(a.date))[0];
-        if (!lastCheckin) {
-          // Never done — schedule it but not on the very first session (user just onboarded)
-          const hasRealActivity = allLogs.some(l =>
-            l.type !== 'onboarding_assessment' && l.type !== 'proof_check_in'
+
+        // No real user data = no monthly check-in, ever.
+        if (!firstDataDate) {
+          setShowCheckin(false);
+        } else if (!lastCheckin) {
+          // First check-in becomes due exactly 30 days after the first
+          // meaningful user activity, not 30 days after installation/onboarding.
+          const daysSinceFirstData = Math.floor(
+            (new Date(today + 'T00:00:00') - new Date(firstDataDate + 'T00:00:00'))
+            / (1000 * 60 * 60 * 24)
           );
-          if (hasRealActivity) setShowCheckin(true);
+          setShowCheckin(daysSinceFirstData >= 30);
         } else {
-          const daysSince = Math.round(
+          const daysSinceLastCheckin = Math.floor(
             (new Date(today + 'T00:00:00') - new Date(lastCheckin.date + 'T00:00:00'))
             / (1000 * 60 * 60 * 24)
           );
-          if (daysSince >= 30) setShowCheckin(true);
+          setShowCheckin(daysSinceLastCheckin >= 30);
         }
 
         // Weekly auto-snapshot (spec §10) — write if 7+ days since last
