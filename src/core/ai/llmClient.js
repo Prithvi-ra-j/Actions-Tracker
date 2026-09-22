@@ -5,7 +5,7 @@
  * Configuration (API Key, Base URL, Model) is pulled from settingsRepository.
  */
 
-import { getSetting } from '../../database/settingsRepository.js';
+import { getSetting, setSetting } from '../../database/settingsRepository.js';
 import { getSecureValue } from '../../native/secureStorage.js';
 import { saveTelemetryEvent } from '../../database/telemetryRepository.js';
 
@@ -19,12 +19,7 @@ export async function queryLLM(messages, options = {}) {
   // production model. User-selected models are otherwise left untouched.
   if (/api\\.groq\\.com/i.test(baseUrl) && model === 'gemma2-9b-it') {
     model = 'openai/gpt-oss-20b';
-    await getSetting('aiModel').then(saved => {
-      if (saved === 'gemma2-9b-it') {
-        // Importing setSetting here would add another dependency to every call;
-        // the runtime fallback is enough to make the request work immediately.
-      }
-    }).catch(() => {});
+    await setSetting('aiModel', model).catch(() => {});
   }
   const startedAt = Date.now();
 
