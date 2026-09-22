@@ -39,7 +39,7 @@ function StatCard({ t, dark, axisInfo, stat, details, quests, onClick }) {
       style={{
         background: t.subtleBg,
         border: `1px solid ${t.border}`,
-        padding: '1.25rem',
+        padding: '1rem',
         cursor: 'pointer',
         display: 'flex',
         flexDirection: 'column',
@@ -125,7 +125,7 @@ export default function StatsTab({
           <div style={{ fontFamily: 'monospace', fontSize: '0.65rem', letterSpacing: '0.15em', color: ACCENT, textTransform: 'uppercase', marginBottom: '0.5rem' }}>
             Snapshot: {latestStatsDate}
           </div>
-          <div style={{ fontSize: '2rem', fontWeight: 900, lineHeight: 1 }}>
+          <div style={{ fontSize: '1.55rem', fontWeight: 900, lineHeight: 1 }}>
             Development Shape
           </div>
         </div>
@@ -174,7 +174,7 @@ export default function StatsTab({
             Not enough historical data yet. Check back next week.
           </div>
         ) : (
-          <div style={{ border: `1px solid ${t.border}`, background: t.subtleBg, padding: '1.25rem' }}>
+          <div style={{ border: `1px solid ${t.border}`, background: t.subtleBg, padding: '1rem' }}>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
               {snapshots.map(snap => (
                 <div key={snap.date} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
