@@ -18,12 +18,28 @@ const DEFAULT_CONVERSATION_ID = 'jarvis_default';
 const ONBOARDING_CONVERSATION_ID = 'jarvis_onboarding';
 
 const MODES = [
-  { id: 'ask', label: 'Ask', hint: 'Understand the system' },
-  { id: 'plan', label: 'Plan', hint: 'Turn intent into actions' },
-  { id: 'review', label: 'Review', hint: 'Inspect evidence and gaps' },
-  { id: 'act', label: 'Act', hint: 'Propose a change' },
-  { id: 'capture', label: 'Capture', hint: 'Record learning or evidence' },
-  { id: 'audit', label: 'Audit', hint: 'Find contradictions and bottlenecks' },
+  { id: 'ask', label: 'Ask', hint: 'Understand the system', icon: '✦' },
+  { id: 'plan', label: 'Plan', hint: 'Turn intent into actions', icon: '◈' },
+  { id: 'review', label: 'Review', hint: 'Inspect evidence and gaps', icon: '◌' },
+  { id: 'act', label: 'Act', hint: 'Propose a change', icon: '→' },
+  { id: 'capture', label: 'Capture', hint: 'Record learning or evidence', icon: '＋' },
+  { id: 'audit', label: 'Audit', hint: 'Find contradictions and bottlenecks', icon: '⌁' },
+];
+
+const COMMANDS = [
+  { id: 'habit', label: 'Create habit', description: 'Add a recurring habit', icon: '↻', prompt: 'Create a habit' },
+  { id: 'quest', label: 'Create quest', description: 'Add a measurable quest or benchmark', icon: '◇', prompt: 'Create a quest' },
+  { id: 'goal', label: 'Create goal', description: 'Define or update a goal', icon: '◎', prompt: 'Create a goal' },
+  { id: 'routine', label: 'Adjust routine', description: 'Change the daily/weekly routine', icon: '◷', prompt: 'Adjust my routine' },
+  { id: 'plan', label: 'Build a plan', description: 'Turn a ready plan into app changes', icon: '▱', prompt: 'Build and apply this plan' },
+  { id: 'learn', label: 'Add learning', description: 'Capture a learning item or study plan', icon: '▤', prompt: 'Add learning' },
+  { id: 'evidence', label: 'Log evidence', description: 'Record an observation, result, or reflection', icon: '✓', prompt: 'Log this evidence' },
+  { id: 'memory', label: 'Save memory', description: 'Ask Jarvis to remember durable context', icon: '⌘', prompt: 'Save this as a memory' },
+  { id: 'experiment', label: 'Run experiment', description: 'Create or update a personal experiment', icon: '◇', prompt: 'Create an experiment' },
+  { id: 'target', label: 'Revise target', description: 'Change what success means', icon: '⊙', prompt: 'Revise my target' },
+  { id: 'review', label: 'Review my system', description: 'Find trends, gaps, and bottlenecks', icon: '◌', prompt: 'Review my system' },
+  { id: 'audit', label: 'Audit my system', description: 'Look for contradictions and risks', icon: '⌁', prompt: 'Audit my system' },
+  { id: 'onboarding', label: 'Continue onboarding', description: 'Let Jarvis interview me and configure my system', icon: '✦', prompt: 'Continue my onboarding' },
 ];
 
 const destructiveActions = new Set(['archive_habit']);
@@ -38,6 +54,9 @@ export default function JarvisTab({ t, onQuestsChanged, onboardingMode = false, 
   const [messages, setMessages] = useState([]);
   const [input, setInput] = useState('');
   const [mode, setMode] = useState('ask');
+  const [modeMenuOpen, setModeMenuOpen] = useState(false);
+  const [commandMenuOpen, setCommandMenuOpen] = useState(false);
+  const [commandQuery, setCommandQuery] = useState('');
   const [loading, setLoading] = useState(false);
   const [loadingPhase, setLoadingPhase] = useState('');
   const [error, setError] = useState(null);
@@ -117,17 +136,52 @@ export default function JarvisTab({ t, onQuestsChanged, onboardingMode = false, 
     }
   };
 
+  const selectedMode = MODES.find(item => item.id === mode) || MODES[0];
+  const filteredCommands = COMMANDS.filter(command => {
+    const query = commandQuery.trim().toLowerCase();
+    if (!query) return true;
+    return (command.label + ' ' + command.description + ' ' + command.id).toLowerCase().includes(query);
+  });
+
+  const handleInputChange = value => {
+    setInput(value);
+    const match = value.match(/^\\/([^\\s]*)$/);
+    if (value.startsWith('/') && !value.includes('\\n')) {
+      setCommandQuery(match?.[1] || value.slice(1));
+      setCommandMenuOpen(true);
+    } else {
+      setCommandMenuOpen(false);
+      setCommandQuery('');
+    }
+  };
+
+  const applyCommand = command => {
+    setInput(command.prompt + ': ');
+    setCommandMenuOpen(false);
+    setCommandQuery('');
+  };
+
   const handleSend = async () => {
     if (!conversationReady || !input.trim() || loading) return;
 
     const userText = input.trim();
-    const llmUserText = modeInstruction(mode) + userText;
+    const slashMatch = userText.match(/^\\/([a-z0-9_-]+)(?:\\s+([\\s\\S]*))?$/i);
+    const slashCommand = slashMatch
+      ? COMMANDS.find(command => command.id === slashMatch[1].toLowerCase())
+      : null;
+    const commandText = slashCommand
+      ? slashCommand.prompt + (slashMatch[2] ? ': ' + slashMatch[2] : '')
+      : userText;
+    const llmUserText = modeInstruction(mode) + commandText;
     const optimistic = [
       ...messages,
       { role: 'user', content: userText, createdAt: new Date().toISOString() },
     ];
 
     setInput('');
+    setCommandMenuOpen(false);
+    setCommandQuery('');
+    setModeMenuOpen(false);
     setError(null);
     await persistMessages(optimistic);
     setLoading(true);
@@ -394,20 +448,54 @@ export default function JarvisTab({ t, onQuestsChanged, onboardingMode = false, 
           </div>
         </div>
 
-        {!onboardingMode && <div className="jarvis-mode-strip" role="tablist" aria-label="Assistant mode">
-          {MODES.map(item => (
+        {!onboardingMode && (
+          <div className="jarvis-mode-strip">
             <button
-              key={item.id}
-              role="tab"
-              aria-selected={mode === item.id}
-              className={'jarvis-mode' + (mode === item.id ? ' jarvis-mode-active' : '')}
-              onClick={() => setMode(item.id)}
-              title={item.hint}
+              className="jarvis-mode-selector"
+              onClick={() => {
+                setModeMenuOpen(value => !value);
+                setCommandMenuOpen(false);
+              }}
+              aria-expanded={modeMenuOpen}
+              aria-haspopup="listbox"
             >
-              {item.label}
+              <span className="jarvis-mode-selector-mark">{selectedMode.icon}</span>
+              <span className="jarvis-mode-selector-copy">
+                <strong>{selectedMode.label}</strong>
+                <small>{selectedMode.hint}</small>
+              </span>
+              <span className="jarvis-mode-chevron">⌄</span>
             </button>
-          ))}
-        </div>}
+
+            {modeMenuOpen && (
+              <div className="jarvis-mode-menu" role="listbox" aria-label="Jarvis mode">
+                <div className="jarvis-mode-menu-head">
+                  <span>Jarvis mode</span>
+                  <span>Choose how Jarvis should work</span>
+                </div>
+                {MODES.map(item => (
+                  <button
+                    key={item.id}
+                    role="option"
+                    aria-selected={mode === item.id}
+                    className={'jarvis-mode-option' + (mode === item.id ? ' jarvis-mode-option-active' : '')}
+                    onClick={() => {
+                      setMode(item.id);
+                      setModeMenuOpen(false);
+                    }}
+                  >
+                    <span className="jarvis-mode-option-icon">{item.icon}</span>
+                    <span>
+                      <strong>{item.label}</strong>
+                      <small>{item.hint}</small>
+                    </span>
+                    {mode === item.id && <span className="jarvis-mode-check">✓</span>}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
       </header>
 
       {proactiveInsight && (
@@ -529,13 +617,56 @@ export default function JarvisTab({ t, onQuestsChanged, onboardingMode = false, 
           </div>
         )}
 
+        {commandMenuOpen && (
+          <div className="jarvis-command-menu" role="listbox" aria-label="Jarvis commands">
+            <div className="jarvis-command-head">
+              <div>
+                <strong>Jarvis commands</strong>
+                <span>Type / to access operations</span>
+              </div>
+              <kbd>ESC</kbd>
+            </div>
+            <div className="jarvis-command-list">
+              {filteredCommands.length === 0 ? (
+                <div className="jarvis-command-empty">No matching command</div>
+              ) : filteredCommands.map(command => (
+                <button
+                  key={command.id}
+                  className="jarvis-command"
+                  onMouseDown={event => event.preventDefault()}
+                  onClick={() => applyCommand(command)}
+                >
+                  <span className="jarvis-command-icon">{command.icon}</span>
+                  <span className="jarvis-command-copy">
+                    <strong>/{command.id}</strong>
+                    <small>{command.label} · {command.description}</small>
+                  </span>
+                  <span className="jarvis-command-arrow">↵</span>
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+
         <div className="jarvis-composer">
+          <button
+            className="jarvis-command-trigger"
+            onClick={() => {
+              setInput('/');
+              setCommandQuery('');
+              setCommandMenuOpen(true);
+            }}
+            aria-label="Open Jarvis commands"
+            title="Commands"
+          >
+            /
+          </button>
           <textarea
             className="jarvis-textarea"
             value={input}
-            onChange={event => setInput(event.target.value)}
+            onChange={event => handleInputChange(event.target.value)}
             onKeyDown={handleKeyDown}
-            placeholder={modificationContext ? 'Describe the change…' : 'Ask Jarvis…'}
+            placeholder={modificationContext ? 'Describe the change…' : 'Message Jarvis…  Type / for commands'}
             rows={1}
             aria-label="Message Jarvis"
             onInput={event => {
