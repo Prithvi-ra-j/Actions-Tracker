@@ -4,7 +4,7 @@ const ACTION_TYPES = [
   'add_habit', 'modify_habit', 'pause_habit', 'archive_habit',
   'add_quest', 'modify_roadmap', 'adjust_routine', 'update_mastery_level',
   'add_learning', 'suggest_experiment', 'revise_target',
-  'log_evidence', 'propose_memory', 'create_plan', 'add_goal', 'modify_goal', 'update_experiment',
+  'log_evidence', 'propose_memory', 'create_plan', 'complete_onboarding', 'add_goal', 'modify_goal', 'update_experiment',
 ];
 
 const ACTIONS_REQUIRING_ID = new Set([
@@ -57,6 +57,17 @@ export const ActionProposalSchema = z.object({
   }
   if (proposal.actionType === 'propose_memory' && typeof proposal.payload.content !== 'string') {
     context.addIssue({ code: z.ZodIssueCode.custom, path: ['payload', 'content'], message: 'propose_memory requires payload.content' });
+  }
+  if (proposal.actionType === 'complete_onboarding') {
+    if (!proposal.payload.identity || typeof proposal.payload.identity !== 'object') {
+      context.addIssue({ code: z.ZodIssueCode.custom, path: ['payload', 'identity'], message: 'complete_onboarding requires identity' });
+    }
+    if (!Array.isArray(proposal.payload.focusAxes) || proposal.payload.focusAxes.length < 1) {
+      context.addIssue({ code: z.ZodIssueCode.custom, path: ['payload', 'focusAxes'], message: 'complete_onboarding requires at least one focus axis' });
+    }
+    if (!proposal.payload.desiredSelf || typeof proposal.payload.desiredSelf !== 'object') {
+      context.addIssue({ code: z.ZodIssueCode.custom, path: ['payload', 'desiredSelf'], message: 'complete_onboarding requires desiredSelf' });
+    }
   }
   if (proposal.actionType === 'create_plan') {
     if (!Array.isArray(proposal.payload.steps) || proposal.payload.steps.length < 1 || proposal.payload.steps.length > 8) {
