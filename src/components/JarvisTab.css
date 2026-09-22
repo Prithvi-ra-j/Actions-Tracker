@@ -62,7 +62,7 @@
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  font-size: 1.05rem;
+  font-size: 0.90rem;
   font-weight: 800;
   line-height: 1.15;
 }
@@ -70,7 +70,7 @@
 .jarvis-status {
   margin-top: 0.14rem;
   color: var(--j-muted);
-  font-size: 0.66rem;
+  font-size: 0.62rem;
   line-height: 1.2;
 }
 
@@ -290,14 +290,14 @@
 
 .jarvis-review-type {
   margin-top: 0.42rem;
-  font-size: 0.9rem;
+  font-size: 0.80rem;
   font-weight: 800;
 }
 
 .jarvis-review-statement {
   margin-top: 0.3rem;
   color: var(--j-muted);
-  font-size: 0.78rem;
+  font-size: 0.72rem;
   line-height: 1.5;
 }
 
@@ -306,7 +306,7 @@
   gap: 0.26rem;
   margin-top: 0.65rem;
   color: var(--j-muted);
-  font-size: 0.74rem;
+  font-size: 0.69rem;
   line-height: 1.45;
 }
 
@@ -342,7 +342,7 @@
 }
 
 .jarvis-empty-title {
-  font-size: 1.35rem;
+  font-size: 1.18rem;
   font-weight: 800;
   line-height: 1.2;
 }
@@ -351,7 +351,7 @@
   max-width: 340px;
   margin: 0.55rem auto 0;
   color: var(--j-muted);
-  font-size: 0.82rem;
+  font-size: 0.76rem;
   line-height: 1.55;
 }
 
@@ -371,7 +371,7 @@
   border-radius: 14px;
   background: var(--j-subtle);
   color: var(--j-text);
-  font-size: 0.75rem;
+  font-size: 0.70rem;
   font-weight: 700;
   cursor: pointer;
 }
@@ -812,7 +812,7 @@
   resize: none;
   background: transparent;
   color: var(--j-text);
-  font: 0.86rem/1.42 Georgia, serif;
+  font: 0.80rem/1.42 Georgia, serif;
 }
 
 .jarvis-textarea::placeholder {
