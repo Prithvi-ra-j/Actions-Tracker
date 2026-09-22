@@ -148,8 +148,8 @@ export default function JarvisTab({ t, onQuestsChanged, onboardingMode = false, 
 
   const handleInputChange = value => {
     setInput(value);
-    const match = value.match(/^\\/([^\\s]*)$/);
-    if (value.startsWith('/') && !value.includes('\\n')) {
+    const match = value.match(/^\/([^\s]*)$/);
+    if (value.startsWith('/') && !value.includes('\n')) {
       setCommandQuery(match?.[1] || value.slice(1));
       setCommandMenuOpen(true);
     } else {
@@ -168,7 +168,7 @@ export default function JarvisTab({ t, onQuestsChanged, onboardingMode = false, 
     if (!conversationReady || !input.trim() || loading) return;
 
     const userText = input.trim();
-    const slashMatch = userText.match(/^\\/([a-z0-9_-]+)(?:\\s+([\\s\\S]*))?$/i);
+    const slashMatch = userText.match(/^\/([a-z0-9_-]+)(?:\s+([\s\S]*))?$/i);
     const slashCommand = slashMatch
       ? COMMANDS.find(command => command.id === slashMatch[1].toLowerCase())
       : null;
