@@ -17,18 +17,19 @@ const SESSION_KEY     = `at_update_check_${APP_VERSION}`;
 const RECHECK_MS      = 6 * 60 * 60 * 1000; // 6 hours
 
 /**
- * Compare two semver strings (no pre-release support needed).
+ * Compare four-part release versions (Level.Phase.Patch.Hotfix).
  * Returns true if `remote` is strictly greater than `local`.
- * @param {string} local   e.g. "1.5.0"
- * @param {string} remote  e.g. "1.6.0"
+ * @param {string} local   e.g. "1.5.1.1"
+ * @param {string} remote  e.g. "1.6.0.0"
  */
 function isNewer(local, remote) {
-  const parse = (v) => v.replace(/^v/, '').split('.').map(Number);
-  const [la, lb, lc] = parse(local);
-  const [ra, rb, rc] = parse(remote);
-  if (ra !== la) return ra > la;
-  if (rb !== lb) return rb > lb;
-  return rc > lc;
+  const parse = (v) => v.replace(/^v/, '').split('.').map(Number).concat([0, 0, 0, 0]).slice(0, 4);
+  const l = parse(local);
+  const r = parse(remote);
+  for (let i = 0; i < 4; i += 1) {
+    if (r[i] !== l[i]) return r[i] > l[i];
+  }
+  return false;
 }
 
 /**
