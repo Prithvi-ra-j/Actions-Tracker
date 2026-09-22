@@ -662,6 +662,7 @@ export default function App() {
         t={t} 
         onComplete={async () => {
           setNeedsOnboarding(false);
+          setTab('jarvis');
           // Seed baseline titles from post-onboarding stats WITHOUT detecting level-ups,
           // so ceremonies only fire for tiers crossed by real activity afterward.
           const freshLogs = await getAllLogs();
