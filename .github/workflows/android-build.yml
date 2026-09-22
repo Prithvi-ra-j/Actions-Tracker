@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
     inputs:
       version:
-        description: "Android version to build, e.g. 1.5.1"
+        description: "Android version to build, e.g. 1.5.1.1"
         required: true
         type: string
 
@@ -35,19 +35,19 @@ jobs:
         run: |
           VERSION="${{ inputs.version }}"
 
-          if [[ ! "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
-            echo "Version must look like 1.5.0"
+          if [[ ! "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "Version must look like 1.5.1.1"
             exit 1
           fi
 
-          IFS='.' read -r LEVEL PHASE PATCH <<< "$VERSION"
+          IFS='.' read -r LEVEL PHASE PATCH HOTFIX <<< "$VERSION"
 
-          if (( LEVEL > 2147 || PHASE > 999 || PATCH > 999 )); then
+          if (( LEVEL > 2 || PHASE > 999 || PATCH > 999 || HOTFIX > 999 )); then
             echo "Version is outside the supported Android versionCode range."
             exit 1
           fi
 
-          VERSION_CODE=$((LEVEL * 1000000 + PHASE * 1000 + PATCH))
+          VERSION_CODE=$((LEVEL * 1000000000 + PHASE * 1000000 + PATCH * 1000 + HOTFIX))
 
           echo "name=$VERSION" >> "$GITHUB_OUTPUT"
           echo "code=$VERSION_CODE" >> "$GITHUB_OUTPUT"
