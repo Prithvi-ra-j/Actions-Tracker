@@ -14,8 +14,8 @@ import { computeAllStats, computeAxisDetails } from '../helpers/statsEngine.js';
 import { recordAppError } from '../core/errorLogger.js';
 import './JarvisTab.css';
 
-const DEFAULT_conversationId = 'jarvis_default';
-const ONBOARDING_conversationId = 'jarvis_onboarding';
+const DEFAULT_CONVERSATION_ID = 'jarvis_default';
+const ONBOARDING_CONVERSATION_ID = 'jarvis_onboarding';
 
 const MODES = [
   { id: 'ask', label: 'Ask', hint: 'Understand the system' },
@@ -34,7 +34,7 @@ function modeInstruction(mode) {
 }
 
 export default function JarvisTab({ t, onQuestsChanged, onboardingMode = false, onOnboardingComplete }) {
-  const conversationId = onboardingMode ? ONBOARDING_conversationId : DEFAULT_conversationId;
+  const conversationId = onboardingMode ? ONBOARDING_CONVERSATION_ID : DEFAULT_CONVERSATION_ID;
   const [messages, setMessages] = useState([]);
   const [input, setInput] = useState('');
   const [mode, setMode] = useState('ask');
@@ -71,7 +71,7 @@ export default function JarvisTab({ t, onQuestsChanged, onboardingMode = false, 
     })();
 
     return () => { cancelled = true; };
-  }, [conversationId, onboardingMode, onOnboardingComplete]);
+  }, [conversationId, onboardingMode]);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
