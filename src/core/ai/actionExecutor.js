@@ -10,6 +10,7 @@ import { addGoal, getGoal, updateGoal, deleteGoal } from '../../database/goalsRe
 import { addLearning, updateLearning, deleteLearning } from '../../database/learningRepository.js';
 import { addExperiment, getExperiment, updateExperiment, deleteExperiment } from '../../database/experimentRepository.js';
 import { getSelfModel, updateSelfModel } from '../../database/selfModelRepository.js';
+import { getAllAxisConfigs, updateAxisConfig } from '../../database/axisConfigRepository.js';
 import { addMemory, rejectMemory } from '../../database/memoryRepository.js';
 import { addFact, getFact, getAllFacts } from '../../database/factsRepository.js';
 import { getRoutineConfig, updateRoutineConfig } from '../../database/routineRepository.js';
@@ -94,7 +95,9 @@ export async function executeAction(proposal) {
     idempotent: true,
   };
 
-  const before = payload.id
+  const before = actionType === 'complete_onboarding'
+    ? { selfModel: await getSelfModel(), axisConfigs: await getAllAxisConfigs() }
+    : payload.id
     ? actionType === 'modify_goal'
       ? await getGoal(payload.id)
       : actionType === 'update_experiment'
@@ -279,6 +282,76 @@ export async function executeAction(proposal) {
       break;
     }
 
+    case 'complete_onboarding': {
+      // Jarvis is allowed to establish direction, but the user still has the
+      // final approval boundary: this action only runs after the proposal is
+      // explicitly approved in the UI.
+      const now = new Date().toISOString();
+      const payloadBaseline = payload.baseline || {};
+      const focusAxes = [...new Set(payload.focusAxes)].filter(Boolean);
+      const desiredDimensions = payload.desiredSelf?.dimensions || {};
+
+      const currentState = {};
+      for (const axis of focusAxes) {
+        const baseline = payloadBaseline[axis] || {};
+        currentState[axis] = {
+          value: Number.isFinite(baseline.value) ? Math.max(0, Math.min(99, baseline.value)) : 0,
+          confidence: Number.isFinite(baseline.confidence) ? Math.max(0, Math.min(1, baseline.confidence)) : 0.25,
+          evidence: baseline.evidence || JSON.stringify(baseline),
+          lastUpdated: now,
+        };
+      }
+
+      await updateSelfModel({
+        identity: payload.identity || {},
+        focusAxes,
+        baseline: payloadBaseline,
+        currentState,
+        desiredSelf: {
+          vision: payload.desiredSelf?.vision || '',
+          dimensions: desiredDimensions,
+        },
+        setupState: 'jarvis_design_pending',
+        onboardingCompletedAt: now,
+        onboardingVersion: 5,
+        provenance: payload.provenance || { source: 'jarvis_conversational' },
+      });
+
+      for (const axis of focusAxes) {
+        const baseline = payloadBaseline[axis] || {};
+        await updateAxisConfig(axis, {
+          baselineRatePerWeek: Number.isFinite(baseline.ratePerWeek) ? baseline.ratePerWeek : 0,
+          expectedPerWeek: null,
+          paused: false,
+          hasConsistencyTerm: false,
+          scoringMode: 'awaiting_jarvis_design',
+          source: 'jarvis_onboarding',
+        });
+      }
+
+      // Discipline is cross-cutting and is configured only as a baseline until
+      // Jarvis later designs actual commitments.
+      const discipline = payloadBaseline.discipline || {};
+      await updateAxisConfig('discipline', {
+        baselineRatePerWeek: Number.isFinite(discipline.keptShare)
+          ? discipline.keptShare * 7
+          : Number.isFinite(discipline.ratePerWeek) ? discipline.ratePerWeek : 0,
+        expectedPerWeek: null,
+        paused: false,
+        hasConsistencyTerm: false,
+        scoringMode: 'awaiting_jarvis_design',
+        source: 'jarvis_onboarding',
+      });
+
+      result = {
+        ...result,
+        id: 'onboarding',
+        completedAt: now,
+        setupState: 'jarvis_design_pending',
+      };
+      break;
+    }
+
     case 'create_plan': {
       const childActionFactIds = [];
       const childResults = [];
@@ -368,6 +441,11 @@ export async function undoAction(actionFactId) {
     await updateRoutineConfig(before);
   } else if (actionType === 'revise_target') {
     await updateSelfModel(before);
+  } else if (actionType === 'complete_onboarding') {
+    if (before?.selfModel) await updateSelfModel(before.selfModel);
+    for (const config of before?.axisConfigs || []) {
+      await updateAxisConfig(config.axis, config);
+    }
   } else if (actionType === 'log_evidence') {
     const evidenceFactId = result?.evidenceFactId || result?.id;
     if (evidenceFactId) {
