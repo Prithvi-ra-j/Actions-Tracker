@@ -436,11 +436,12 @@ export default function JarvisTab({ t, onQuestsChanged }) {
             </div>
             <div className="jarvis-empty-title">What are we working on?</div>
             <div className="jarvis-empty-copy">
-              Ask a question, inspect a pattern, or propose a change. Writes stay behind your approval.
+              Your direction is set. Jarvis will help you turn it into a personal system through conversation.
+              It will ask what matters, what is realistic, and what evidence should count before proposing changes.
             </div>
 
             <div className="jarvis-chip-grid">
-              {['Review today', 'Add a habit', 'Set a goal', 'Add a quest', 'Capture learning', 'Find bottleneck'].map(prompt => (
+              {['Start setup interview', 'Review today', 'Add a habit', 'Set a goal', 'Add a quest', 'Capture learning'].map(prompt => (
                 <button
                   key={prompt}
                   className="jarvis-chip"
