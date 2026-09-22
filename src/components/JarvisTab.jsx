@@ -408,6 +408,7 @@ export default function JarvisTab({ t, onQuestsChanged, onboardingMode = false, 
             </button>
           ))}
         </div>}
+      </header>
 
       {proactiveInsight && (
         <section className="jarvis-review-card" aria-label="System review">
