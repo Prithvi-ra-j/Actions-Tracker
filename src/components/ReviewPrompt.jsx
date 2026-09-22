@@ -70,7 +70,7 @@ export default function ReviewPrompt({ t, currentStats }) {
       padding: '1rem', fontFamily: 'Georgia, serif', color: t.pageText
     }}>
       <div style={{ background: t.pageBg, padding: '2rem', border: `1px solid ${t.border}`, maxWidth: 400, width: '100%' }}>
-        <h2 style={{ fontSize: '1.25rem', marginBottom: '1rem', color: ACCENT }}>Monthly Stat Review</h2>
+        <h2 style={{ fontSize: '1.1rem', marginBottom: '1rem', color: ACCENT }}>Monthly Stat Review</h2>
         <p style={{ fontSize: '0.9rem', color: t.muted, marginBottom: '1.5rem', lineHeight: '1.4' }}>
           Do your current stats (e.g. Body {Math.round(currentStats?.body ?? 0)}) accurately reflect your real-life progress over the last 30 days?
         </p>
