@@ -52,9 +52,6 @@ jobs:
           echo "name=$VERSION" >> "$GITHUB_OUTPUT"
           echo "code=$VERSION_CODE" >> "$GITHUB_OUTPUT"
 
-      - name: Stamp version.js
-        run: |
-          sed -i "s/export const APP_VERSION *= *'[^']*'/export const APP_VERSION = '${{ steps.version.outputs.name }}'/" src/version.js
 
       - name: Stamp version.js
         # Must happen before npm build so the baked web bundle reports the
