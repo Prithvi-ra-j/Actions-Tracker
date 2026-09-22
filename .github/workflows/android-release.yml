@@ -36,12 +36,6 @@ jobs:
         # Capacitor 6; use the tested compatibility override (matches android-build.yml).
         run: npm install --legacy-peer-deps
 
-      - name: Build web app
-        run: npm run build
-
-      - name: Sync Capacitor
-        run: npx cap sync android
-
       - name: Determine Android version
         id: version
         shell: bash
@@ -79,6 +73,20 @@ jobs:
           echo "Stamped version.js:"
           grep APP_VERSION src/version.js
 
+      - name: Stamp version.js with release version
+        # Stamp BEFORE npm build. Vite embeds __APP_VERSION__ into the APK,
+        # so stamping after the build leaves the installed app believing it
+        # is still the previous version and repeatedly showing an update.
+        run: |
+          sed -i "s/export const APP_VERSION *= *'[^']*'/export const APP_VERSION = '${{ steps.version.outputs.name }}'/" src/version.js
+          echo "Stamped version.js:"
+          grep APP_VERSION src/version.js
+
+      - name: Build web app
+        run: npm run build
+
+      - name: Sync Capacitor
+        run: npx cap sync android
       - name: Generate changelog
         id: changelog
         shell: bash
