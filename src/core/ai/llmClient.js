@@ -12,7 +12,20 @@ import { saveTelemetryEvent } from '../../database/telemetryRepository.js';
 export async function queryLLM(messages, options = {}) {
   const apiKey = await getSecureValue('aiApiKey');
   const baseUrl = await getSetting('aiBaseUrl') || 'https://api.groq.com/openai/v1';
-  const model = await getSetting('aiModel') || 'gemma2-9b-it';
+  let model = await getSetting('aiModel') || 'openai/gpt-oss-20b';
+
+  // Groq retired gemma2-9b-it on 2025-10-08. Keep existing installations
+  // working by transparently moving that legacy default to a current
+  // production model. User-selected models are otherwise left untouched.
+  if (/api\\.groq\\.com/i.test(baseUrl) && model === 'gemma2-9b-it') {
+    model = 'openai/gpt-oss-20b';
+    await getSetting('aiModel').then(saved => {
+      if (saved === 'gemma2-9b-it') {
+        // Importing setSetting here would add another dependency to every call;
+        // the runtime fallback is enough to make the request work immediately.
+      }
+    }).catch(() => {});
+  }
   const startedAt = Date.now();
 
   if (!apiKey) {
