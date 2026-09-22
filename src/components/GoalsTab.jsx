@@ -50,7 +50,7 @@ export default function GoalsTab({ t, dark, allQuests, allLogs }) {
         <div style={{ fontFamily: 'monospace', fontSize: '0.65rem', letterSpacing: '0.15em', color: ACCENT, textTransform: 'uppercase', marginBottom: '0.5rem' }}>
           {getDaysUntilYearEnd()} days remaining
         </div>
-        <div style={{ fontSize: '2rem', fontWeight: 900, lineHeight: 1 }}>
+        <div style={{ fontSize: '1.55rem', fontWeight: 900, lineHeight: 1 }}>
           Goals & Timeline
         </div>
       </div>
