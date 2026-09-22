@@ -199,7 +199,7 @@ export default function SettingsTab({ t, dark, setDark, reminders, setReminders,
           <div style={{ fontFamily: 'monospace', fontSize: '0.65rem', letterSpacing: '0.25em', color: ACCENT, textTransform: 'uppercase', marginBottom: '0.4rem' }}>
             Settings
           </div>
-          <div style={{ fontSize: '1.8rem', fontWeight: 900, lineHeight: 1.1 }}>Configure</div>
+          <div style={{ fontSize: '1.5rem', fontWeight: 900, lineHeight: 1.1 }}>Configure</div>
           {typeof __APP_VERSION__ !== 'undefined' && (
             <div style={{ fontFamily: 'monospace', fontSize: '0.65rem', color: t.muted, marginTop: '0.4rem', letterSpacing: '0.1em' }}>
               v{__APP_VERSION__}
@@ -212,7 +212,7 @@ export default function SettingsTab({ t, dark, setDark, reminders, setReminders,
             aria-label="Close settings"
             style={{
               background: 'transparent', border: 'none', color: t.pageText,
-              fontSize: '1.2rem', cursor: 'pointer', padding: '0.5rem',
+              fontSize: '1.05rem', cursor: 'pointer', padding: '0.5rem',
               lineHeight: 1, display: 'flex', alignItems: 'center', justifyContent: 'center'
             }}
           >
