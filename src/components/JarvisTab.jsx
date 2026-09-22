@@ -14,7 +14,8 @@ import { computeAllStats, computeAxisDetails } from '../helpers/statsEngine.js';
 import { recordAppError } from '../core/errorLogger.js';
 import './JarvisTab.css';
 
-const CONVERSATION_ID = 'jarvis_default';
+const DEFAULT_conversationId = 'jarvis_default';
+const ONBOARDING_conversationId = 'jarvis_onboarding';
 
 const MODES = [
   { id: 'ask', label: 'Ask', hint: 'Understand the system' },
@@ -32,7 +33,8 @@ function modeInstruction(mode) {
   return entry ? '[Assistant mode: ' + entry.label + '] ' + entry.hint + '. ' : '';
 }
 
-export default function JarvisTab({ t, onQuestsChanged }) {
+export default function JarvisTab({ t, onQuestsChanged, onboardingMode = false, onOnboardingComplete }) {
+  const conversationId = onboardingMode ? ONBOARDING_conversationId : DEFAULT_conversationId;
   const [messages, setMessages] = useState([]);
   const [input, setInput] = useState('');
   const [mode, setMode] = useState('ask');
@@ -52,12 +54,15 @@ export default function JarvisTab({ t, onQuestsChanged }) {
     let cancelled = false;
     (async () => {
       try {
-        const conversation = await getOrCreateConversation(CONVERSATION_ID, 'Jarvis');
+        const conversation = await getOrCreateConversation(conversationId, 'Jarvis');
         if (cancelled) return;
         setMessages(conversation.messages || []);
         createdAtRef.current = conversation.createdAt || new Date().toISOString();
         conversationManager.hydrateFromUiMessages(conversation.messages || []);
         setConversationReady(true);
+        if (onboardingMode && (conversation.messages || []).length === 0) {
+          setInput('Start my onboarding. Ask me the first question and build my profile from conversation.');
+        }
       } catch (err) {
         recordAppError(err, { source: 'jarvis_ui', operation: 'load_conversation' });
         setError('Could not load conversation history. You can still start a new one.');
@@ -66,7 +71,7 @@ export default function JarvisTab({ t, onQuestsChanged }) {
     })();
 
     return () => { cancelled = true; };
-  }, []);
+  }, [conversationId, onboardingMode, onOnboardingComplete]);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -84,7 +89,7 @@ export default function JarvisTab({ t, onQuestsChanged }) {
     setMessages(nextMessages);
     try {
       await saveConversation({
-        id: CONVERSATION_ID,
+        id: conversationId,
         title: 'Jarvis',
         createdAt: createdAtRef.current || new Date().toISOString(),
         messages: nextMessages,
@@ -218,6 +223,9 @@ export default function JarvisTab({ t, onQuestsChanged }) {
 
       setSheet(null);
       if (onQuestsChanged) onQuestsChanged();
+      if (proposal.actionType === 'complete_onboarding' && onOnboardingComplete) {
+        await onOnboardingComplete();
+      }
     } catch (err) {
       recordAppError(err, {
         source: 'jarvis_ui',
@@ -305,7 +313,7 @@ export default function JarvisTab({ t, onQuestsChanged }) {
   };
 
   const handleClearConversation = async () => {
-    await clearConversation(CONVERSATION_ID);
+    await clearConversation(conversationId);
     conversationManager.clear();
     setMessages([]);
     setModificationContext(null);
@@ -342,14 +350,14 @@ export default function JarvisTab({ t, onQuestsChanged }) {
               </svg>
             </div>
             <div className="jarvis-brand-copy">
-              <div className="jarvis-kicker">Assistant</div>
+              <div className="jarvis-kicker">{onboardingMode ? 'Setup' : 'Assistant'}</div>
               <div className="jarvis-title">Jarvis</div>
               <div className="jarvis-status">{loading ? loadingPhase : 'Ready'}</div>
             </div>
           </div>
 
           <div className="jarvis-header-actions">
-            <button
+            {!onboardingMode && <button
               className="jarvis-action-btn"
               onClick={handleRunReview}
               disabled={reviewLoading || loading}
@@ -359,9 +367,9 @@ export default function JarvisTab({ t, onQuestsChanged }) {
                 <path d="M4 12a8 8 0 0 1 13.7-5.6L20 8M20 8V3.5M20 8h-4.5M20 12a8 8 0 0 1-13.7 5.6L4 16M4 16v4.5M4 16h4.5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
               </svg>
               <span>{reviewLoading ? 'Reviewing' : 'Review'}</span>
-            </button>
+            </button>}
 
-            <button
+            {!onboardingMode && <button
               className="jarvis-icon-btn"
               onClick={() => setSheet({ type: 'context' })}
               aria-label="Open context"
@@ -372,7 +380,7 @@ export default function JarvisTab({ t, onQuestsChanged }) {
                 <path d="M12 10.5V16" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
                 <circle cx="12" cy="7.2" r="1" fill="currentColor"/>
               </svg>
-            </button>
+            </button>}
             <button
               className="jarvis-icon-btn"
               onClick={() => setSheet({ type: 'more' })}
@@ -386,7 +394,7 @@ export default function JarvisTab({ t, onQuestsChanged }) {
           </div>
         </div>
 
-        <div className="jarvis-mode-strip" role="tablist" aria-label="Assistant mode">
+        {!onboardingMode && <div className="jarvis-mode-strip" role="tablist" aria-label="Assistant mode">
           {MODES.map(item => (
             <button
               key={item.id}
@@ -399,8 +407,7 @@ export default function JarvisTab({ t, onQuestsChanged }) {
               {item.label}
             </button>
           ))}
-        </div>
-      </header>
+        </div>}
 
       {proactiveInsight && (
         <section className="jarvis-review-card" aria-label="System review">
@@ -434,14 +441,18 @@ export default function JarvisTab({ t, onQuestsChanged }) {
                 <path d="M6.5 5.5V18.5M6.5 5.5H13C15.6 5.5 17.2 7 17.2 9.2C17.2 11.4 15.6 12.9 13 12.9H6.5M12.5 12.9L17.5 18.5" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"/>
               </svg>
             </div>
-            <div className="jarvis-empty-title">What are we working on?</div>
+            <div className="jarvis-empty-title">{onboardingMode ? 'Let’s build your system.' : 'What are we working on?'}</div>
             <div className="jarvis-empty-copy">
-              Your direction is set. Jarvis will help you turn it into a personal system through conversation.
-              It will ask what matters, what is realistic, and what evidence should count before proposing changes.
+              {onboardingMode
+                ? 'Jarvis will handle the onboarding conversation. You describe your life, priorities, constraints, and outcomes in your own words; Jarvis will structure the system and ask only what it still needs.'
+                : 'Your direction is set. Jarvis will help you turn it into a personal system through conversation. It will ask what matters, what is realistic, and what evidence should count before proposing changes.'}
             </div>
 
             <div className="jarvis-chip-grid">
-              {['Start setup interview', 'Review today', 'Add a habit', 'Set a goal', 'Add a quest', 'Capture learning'].map(prompt => (
+              {(onboardingMode
+                ? ['Start my onboarding', 'What should I tell you?', 'I have a ready plan']
+                : ['Start setup interview', 'Review today', 'Add a habit', 'Set a goal', 'Add a quest', 'Capture learning']
+              ).map(prompt => (
                 <button
                   key={prompt}
                   className="jarvis-chip"
