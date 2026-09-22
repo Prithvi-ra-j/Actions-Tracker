@@ -71,7 +71,7 @@ export default function TodayTab({
         <div style={{ fontFamily: 'monospace', fontSize: '0.65rem', letterSpacing: '0.15em', color: ACCENT, textTransform: 'uppercase', marginBottom: '0.5rem' }}>
           {displayDate}
         </div>
-        <div style={{ fontSize: '2rem', fontWeight: 900, lineHeight: 1, marginBottom: '1.5rem' }}>
+        <div style={{ fontSize: '1.55rem', fontWeight: 900, lineHeight: 1, marginBottom: '1.5rem' }}>
           Execution
         </div>
         
