@@ -232,9 +232,6 @@ export default function App() {
         await migrateHardcodedGoalsToLifeObjects();
         await migrateAxisVocabulary();
 
-        // Snapshot the post-migration state as the newest recovery point.
-        await runAutoBackup().catch(() => {});
-
         await initGoals();
         await initAxisConfigs();
         await initQuestBoard();
@@ -242,6 +239,10 @@ export default function App() {
         // Phase 16: Habit occurrence auto-generation
         const { generateOccurrencesForDate } = await import('./core/occurrenceEngine.js');
         await generateOccurrencesForDate(localDateStr());
+
+        // Snapshot the fully initialized post-migration state as the newest
+        // recovery point.
+        await runAutoBackup().catch(() => {});
 
         const [goals, milestones, darkPref, savedReminders, allLogs, axisConfigs, quests, facts] =
           await Promise.all([
