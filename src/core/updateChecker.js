@@ -11,7 +11,9 @@ import { APP_VERSION } from '../version.js';
 
 const REPO            = 'Prithvi-ra-j/Actions-Tracker';
 const API_URL         = `https://api.github.com/repos/${REPO}/releases/latest`;
-const SESSION_KEY     = 'at_update_check';
+// Cache is version-scoped. Android updates can preserve WebView session storage;
+// a cache from the previous APK must never keep an old "update available" state.
+const SESSION_KEY     = `at_update_check_${APP_VERSION}`;
 const RECHECK_MS      = 6 * 60 * 60 * 1000; // 6 hours
 
 /**
