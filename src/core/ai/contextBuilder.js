@@ -15,6 +15,7 @@ import { computeGaps } from '../../helpers/gapEngine.js';
 import { calculateCapacity } from '../routineEngine.js';
 import { PERSONA } from '../../constants.js';
 import { getAllExperiments } from '../../database/experimentRepository.js';
+import { DOMAIN_PROGRESS_MODELS } from '../domainProgressModels.js';
 
 const MEMORY_WINDOW_DAYS = 90;
 const MAX_SEMANTIC_MEMORIES = 12;
@@ -214,6 +215,9 @@ export async function assembleContext(intent = 'audit', query = '') {
   const contextData = {
     context_version: '1.0',
     request: { intent },
+    domain_progress_models: Object.fromEntries(
+      (selfModel?.focusAxes || []).map(axis => [axis, DOMAIN_PROGRESS_MODELS[axis]])
+    ),
     system_date: new Date().toISOString(),
     user_identity: selfModel?.identity || {},
     semantic_memories: selectedMemories.map(m => ({
@@ -261,6 +265,8 @@ export async function assembleContext(intent = 'audit', query = '') {
       recentFacts.length === 0 && `No facts were recorded in the last ${factWindowDays} days.`,
     ].filter(Boolean),
     vision: selfModel?.desiredSelf?.vision || '',
+    setup_state: selfModel?.setupState || 'established',
+    onboarding_targets: selfModel?.desiredSelf?.dimensions || {},
     persona_statements: PERSONA,
   };
 
