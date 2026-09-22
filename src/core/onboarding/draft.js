@@ -1,14 +1,12 @@
 import { getSetting, setSetting } from '../../database/settingsRepository.js';
 
 const DRAFT_KEY = 'onboardingDraft';
-const SCHEMA_VERSION = 1;
+const SCHEMA_VERSION = 2;
 
 export async function getDraft() {
   const raw = await getSetting(DRAFT_KEY);
-  if (!raw) {
-    return createEmptyDraft();
-  }
-  
+  if (!raw) return createEmptyDraft();
+
   let draft;
   try {
     draft = typeof raw === 'string' ? JSON.parse(raw) : raw;
@@ -54,13 +52,7 @@ function createEmptyDraft() {
       desiredSelf: {
         vision: '',
         dimensions: {}
-      },
-      routine: {
-        weeklyBudget: null,
-        constraints: []
-      },
-      habits: [],
-      quests: []
+      }
     },
     provenance: {},
     llmCache: {},
