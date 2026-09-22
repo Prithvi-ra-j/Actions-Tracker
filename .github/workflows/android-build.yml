@@ -29,12 +29,6 @@ jobs:
       - name: Install dependencies
         run: npm install --legacy-peer-deps
 
-      - name: Build web app
-        run: npm run build
-
-      - name: Sync Capacitor
-        run: npx cap sync android
-
       - name: Determine Android version
         id: version
         shell: bash
@@ -62,6 +56,17 @@ jobs:
         run: |
           sed -i "s/export const APP_VERSION *= *'[^']*'/export const APP_VERSION = '${{ steps.version.outputs.name }}'/" src/version.js
 
+      - name: Stamp version.js
+        # Must happen before npm build so the baked web bundle reports the
+        # same version as the Android APK.
+        run: |
+          sed -i "s/export const APP_VERSION *= *'[^']*'/export const APP_VERSION = '${{ steps.version.outputs.name }}'/" src/version.js
+
+      - name: Build web app
+        run: npm run build
+
+      - name: Sync Capacitor
+        run: npx cap sync android
       - name: Validate signing configuration
         env:
           ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
