@@ -14,7 +14,7 @@ import { getAllMilestoneChecks, setMilestoneCheck } from './database/milestonesR
 import { getSetting, setSetting, getReminders, saveReminders } from './database/settingsRepository.js';
 import { checkAndWriteWeeklySnapshot, getLatestSnapshot } from './database/statSnapshotsRepository.js';
 import { runAnomalyDetection, saveTelemetryEvent } from './database/telemetryRepository.js';
-import { runAutoBackup } from './database/backupService.js';
+import { runAutoBackup, restoreLatestBackupIfDatabaseEmpty } from './database/backupService.js';
 import { isOnboardingComplete } from './database/selfModelRepository.js';
 import { registerConnector } from './core/sync/syncManager.js';
 import { HealthConnectConnector } from './core/sync/connectors/HealthConnectConnector.js';
@@ -219,13 +219,22 @@ export default function App() {
       try {
         await saveTelemetryEvent('app_started', localDateStr(), { type: 'boot' }).catch(() => {});
         await initDB();
+
+        // Recover user data before any migration/seed logic runs. This only
+        // activates when IndexedDB is genuinely empty, so normal app updates
+        // never overwrite existing data.
+        await restoreLatestBackupIfDatabaseEmpty();
+
         await markErrorLoggerReady();
         installGlobalErrorLogging();
-        await runAutoBackup().catch(() => {});
         await migrateFromLocalStorage();
         await saveTelemetryEvent('db_migration_success', localDateStr(), {}).catch(() => {});
         await migrateHardcodedGoalsToLifeObjects();
         await migrateAxisVocabulary();
+
+        // Snapshot the post-migration state as the newest recovery point.
+        await runAutoBackup().catch(() => {});
+
         await initGoals();
         await initAxisConfigs();
         await initQuestBoard();
@@ -663,6 +672,10 @@ export default function App() {
         onComplete={async () => {
           setNeedsOnboarding(false);
           setTab('jarvis');
+
+          // Onboarding is high-value user data. Force a recovery snapshot now
+          // so a later reinstall/update can restore the completed setup.
+          await runAutoBackup({ force: true }).catch(() => {});
           // Seed baseline titles from post-onboarding stats WITHOUT detecting level-ups,
           // so ceremonies only fire for tiers crossed by real activity afterward.
           const freshLogs = await getAllLogs();
