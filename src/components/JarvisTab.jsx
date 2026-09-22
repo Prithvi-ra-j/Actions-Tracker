@@ -243,7 +243,7 @@ export default function JarvisTab({ t, onQuestsChanged, onboardingMode = false, 
         {
           role: 'assistant',
           isError: true,
-          content: 'The request could not be completed. The failure was recorded in Diagnostics.',
+          content: 'Jarvis could not complete that request. Check Settings → AI for the provider, API key, and model, then try again.',
           createdAt: new Date().toISOString(),
         },
       ]);
@@ -691,7 +691,7 @@ export default function JarvisTab({ t, onQuestsChanged, onboardingMode = false, 
         </div>
 
         <div className="jarvis-footer-note">
-          Propose · review · approve · undo
+          Jarvis proposes changes first · you stay in control
         </div>
       </div>
 
