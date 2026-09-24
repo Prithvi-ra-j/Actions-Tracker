@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { Card } from './ui/Cards';
+import { Card, Button, Chip } from './ui/Cards';
 import { BottomSheet } from './ui/Overlays';
-import { EvidenceSheet } from './EvidenceSheet.jsx';
 
 export default function AuditsTab({ t, onOpenJarvis }) {
   const [audits, setAudits] = useState([]);
@@ -12,7 +11,6 @@ export default function AuditsTab({ t, onOpenJarvis }) {
   const [activeTab, setActiveTab] = useState('unresolved');
   const [sheet, setSheet] = useState(null);
   const [toast, setToast] = useState(null);
-  const [showEvidence, setShowEvidence] = useState(false);
 
   useEffect(() => {
     loadAudits();
@@ -177,17 +175,10 @@ export default function AuditsTab({ t, onOpenJarvis }) {
           
           <div style={{ display: 'flex', gap: '8px', marginTop: '14px' }}>
             <button style={{ flex: 1, minHeight: '48px', borderRadius: '12px', background: 'var(--ac)', color: 'var(--on)', font: '600 14px var(--f)', border: 'none', cursor: 'pointer' }} onClick={handleIgnore}>Ignore</button>
-            <button style={{ flex: 1, minHeight: '48px', borderRadius: '12px', background: 'var(--s2)', color: 'var(--tx)', font: '600 14px var(--f)', border: 'none', cursor: 'pointer' }} onClick={() => setShowEvidence(true)}>Based on...</button>
+            <button style={{ flex: 1, minHeight: '48px', borderRadius: '12px', background: 'var(--s2)', color: 'var(--tx)', font: '600 14px var(--f)', border: 'none', cursor: 'pointer' }} onClick={() => setSheet(null)}>Cancel</button>
           </div>
         </BottomSheet>
       )}
-
-      <EvidenceSheet
-        isOpen={showEvidence}
-        onClose={() => setShowEvidence(false)}
-        title={`Evidence for ${sheet?.finding?.type}`}
-        evidenceItems={[{ content: sheet?.finding?.text, date: 'Recent' }]}
-      />
     </div>
   );
 }

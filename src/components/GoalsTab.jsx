@@ -1,123 +1,199 @@
 import React, { useState, useEffect } from 'react';
-import { ACCENT } from '../constants.js';
-import { localDateStr, getDaysUntilYearEnd } from '../helpers/dateHelpers.js';
+import { Card, EntityRow } from './ui/Cards.jsx';
+import { BottomSheet, ConfirmDialog } from './ui/Overlays.jsx';
+import { Button, ContextualJarvisCTA } from './ui/Buttons.jsx';
+import { EmptyState } from './ui/States.jsx';
+import { Checkbox } from './ui/Inputs.jsx';
+import { Plus, MagicWand, PencilSimple, Warning } from '@phosphor-icons/react';
+import { EvidenceSheet } from './EvidenceSheet.jsx';
 
-/**
- * Unified Goals & Timeline Screen (§54)
- * 
- * Replaces the legacy hardcoded goals/milestones/calendar with a dynamic view:
- * 1. Active Quests (Goals)
- * 2. Unlocked Milestones
- * 3. Recent Historical Timeline (completed quests/milestones)
- */
-export default function GoalsTab({ t, dark, allQuests, allLogs }) {
-  const [milestones, setMilestones] = useState([]);
+export default function GoalsTab({ t, onOpenJarvis }) {
+  const [goals, setGoals] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [selectedGoal, setSelectedGoal] = useState(null);
+  const [isEditing, setIsEditing] = useState(false);
+  const [showConfirmDelete, setShowConfirmDelete] = useState(false);
+  const [showEvidence, setShowEvidence] = useState(false);
 
   useEffect(() => {
-    async function load() {
-      const { getAllMilestoneChecks } = await import('../database/milestonesRepository.js');
-      const data = await getAllMilestoneChecks();
-      setMilestones(Object.entries(data).map(([id, val]) => ({ id, ...val })));
-    }
-    load();
+    loadGoals();
   }, []);
 
-  const activeQuests = allQuests.filter(q => q.status === 'active');
-  const completedQuests = allQuests.filter(q => q.status === 'completed');
-  const unlockedMilestones = milestones.filter(m => m.completed);
+  async function loadGoals() {
+    try {
+      const { getAllGoals } = await import('../database/goalsRepository.js');
+      const data = await getAllGoals();
+      setGoals(data);
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setLoading(false);
+    }
+  }
 
-  // Build a timeline from completed quests and milestones
-  const timelineEvents = [
-    ...completedQuests.map(q => ({
-      date: q.updatedAt?.split('T')[0] || localDateStr(),
-      title: q.title,
-      type: 'Quest Completed',
-      axis: q.axis
-    })),
-    ...unlockedMilestones.map(m => ({
-      date: m.date || localDateStr(),
-      title: m.id.replace(/_/g, ' '),
-      type: 'Milestone Reached',
-      axis: 'milestone'
-    }))
-  ].sort((a, b) => b.date.localeCompare(a.date));
+  async function handleToggleTarget(goalId, targetIndex) {
+    const goal = goals.find(g => g.id === goalId);
+    if (!goal) return;
+
+    const newTargets = [...goal.targets];
+    newTargets[targetIndex] = { ...newTargets[targetIndex], completed: !newTargets[targetIndex].completed };
+
+    // Optimistic update
+    setGoals(prev => prev.map(g => g.id === goalId ? { ...g, targets: newTargets } : g));
+    if (selectedGoal?.id === goalId) {
+      setSelectedGoal(prev => ({ ...prev, targets: newTargets }));
+    }
+
+    try {
+      const { updateGoal } = await import('../database/goalsRepository.js');
+      await updateGoal(goalId, { targets: newTargets });
+    } catch (err) {
+      console.error(err);
+      loadGoals(); // rollback
+    }
+  }
+
+  async function handleDeleteGoal() {
+    if (!selectedGoal) return;
+    const id = selectedGoal.id;
+    setSelectedGoal(null);
+    setIsEditing(false);
+    setShowConfirmDelete(false);
+    setGoals(prev => prev.filter(g => g.id !== id));
+    try {
+      const { deleteGoal } = await import('../database/goalsRepository.js');
+      await deleteGoal(id);
+    } catch (err) {
+      console.error(err);
+      loadGoals();
+    }
+  }
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '2.5rem' }}>
+    <div style={{ padding: '16px', display: 'flex', flexDirection: 'column', gap: '24px' }}>
       
-      {/* Header */}
-      <div>
-        <div style={{ fontFamily: 'monospace', fontSize: '0.65rem', letterSpacing: '0.15em', color: ACCENT, textTransform: 'uppercase', marginBottom: '0.5rem' }}>
-          {getDaysUntilYearEnd()} days remaining
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <div style={{ fontFamily: 'var(--font-mono)', fontSize: '11.5px', color: 'var(--mu)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+          Active Goals
         </div>
-        <div style={{ fontSize: '1.55rem', fontWeight: 900, lineHeight: 1 }}>
-          Goals & Timeline
-        </div>
+        <Button variant="secondary" onClick={() => { /* Open create sheet */ }} style={{ padding: '4px 8px', height: 'auto', minHeight: '32px' }}>
+          <Plus size={16} />
+        </Button>
       </div>
 
-      {/* Active Quests */}
-      <div>
-        <div style={{ fontFamily: 'monospace', fontSize: '0.65rem', letterSpacing: '0.1em', color: t.muted, textTransform: 'uppercase', marginBottom: '1rem', borderBottom: `1px solid ${t.borderFaint}`, paddingBottom: '0.5rem' }}>
-          Active Quests
-        </div>
-        {activeQuests.length === 0 ? (
-          <div style={{ fontSize: '0.85rem', color: t.muted, fontStyle: 'italic' }}>
-            No active quests. Jarvis can recommend some based on your bottlenecks.
-          </div>
-        ) : (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-            {activeQuests.map(q => {
-              const pct = Math.min(100, Math.round((q.progress / q.maxProgress) * 100));
-              return (
-                <div key={q.id} style={{ border: `1px solid ${t.border}`, background: t.subtleBg, padding: '1.25rem' }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
-                    <div style={{ fontWeight: 600, fontSize: '1rem' }}>{q.title}</div>
-                    <div style={{ fontFamily: 'monospace', fontSize: '0.65rem', color: ACCENT }}>{pct}%</div>
-                  </div>
-                  {q.description && (
-                    <div style={{ fontSize: '0.8rem', color: t.muted, marginBottom: '1rem' }}>
-                      {q.description}
-                    </div>
-                  )}
-                  <div style={{ height: 4, background: dark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)', borderRadius: 2 }}>
-                    <div style={{ height: '100%', width: `${pct}%`, background: ACCENT, borderRadius: 2, transition: 'width 0.4s' }} />
-                  </div>
+      {loading ? (
+        <div style={{ color: 'var(--mu)', fontSize: '14px', textAlign: 'center' }}>Loading goals...</div>
+      ) : goals.length === 0 ? (
+        <EmptyState 
+          title="No active goals yet." 
+          description="Tell Jarvis what you want to change." 
+          actionLabel="Add Goal" 
+          onAction={() => {}} 
+        />
+      ) : (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+          {goals.map(goal => {
+            const completedCount = goal.targets?.filter(t => t.completed)?.length || 0;
+            const totalCount = goal.targets?.length || 0;
+            return (
+              <Card key={goal.id} onClick={() => setSelectedGoal(goal)}>
+                <h3 style={{ margin: '0 0 8px 0', fontSize: '17px', fontWeight: 600 }}>{goal.label}</h3>
+                <div style={{ fontFamily: 'var(--font-mono)', fontSize: '11.5px', color: 'var(--mu)' }}>
+                  {goal.domain} • {completedCount}/{totalCount} milestones
                 </div>
-              );
-            })}
-          </div>
-        )}
-      </div>
+              </Card>
+            );
+          })}
+        </div>
+      )}
 
-      {/* Timeline */}
-      <div>
-        <div style={{ fontFamily: 'monospace', fontSize: '0.65rem', letterSpacing: '0.1em', color: t.muted, textTransform: 'uppercase', marginBottom: '1rem', borderBottom: `1px solid ${t.borderFaint}`, paddingBottom: '0.5rem' }}>
-          Historical Timeline
-        </div>
-        {timelineEvents.length === 0 ? (
-          <div style={{ fontSize: '0.85rem', color: t.muted, fontStyle: 'italic' }}>
-            Your history will be recorded here.
-          </div>
-        ) : (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', borderLeft: `2px solid ${t.borderFaint}`, marginLeft: '0.5rem', paddingLeft: '1rem' }}>
-            {timelineEvents.map((evt, i) => (
-              <div key={i} style={{ position: 'relative' }}>
-                <div style={{
-                  position: 'absolute', left: '-1.35rem', top: '0.2rem',
-                  width: '0.6rem', height: '0.6rem', borderRadius: '50%', background: ACCENT
-                }} />
-                <div style={{ fontFamily: 'monospace', fontSize: '0.6rem', color: t.muted, marginBottom: '0.2rem' }}>
-                  {evt.date} • {evt.type}
-                </div>
-                <div style={{ fontSize: '0.9rem', fontWeight: 500, color: t.pageText }}>
-                  {evt.title}
-                </div>
+      {/* Goal Detail Sheet */}
+      <BottomSheet 
+        isOpen={!!selectedGoal} 
+        onClose={() => { setSelectedGoal(null); setIsEditing(false); }}
+        title={selectedGoal?.label || 'Goal'}
+      >
+        {selectedGoal && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+            
+            <div>
+              <div style={{ fontSize: '13px', fontWeight: 600, marginBottom: '4px', color: 'var(--mu)' }}>Outcome</div>
+              <div style={{ fontSize: '16px', fontWeight: 600 }}>{selectedGoal.label}</div>
+            </div>
+
+            <div>
+              <div style={{ fontSize: '13px', fontWeight: 600, marginBottom: '4px', color: 'var(--mu)' }}>Why it matters</div>
+              <div style={{ fontSize: '14px' }}>{selectedGoal.fear || 'Not specified.'}</div>
+            </div>
+
+            <div>
+              <div style={{ fontSize: '13px', fontWeight: 600, marginBottom: '8px', color: 'var(--mu)' }}>Milestones</div>
+              <div style={{ display: 'flex', flexDirection: 'column' }}>
+                {selectedGoal.targets?.map((target, idx) => (
+                  <EntityRow 
+                    key={idx}
+                    title={<span style={{ textDecoration: target.completed ? 'line-through' : 'none', opacity: target.completed ? 0.6 : 1 }}>{target.text}</span>}
+                    rightElement={<Checkbox checked={!!target.completed} onChange={() => handleToggleTarget(selectedGoal.id, idx)} />}
+                  />
+                ))}
               </div>
-            ))}
+            </div>
+
+            <div style={{ display: 'flex', justifyContent: 'center', gap: '12px', flexWrap: 'wrap' }}>
+              <ContextualJarvisCTA 
+                label="Ask about this goal" 
+                contextIcon={<MagicWand size={18} weight="fill" />} 
+                onClick={() => {
+                  onOpenJarvis({
+                    page: 'goals',
+                    entityType: 'goal',
+                    entityId: selectedGoal.id,
+                    payload: selectedGoal.label
+                  });
+                  setSelectedGoal(null);
+                }}
+              />
+              <Button variant="secondary" onClick={() => setIsEditing(true)}>
+                <PencilSimple size={18} /> Edit
+              </Button>
+              <Button variant="secondary" onClick={() => setShowEvidence(true)}>
+                Based on...
+              </Button>
+            </div>
+            
           </div>
         )}
-      </div>
+      </BottomSheet>
 
+      <BottomSheet
+        isOpen={isEditing && !!selectedGoal}
+        onClose={() => setIsEditing(false)}
+        title="Edit Goal"
+      >
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+          <div style={{ color: 'var(--mu)', fontSize: '14px' }}>
+            To revise targets or outcome in depth, ask Jarvis.
+          </div>
+          <Button variant="secondary" onClick={() => { setIsEditing(false); setShowConfirmDelete(true); }} style={{ color: 'var(--bad)' }}>
+            Delete Goal
+          </Button>
+        </div>
+      </BottomSheet>
+
+      <ConfirmDialog
+        isOpen={showConfirmDelete}
+        onClose={() => setShowConfirmDelete(false)}
+        onConfirm={handleDeleteGoal}
+        title="Delete Goal"
+        description="This will permanently remove this goal and its milestones."
+      />
+
+      <EvidenceSheet
+        isOpen={showEvidence}
+        onClose={() => setShowEvidence(false)}
+        title={`Evidence for ${selectedGoal?.label}`}
+        evidenceItems={selectedGoal?.proof?.map(p => ({ content: p, date: 'Recent' })) || []}
+      />
     </div>
   );
 }

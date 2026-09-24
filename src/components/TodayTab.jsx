@@ -1,21 +1,14 @@
-import React, { useState, useEffect, useMemo } from 'react';
-import { ACCENT } from '../constants.js';
-import { localDateStr, formatDisplayDate } from '../helpers/dateHelpers.js';
-import InsightsInbox from './InsightsInbox.jsx';
-import { GITA_QUOTES } from '../data/quotes.js';
+import React, { useState } from 'react';
+import { formatDisplayDate } from '../helpers/dateHelpers.js';
 import { getGracePrompt } from '../core/occurrenceEngine.js';
-import HabitRoadmapEditor from './HabitRoadmapEditor.jsx';
-import SetupChecklist from './onboarding/SetupChecklist.jsx';
+import { EntityRow } from './ui/Cards.jsx';
+import { Checkbox } from './ui/Inputs.jsx';
+import { BottomSheet } from './ui/Overlays.jsx';
+import { Button, ContextualJarvisCTA } from './ui/Buttons.jsx';
+import { EmptyState } from './ui/States.jsx';
+import { Card } from './ui/Cards.jsx';
+import { Fire, MagicWand, PencilSimple, Warning } from '@phosphor-icons/react';
 
-/**
- * Today Screen (§51)
- *
- * Execution-first view focusing on:
- * - Current Focus (Quests)
- * - Habits (Occurrences)
- * - Automatic Signals (Mock overview)
- * - Jarvis Snapshot
- */
 export default function TodayTab({
   t,
   todayOccurrences,
@@ -23,208 +16,206 @@ export default function TodayTab({
   onExcuseOccurrence,
   onOccurrenceReason,
   allQuests,
-  onGoToGoals
+  onGoToGoals,
+  onOpenJarvis
 }) {
-  const today = localDateStr();
-  const displayDate = formatDisplayDate(today);
-
-  // Pick a daily quote deterministically based on the date string
-  const dailyQuote = useMemo(() => {
-    let hash = 0;
-    for (let i = 0; i < today.length; i++) {
-      hash = today.charCodeAt(i) + ((hash << 5) - hash);
-    }
-    const index = Math.abs(hash) % GITA_QUOTES.length;
-    return GITA_QUOTES[index];
-  }, [today]);
-
-  // Active actionable quests
-  const activeQuests = useMemo(() => allQuests.filter(q => q.status === 'active'), [allQuests]);
-
-  const [loading, setLoading] = useState(true);
-  const [unreadInsights, setUnreadInsights] = useState([]);
-
-  useEffect(() => {
-    loadInbox();
-  }, []);
-
-  async function loadInbox() {
-    try {
-      const { getActiveInsights } = await import('../database/insightsRepository.js');
-      const active = await getActiveInsights();
-      setUnreadInsights(active);
-    } catch (err) {
-      console.error(err);
-    } finally {
-      setLoading(false);
-    }
-  }
-
-  // Handle quest check (mock implementation, since quests are handled in stats or goals)
-  // For the sake of execution, we can just redirect to Goals tab to interact with quests.
+  const [selectedHabit, setSelectedHabit] = useState(null);
+  const [composerOpen, setComposerOpen] = useState(false);
+  
+  const mainQuest = allQuests?.find(q => q.status === 'active' && q.priority === 'main') || allQuests?.find(q => q.status === 'active');
+  const occurrences = todayOccurrences || [];
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
+    <div style={{ padding: '16px', display: 'flex', flexDirection: 'column', gap: '24px' }}>
       
-      {/* Header */}
-      <div>
-        <div style={{ fontFamily: 'monospace', fontSize: '0.65rem', letterSpacing: '0.15em', color: ACCENT, textTransform: 'uppercase', marginBottom: '0.5rem' }}>
-          {displayDate}
-        </div>
-        <div style={{ fontSize: '1.55rem', fontWeight: 900, lineHeight: 1, marginBottom: '1.5rem' }}>
-          Execution
-        </div>
-        
-        {/* Daily Quote */}
-        {dailyQuote && (
-          <div style={{
-            padding: '1rem',
-            borderLeft: `3px solid ${ACCENT}`,
-            background: t.subtleBg,
-            color: t.pageText,
-            fontSize: '0.9rem',
-            lineHeight: 1.6,
-            fontStyle: 'italic',
-          }}>
-            "{dailyQuote.text}"
-            <div style={{ marginTop: '0.5rem', fontFamily: 'monospace', fontSize: '0.65rem', color: t.muted, textTransform: 'uppercase' }}>
-              — {dailyQuote.source}
+      {mainQuest && (
+        <section>
+          <div style={{ fontFamily: 'var(--font-mono)', fontSize: '11.5px', color: 'var(--mu)', textTransform: 'uppercase', marginBottom: '12px', letterSpacing: '0.05em' }}>
+            Current Focus
+          </div>
+          <Card onClick={onGoToGoals} style={{ border: '1px solid var(--ac)' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+              <div>
+                <h3 style={{ margin: '0 0 4px 0', fontSize: '16px', fontWeight: 600 }}>{mainQuest.title}</h3>
+                <div style={{ fontFamily: 'var(--font-mono)', fontSize: '11.5px', color: 'var(--mu)' }}>
+                  {mainQuest.axis} • {mainQuest.progress}/{mainQuest.maxProgress}
+                </div>
+              </div>
+              <Fire size={24} color="var(--ac)" weight="fill" />
             </div>
-          </div>
-        )}
-      </div>
-
-      {/* Jarvis Snapshot */}
-      {!loading && unreadInsights.length > 0 && (
-        <div style={{ border: `1px solid ${t.border}`, background: t.subtleBg, padding: '1.25rem' }}>
-          <div style={{ fontFamily: 'monospace', fontSize: '0.65rem', letterSpacing: '0.1em', color: ACCENT, textTransform: 'uppercase', marginBottom: '1rem' }}>
-            System Inbox
-          </div>
-          <InsightsInbox t={t} onQuestsChanged={() => {}} />
-        </div>
+          </Card>
+        </section>
       )}
 
-      {/* Current Focus / Quests */}
-      <div>
-        <div style={{ fontFamily: 'monospace', fontSize: '0.65rem', letterSpacing: '0.1em', color: t.muted, textTransform: 'uppercase', marginBottom: '1rem' }}>
-          Current Focus (Active Quests)
-        </div>
-        {activeQuests.length === 0 ? (
-          <div style={{ fontSize: '0.85rem', color: t.muted, fontStyle: 'italic' }}>
-            No active quests.
+      <section>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
+          <div style={{ fontFamily: 'var(--font-mono)', fontSize: '11.5px', color: 'var(--mu)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+            Today's Routines
           </div>
-        ) : (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-            {activeQuests.map(q => (
-              <div key={q.id} style={{ border: `1px solid ${t.border}`, padding: '1rem', background: t.subtleBg, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <div>
-                  <div style={{ fontWeight: 600, fontSize: '0.9rem' }}>{q.title}</div>
-                  <div style={{ fontFamily: 'monospace', fontSize: '0.6rem', color: t.muted, marginTop: '0.3rem', textTransform: 'uppercase' }}>
-                    {q.axis} — {q.progress}/{q.maxProgress}
-                  </div>
-                </div>
-                <button
-                  onClick={onGoToGoals}
-                  style={{ background: 'transparent', border: `1px solid ${ACCENT}`, color: ACCENT, padding: '0.4rem 0.8rem', cursor: 'pointer', fontFamily: 'monospace', fontSize: '0.6rem', textTransform: 'uppercase' }}
-                >
-                  Manage
-                </button>
-              </div>
-            ))}
+        </div>
+
+        {occurrences.length > 5 && (
+          <div style={{ 
+            display: 'flex', alignItems: 'center', gap: '8px', 
+            backgroundColor: 'rgba(224, 118, 58, 0.1)', 
+            color: 'var(--ac)', 
+            padding: '10px 12px', 
+            borderRadius: 'var(--r-control)',
+            marginBottom: '16px',
+            fontSize: '13px',
+            fontWeight: 500
+          }}>
+            <Warning size={16} />
+            This is a heavy day. Consider skipping non-essentials.
           </div>
         )}
-      </div>
 
-      {/* Your Habits */}
-      <div>
-        <div style={{ fontFamily: 'monospace', fontSize: '0.65rem', letterSpacing: '0.1em', color: t.muted, textTransform: 'uppercase', marginBottom: '1rem' }}>
-          Habit Roadmaps
-        </div>
-        <HabitRoadmapEditor t={t} />
-      </div>
-
-      <div>
-        <div style={{ fontFamily: 'monospace', fontSize: '0.65rem', letterSpacing: '0.1em', color: t.muted, textTransform: 'uppercase', marginBottom: '1rem' }}>
-          Today's Habits
-        </div>
-        
-        {(!todayOccurrences || todayOccurrences.length === 0) ? (
-          <div style={{ fontSize: '0.85rem', color: t.muted, fontStyle: 'italic' }}>
-            No habits scheduled for today.
-          </div>
+        {occurrences.length === 0 ? (
+          <EmptyState 
+            title="A clear day."
+            description="You have no habits scheduled for today."
+            actionLabel="Review Goals"
+            onAction={onGoToGoals}
+          />
         ) : (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-            {todayOccurrences.map(occ => {
+          <div style={{ display: 'flex', flexDirection: 'column' }}>
+            {occurrences.map(occ => {
               const isDone = occ.status === 'completed';
               const isExcused = occ.status === 'excused';
+              
+              const labelParts = [];
+              if (occ.axis) labelParts.push(occ.axis);
+              labelParts.push('+10 xp'); // per mockup
+              if (occ.streak && occ.streak > 1) labelParts.push(`${occ.streak}-day run`);
+              
               const gracePrompt = getGracePrompt(occ.status, occ.graceState);
-              const isGraceDayOne = occ.status === 'expected' && occ.graceState === 'grace_day_one';
-              const isGraceDayTwo = occ.status === 'expected' && occ.graceState === 'grace_day_two';
-              const isGraceExpired = occ.status === 'unknown' && occ.graceState === 'grace_expired';
+              if (gracePrompt) labelParts.push(gracePrompt);
+
               return (
-                <div key={occ.id} style={{ 
-                  border: `1px solid ${isDone ? '#4f8a5f' : (isExcused ? t.borderSoft : t.border)}`, 
-                  padding: '1rem', 
-                  background: isDone ? 'rgba(79,138,95,0.1)' : t.subtleBg,
-                  display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-                  opacity: isExcused ? 0.6 : 1
-                }}>
-                  <div>
-                    <div style={{ fontWeight: 600, fontSize: '1rem', textDecoration: isExcused ? 'line-through' : 'none' }}>
-                      {occ.habitTitle || 'Habit'}
-                    </div>
-                    {gracePrompt && <div style={{ fontSize: '0.75rem', color: isGraceExpired ? '#c1442c' : ACCENT, marginTop: '0.25rem' }}>{gracePrompt}</div>}
-                    {isExcused && (
-                      <div style={{ fontSize: '0.75rem', color: t.muted, marginTop: '0.25rem' }}>
-                        Reason: {occ.excuseReason}
-                      </div>
-                    )}
-                  </div>
-                  
-                  {!isDone && !isExcused && (
-                    <div style={{ display: 'flex', gap: '0.5rem' }}>
-                      <button
-                        onClick={() => onCompleteOccurrence(occ.id)}
-                        style={{ background: '#4f8a5f', border: 'none', color: '#fff', padding: '0.4rem 0.8rem', cursor: 'pointer', fontFamily: 'monospace', fontSize: '0.6rem', textTransform: 'uppercase' }}
-                      >
-                        Complete
-                      </button>
-                      <button
-                        onClick={() => {
-                          const reason = prompt('Reason for excusing?');
-                          if (reason) onExcuseOccurrence(occ.id, reason);
-                        }}
-                        style={{ background: 'transparent', border: `1px solid ${t.borderSoft}`, color: t.muted, padding: '0.4rem 0.8rem', cursor: 'pointer', fontFamily: 'monospace', fontSize: '0.6rem', textTransform: 'uppercase' }}
-                      >
-                        Skip
-                      </button>
-                    </div>
-                  )}
-
-                  {isGraceExpired && !occ.reason && (
-                    <button
-                      onClick={() => {
-                        const reason = prompt('What got in the way?');
-                        if (reason?.trim()) onOccurrenceReason(occ.id, reason.trim());
+                <EntityRow
+                  key={occ.id}
+                  title={<span style={{ textDecoration: isExcused ? 'line-through' : 'none', opacity: isExcused ? 0.6 : 1 }}>{occ.habitTitle || 'Habit'}</span>}
+                  label={labelParts.join(' • ')}
+                  onClick={() => setSelectedHabit(occ)}
+                  rightElement={
+                    <Checkbox 
+                      checked={isDone} 
+                      onChange={() => {
+                        if (isDone) {
+                          // optimistically revert
+                          if (occ.reason) onOccurrenceReason(occ.id, null); 
+                        } else {
+                          onCompleteOccurrence(occ.id);
+                        }
                       }}
-                      style={{ background: 'transparent', border: `1px solid #c1442c`, color: '#c1442c', padding: '0.4rem 0.8rem', cursor: 'pointer', fontFamily: 'monospace', fontSize: '0.6rem', textTransform: 'uppercase' }}
-                    >
-                      Log reason
-                    </button>
-                  )}
-
-                  {isDone && (
-                    <div style={{ fontFamily: 'monospace', fontSize: '0.75rem', color: '#4f8a5f', fontWeight: 'bold' }}>
-                      DONE ✓
-                    </div>
-                  )}
-                </div>
+                      disabled={isExcused}
+                    />
+                  }
+                />
               );
             })}
           </div>
         )}
-      </div>
+        
+        {occurrences.length > 0 && (
+          <div style={{ display: 'flex', gap: '12px', justifyContent: 'center', marginTop: '16px', flexWrap: 'wrap' }}>
+            <Button 
+              variant="secondary" 
+              onClick={() => setComposerOpen(true)}
+              style={{ display: 'flex', gap: '8px' }}
+            >
+              <PencilSimple size={18} />
+              Log Evidence
+            </Button>
+            <ContextualJarvisCTA 
+              label="Adjust today's routine" 
+              contextIcon={<MagicWand size={18} weight="fill" />} 
+              onClick={() => {/* will be wired to open Jarvis with context */}}
+            />
+          </div>
+        )}
+      </section>
 
+      {/* Habit Detail Sheet */}
+      <BottomSheet 
+        isOpen={!!selectedHabit} 
+        onClose={() => setSelectedHabit(null)} 
+        title={selectedHabit?.habitTitle || 'Habit Detail'}
+      >
+        {selectedHabit && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+            <div style={{ fontSize: '14.5px', color: 'var(--mu)' }}>
+              Status: {selectedHabit.status}
+            </div>
+            
+            {selectedHabit.status !== 'completed' && selectedHabit.status !== 'excused' && (
+              <div style={{ display: 'flex', gap: '12px', marginTop: '8px' }}>
+                <Button 
+                  variant="primary" 
+                  style={{ flex: 1 }}
+                  onClick={() => {
+                    onCompleteOccurrence(selectedHabit.id);
+                    setSelectedHabit(null);
+                  }}
+                >
+                  Complete
+                </Button>
+                <Button 
+                  variant="secondary"
+                  style={{ flex: 1 }}
+                  onClick={() => {
+                    const reason = prompt('Reason for skipping?');
+                    if (reason) {
+                      onExcuseOccurrence(selectedHabit.id, reason);
+                      setSelectedHabit(null);
+                    }
+                  }}
+                >
+                  Skip
+                </Button>
+              </div>
+            )}
+            
+            {selectedHabit.status === 'unknown' && selectedHabit.graceState === 'grace_expired' && (
+              <Button 
+                variant="destructive"
+                onClick={() => {
+                  const reason = prompt('What got in the way?');
+                  if (reason) {
+                    onOccurrenceReason(selectedHabit.id, reason);
+                    setSelectedHabit(null);
+                  }
+                }}
+              >
+                Log missing reason
+              </Button>
+            )}
+          </div>
+        )}
+      </BottomSheet>
+
+      {/* Evidence Composer Sheet */}
+      <BottomSheet
+        isOpen={composerOpen}
+        onClose={() => setComposerOpen(false)}
+        title="Log Evidence"
+      >
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+          <textarea 
+            placeholder="What did you do?" 
+            style={{ 
+              width: '100%', minHeight: '100px', padding: '12px', 
+              borderRadius: 'var(--r-control)', border: '1px solid var(--hairline)',
+              backgroundColor: 'var(--bg)', color: 'var(--tx)', fontFamily: 'inherit',
+              resize: 'none'
+            }}
+          />
+          <div style={{ display: 'flex', gap: '12px' }}>
+            <Button variant="primary" style={{ flex: 1 }} onClick={() => setComposerOpen(false)}>Save</Button>
+            <Button variant="secondary" onClick={() => setComposerOpen(false)}>Cancel</Button>
+          </div>
+        </div>
+      </BottomSheet>
     </div>
   );
 }

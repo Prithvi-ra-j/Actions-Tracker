@@ -1,214 +1,161 @@
-import React, { useMemo, useState, useEffect } from 'react';
-import { ACCENT, LIFE_DIMENSIONS } from '../constants.js';
-import { getThresholdTitle } from '../helpers/statsEngine.js';
+import React, { useState, useEffect } from 'react';
 import RadarChart from './RadarChart.jsx';
-import StatHistoryModal from './StatHistoryModal.jsx';
-
-/**
- * StatsTab — Architecture-aligned (§52)
- *
- * Focuses on:
- * - Development Shape (Radar)
- * - Evidence Coverage & Components
- * - Key Signals & Explanation
- */
-
-// Architectural domains mapped to stats engine keys
-import { COLORS } from '../theme.js';
-
-const AXES = LIFE_DIMENSIONS.map(axis => ({ ...axis, color: COLORS.domains[axis.key] || '#ff9500' }));
-
-function MiniBar({ value, max = 100, color, dark }) {
-  const pct = Math.min(Math.max(value ?? 0, 0), max) / max * 100;
-  return (
-    <div style={{ height: 3, background: dark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)', borderRadius: 3, overflow: 'hidden' }}>
-      <div style={{ height: '100%', width: `${pct}%`, background: color, borderRadius: 3, transition: 'width 0.5s ease' }} />
-    </div>
-  );
-}
-
-function StatCard({ t, dark, axisInfo, stat, details, quests, onClick }) {
-  const { key, label, color } = axisInfo;
-  const components = details?.components || [];
-  const val = Math.round(stat);
-  const activeQuests = quests.filter(q => q.status === 'active').length;
-
-  return (
-    <div
-      onClick={() => onClick(key)}
-      style={{
-        background: t.subtleBg,
-        border: `1px solid ${t.border}`,
-        padding: '1rem',
-        cursor: 'pointer',
-        display: 'flex',
-        flexDirection: 'column',
-        justifyContent: 'space-between',
-        transition: 'border-color 0.2s',
-      }}
-      onMouseOver={(e) => (e.currentTarget.style.borderColor = color)}
-      onMouseOut={(e) => (e.currentTarget.style.borderColor = t.border)}
-    >
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1.5rem' }}>
-        <div>
-          <div style={{ fontFamily: 'monospace', fontSize: '0.65rem', letterSpacing: '0.15em', color: color, textTransform: 'uppercase', marginBottom: '0.2rem' }}>
-            {label}
-          </div>
-          <div style={{ fontSize: '1.25rem', fontWeight: 600 }}>{val}</div>
-        </div>
-        {activeQuests > 0 && (
-          <div style={{ fontFamily: 'monospace', fontSize: '0.55rem', color: t.muted, background: t.borderFaint, padding: '0.2rem 0.4rem', borderRadius: 2 }}>
-            {activeQuests} ACTIVE QUESTS
-          </div>
-        )}
-      </div>
-
-      <div>
-        {components.length > 0 ? (
-          <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', fontSize: '0.55rem', fontFamily: 'monospace', color: t.muted, marginBottom: '0.5rem' }}>
-            {components.slice(0, 3).map((comp, idx) => (
-              <span key={idx} style={{ background: t.borderFaint, padding: '0.1rem 0.3rem', borderRadius: 2 }}>
-                {comp.signal.replace(/_/g, ' ').substring(0, 12).toUpperCase()}: {Math.round(comp.contribution)}
-              </span>
-            ))}
-          </div>
-        ) : (
-          <div style={{ fontSize: '0.55rem', fontFamily: 'monospace', color: t.muted, marginBottom: '0.5rem' }}>
-            No recent signals.
-          </div>
-        )}
-        <div style={{ display: 'flex', justifyContent: 'space-between', gap: '0.5rem', fontFamily: 'monospace', fontSize: '0.52rem', color: t.muted, marginBottom: '0.5rem', textTransform: 'uppercase' }}>
-          <span>{details?.scoreSource || 'canonical'} source</span>
-          <span>coverage {Math.round((details?.coverage || 0) * 100)}%</span>
-          <span>confidence {Math.round((details?.confidence || 0) * 100)}%</span>
-        </div>
-        {details?.fallbackReason && <div style={{ fontSize: '0.58rem', color: t.muted, marginBottom: '0.5rem' }}>{details.fallbackReason}</div>}
-        {details?.warnings?.length > 0 && <div style={{ fontSize: '0.58rem', color: '#c1442c', marginBottom: '0.5rem' }}>{details.warnings[0]}</div>}
-        <MiniBar value={val} color={color} dark={dark} />
-      </div>
-    </div>
-  );
-}
+import { LIFE_DIMENSIONS } from '../constants.js';
+import { EntityRow } from './ui/Cards.jsx';
+import { BottomSheet } from './ui/Overlays.jsx';
+import { Button, ContextualJarvisCTA } from './ui/Buttons.jsx';
+import { EmptyState } from './ui/States.jsx';
+import { MagicWand, ChartLineUp } from '@phosphor-icons/react';
+import { EvidenceCard } from './ui/ActionPrimitives.jsx';
+import { EvidenceSheet } from './EvidenceSheet.jsx';
 
 export default function StatsTab({
-  t, dark, stats, axisDetails, snapshot, allQuests, allLogs, axisConfigs
+  t, stats, axisDetails, snapshot, allQuests, allLogs, axisConfigs
 }) {
-  const [selectedAxis, setSelectedAxis] = React.useState(null);
-
-  // Compute Radar shape based on all stats
-  const radarData = useMemo(() => {
-    return AXES.map(a => ({
-      axis: a.label,
-      value: Math.max(10, stats[a.key] || 0) // Minimum baseline for visibility
-    }));
-  }, [stats]);
-
-  // Load Historical Snapshots for Trends
+  const [selectedAxis, setSelectedAxis] = useState(null);
+  const [showEvidence, setShowEvidence] = useState(false);
   const [snapshots, setSnapshots] = useState([]);
+  const [loading, setLoading] = useState(true);
+
   useEffect(() => {
     async function loadSnapshots() {
-      const { getAllSnapshots } = await import('../database/statSnapshotsRepository.js');
-      const snaps = await getAllSnapshots();
-      // Sort descending by date
-      setSnapshots(snaps.sort((a, b) => b.date.localeCompare(a.date)).slice(0, 10)); 
+      try {
+        const { getAllSnapshots } = await import('../database/statSnapshotsRepository.js');
+        const snaps = await getAllSnapshots();
+        setSnapshots(snaps.sort((a, b) => b.date.localeCompare(a.date)).slice(0, 10));
+      } catch (err) {
+        console.error(err);
+      } finally {
+        setLoading(false);
+      }
     }
     loadSnapshots();
   }, []);
 
-  const latestStatsDate = snapshot?.date ? new Date(snapshot.date).toLocaleDateString() : 'Live';
+  const totalLogs = allLogs?.length || 0;
+  if (loading) {
+    return <div style={{ padding: '24px', textAlign: 'center', color: 'var(--mu)' }}>Reviewing recent evidence...</div>;
+  }
+
+  if (totalLogs === 0) {
+    return (
+      <div style={{ padding: '16px' }}>
+        <EmptyState 
+          title="Not enough evidence" 
+          description="Complete some habits or log evidence to generate your stats."
+        />
+      </div>
+    );
+  }
+
+  const selectedData = selectedAxis ? {
+    info: LIFE_DIMENSIONS.find(d => d.key === selectedAxis),
+    stat: Math.round(stats[selectedAxis] || 0),
+    details: axisDetails[selectedAxis],
+    trend: snapshots.map(s => Math.round(s.stats[selectedAxis] || 0))
+  } : null;
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '2.5rem' }}>
+    <div style={{ padding: '16px', display: 'flex', flexDirection: 'column', gap: '24px' }}>
       
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end' }}>
-        <div>
-          <div style={{ fontFamily: 'monospace', fontSize: '0.65rem', letterSpacing: '0.15em', color: ACCENT, textTransform: 'uppercase', marginBottom: '0.5rem' }}>
-            Snapshot: {latestStatsDate}
-          </div>
-          <div style={{ fontSize: '1.55rem', fontWeight: 900, lineHeight: 1 }}>
-            Development Shape
+      {/* Radar Chart */}
+      <section>
+        <div style={{ display: 'flex', justifyContent: 'center', margin: '8px 0 24px' }}>
+          <div style={{ width: '100%', maxWidth: '300px' }}>
+            <RadarChart stats={stats} snapshot={snapshot?.stats} />
           </div>
         </div>
-      </div>
+      </section>
 
-      <div style={{ display: 'flex', justifyContent: 'center', margin: '1rem 0' }}>
-        <div style={{ width: '100%', maxWidth: 300, aspectRatio: '1/1' }}>
-          <RadarChart
-            stats={stats}
-            snapshot={snapshot}
-            dark={dark}
-          />
+      {/* Axis List */}
+      <section>
+        <div style={{ fontFamily: 'var(--font-mono)', fontSize: '11.5px', color: 'var(--mu)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '12px' }}>
+          Dimensions
         </div>
-      </div>
+        <div style={{ display: 'flex', flexDirection: 'column' }}>
+          {LIFE_DIMENSIONS.map(axis => {
+            const val = Math.round(stats[axis.key] || 0);
+            return (
+              <EntityRow
+                key={axis.key}
+                title={axis.label}
+                label={axisDetails[axis.key]?.components?.length > 0 ? 'Active signals' : 'No recent signals'}
+                onClick={() => setSelectedAxis(axis.key)}
+                rightElement={<span style={{ fontFamily: 'var(--font-mono)', fontSize: '16px', fontWeight: 600, color: 'var(--tx)' }}>{val}</span>}
+              />
+            );
+          })}
+        </div>
+      </section>
 
-      <div>
-        <div style={{ fontFamily: 'monospace', fontSize: '0.65rem', letterSpacing: '0.1em', color: t.muted, textTransform: 'uppercase', marginBottom: '1rem' }}>
-          Evidence Coverage & Score Engine
-        </div>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))', gap: '1rem' }}>
-          {AXES.map(a => (
-            <StatCard
-              key={a.key}
-              t={t}
-              dark={dark}
-              axisInfo={a}
-              stat={stats[a.key]}
-              details={axisDetails[a.key]}
-              quests={allQuests.filter(q => q.axis === a.key)}
-              onClick={setSelectedAxis}
-            />
-          ))}
-        </div>
-        <div style={{ fontFamily: 'monospace', fontSize: '0.6rem', color: t.muted, marginTop: '1rem', textAlign: 'center' }}>
-          C: Consistency, V: Volume, M: Momentum. Source and evidence quality are shown per domain.
-        </div>
-      </div>
+      {/* Axis Detail Sheet */}
+      <BottomSheet
+        isOpen={!!selectedAxis}
+        onClose={() => setSelectedAxis(null)}
+        title={selectedData?.info?.label}
+      >
+        {selectedData && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+            <div style={{ display: 'flex', alignItems: 'flex-end', gap: '12px' }}>
+              <span style={{ fontSize: '48px', fontWeight: 600, lineHeight: 1, fontFamily: 'var(--font-mono)' }}>{selectedData.stat}</span>
+            </div>
 
-      {/* Discipline Trends */}
-      <div>
-        <div style={{ fontFamily: 'monospace', fontSize: '0.65rem', letterSpacing: '0.1em', color: t.muted, textTransform: 'uppercase', marginBottom: '1rem' }}>
-          Discipline Trends
-        </div>
-        {snapshots.length === 0 ? (
-          <div style={{ fontSize: '0.85rem', color: t.muted, fontStyle: 'italic' }}>
-            Not enough historical data yet. Check back next week.
-          </div>
-        ) : (
-          <div style={{ border: `1px solid ${t.border}`, background: t.subtleBg, padding: '1rem' }}>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-              {snapshots.map(snap => (
-                <div key={snap.date} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <div style={{ fontFamily: 'monospace', fontSize: '0.75rem', color: t.pageText }}>
-                    {snap.date}
-                  </div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-                    <div style={{ fontFamily: 'monospace', fontSize: '0.75rem', color: COLORS.domains.discipline }}>
-                      {Math.round(snap.stats.discipline || 0)} score
+            {/* Contribution Breakdown */}
+            {selectedData.details?.components?.length > 0 ? (
+              <div>
+                <div style={{ fontSize: '13px', fontWeight: 600, marginBottom: '8px' }}>Top Contributions</div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                  {selectedData.details.components.slice(0, 3).map((comp, i) => (
+                    <div key={i} style={{ display: 'flex', justifyContent: 'space-between', fontSize: '14px' }}>
+                      <span style={{ color: 'var(--mu)' }}>{comp.signal.replace(/_/g, ' ')}</span>
+                      <span style={{ fontFamily: 'var(--font-mono)' }}>+{Math.round(comp.contribution)}</span>
                     </div>
-                    {/* Visual bar */}
-                    <div style={{ width: 100, height: 4, background: dark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)', borderRadius: 2 }}>
-                      <div style={{ height: '100%', width: `${Math.round(snap.stats.discipline || 0)}%`, background: COLORS.domains.discipline, borderRadius: 2 }} />
-                    </div>
-                  </div>
+                  ))}
                 </div>
-              ))}
+              </div>
+            ) : (
+              <div style={{ fontSize: '13px', color: 'var(--mu)' }}>No recent contributions recorded.</div>
+            )}
+
+            {/* Trend */}
+            {selectedData.trend.length > 1 && (
+              <div>
+                <div style={{ fontSize: '13px', fontWeight: 600, marginBottom: '8px', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                  <ChartLineUp size={16} /> 4-Week Trend
+                </div>
+                <div style={{ display: 'flex', gap: '8px', overflowX: 'auto', paddingBottom: '8px' }}>
+                  {selectedData.trend.slice(0, 4).reverse().map((t, i) => (
+                    <div key={i} style={{ padding: '4px 8px', backgroundColor: 'var(--s2)', borderRadius: '4px', fontFamily: 'var(--font-mono)', fontSize: '13px' }}>
+                      {t}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            <div style={{ marginTop: '16px', display: 'flex', gap: '8px' }}>
+              <Button variant="secondary" style={{ flex: 1 }} onClick={() => setShowEvidence(true)}>
+                Based on...
+              </Button>
+              <ContextualJarvisCTA 
+                label="Why?" 
+                contextIcon={<MagicWand size={18} weight="fill" />} 
+                onClick={() => {
+                  console.log('Open Jarvis for', selectedAxis);
+                  setSelectedAxis(null);
+                }}
+              />
             </div>
           </div>
         )}
-      </div>
+      </BottomSheet>
 
-      {selectedAxis && (
-        <StatHistoryModal
-          t={t}
-          dark={dark}
-          axis={selectedAxis}
-          axisInfo={AXES.find(a => a.key === selectedAxis)}
-          allLogs={allLogs}
-          allQuests={allQuests.filter(q => q.axis === selectedAxis)}
-          axisConfig={axisConfigs.find(c => c.axis === selectedAxis)}
-          onClose={() => setSelectedAxis(null)}
-        />
-      )}
+      <EvidenceSheet
+        isOpen={showEvidence}
+        onClose={() => setShowEvidence(false)}
+        title={`Evidence for ${selectedData?.info?.label}`}
+        evidenceItems={selectedData?.details?.components?.map(c => ({ content: c.signal, date: 'Recent' })) || []}
+      />
     </div>
   );
 }

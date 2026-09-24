@@ -1,13 +1,17 @@
 import React from 'react';
 import { createRoot } from 'react-dom/client';
 import App from './App.jsx';
+import { ToastProvider } from './components/ui/ToastContext.jsx';
+import './index.css';
 
 import { ErrorBoundary } from './components/ErrorBoundary.jsx';
 
 createRoot(document.getElementById('root')).render(
   <React.StrictMode>
     <ErrorBoundary>
-      <App />
+      <ToastProvider>
+        <App />
+      </ToastProvider>
     </ErrorBoundary>
   </React.StrictMode>,
 );

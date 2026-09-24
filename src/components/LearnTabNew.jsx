@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
-import { Card, EntityRow } from './ui/Cards';
-import { Button } from './ui/Buttons';
+import { Card, EntityRow, Button, Chip } from './ui/Cards';
 import { BottomSheet } from './ui/Overlays';
 
 export default function LearnTab({ t, learnings = [], onAddLearning }) {

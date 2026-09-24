@@ -84,7 +84,13 @@ export default function RadarChart({ stats = {}, snapshot = null, targets = null
       width="100%"
       style={{ display: 'block', maxWidth: size, margin: '0 auto' }}
       aria-label="Character stats radar chart"
+      role="img"
     >
+      <title>Character stats radar chart</title>
+      <desc>
+        {AXES.map(a => `${a.label}: ${Math.round(stats[a.key] || 0)}`).join(', ')}
+      </desc>
+      
       {/* ── Grid rings ─────────────────────────────────────────────────────── */}
       {GRID_RINGS.map(v => (
         <polygon

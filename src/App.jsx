@@ -47,6 +47,9 @@ import LearnTab          from './components/LearnTab.jsx';   // Phase 7
 import JarvisTab         from './components/JarvisTab.jsx';  // Phase 11
 import AuditsTab         from './components/AuditsTab.jsx';  // Phase 12
 import UpdateBanner      from './components/UpdateBanner.jsx';
+import AppShell          from './components/AppShell.jsx';
+
+const USE_REDESIGN = true;
 
 // ─────────────────────────────────────────────────────────────────────────────
 
@@ -166,6 +169,7 @@ export default function App() {
   const [showSettings, setShowSettings] = useState(false);
   const [showNavDrawer, setShowNavDrawer] = useState(false);
   const [expanded,     setExpanded]     = useState(null); // expanded goal index
+  const [jarvisContext, setJarvisContext] = useState(null);
 
   // ── Data state (loaded from DB on mount; written back on every change) ─────
   const [allLogs,          setAllLogs]          = useState([]);
@@ -328,7 +332,7 @@ export default function App() {
         // After the first check-in, subsequent check-ins are 30 days apart.
         const realActivityLogs = allLogs
           .filter(l => !['onboarding_assessment', 'proof_check_in'].includes(l.type))
-          .filter(l => typeof l.date === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(l.date))
+          .filter(l => typeof l.date === 'string' && /^d{4}-d{2}-d{2}$/.test(l.date))
           .sort((a, b) => a.date.localeCompare(b.date));
 
         const firstDataDate = realActivityLogs[0]?.date ?? null;
@@ -669,16 +673,84 @@ export default function App() {
 
   // ── Loading screen ─────────────────────────────────────────────────────────
   if (!dbReady) {
-    return (
-      <div style={{ background: '#1c1916', minHeight: '100dvh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
-        <img src="/icon.jpg" alt="App Icon" style={{ width: 64, height: 64, marginBottom: '1rem', opacity: 0.8, borderRadius: '12px' }} />
-        <div style={{ fontFamily: 'monospace', fontSize: '0.65rem', letterSpacing: '0.3em', color: ACCENT, textTransform: 'uppercase' }}>
-          Actions
-        </div>
+    
+  const renderPages = () => (
+    <>
+      <div style={{ display: tab === 'daily' ? 'block' : 'none' }}>
+        <TodayTab
+          t={t}
+          todayOccurrences={todayOccurrences}
+          allQuests={allQuests}
+          onCompleteOccurrence={handleCompleteOccurrence}
+          onExcuseOccurrence={handleExcuseOccurrence}
+          onOccurrenceReason={handleOccurrenceReason}
+          completionFeedback={completionFeedback}
+          onGoToGoals={() => handleTabChange('goals')}
+          onOpenJarvis={handleOpenJarvis}
+        />
       </div>
-    );
-  }
+      <div style={{ display: tab === 'stats' ? 'block' : 'none' }}>
+        <StatsTab
+          t={t}
+          dark={dark}
+          stats={stats}
+          axisDetails={axisDetails}
+          snapshot={latestSnapshot}
+          allQuests={allQuests}
+          allLogs={allLogs}
+          axisConfigs={axisConfigs}
+          onOpenJarvis={handleOpenJarvis}
+        />
+      </div>
+      <div style={{ display: tab === 'goals' ? 'block' : 'none' }}>
+        <GoalsTab
+          t={t}
+          dark={dark}
+          allQuests={allQuests}
+          allLogs={allLogs}
+          onOpenJarvis={handleOpenJarvis}
+        />
+      </div>
+      <div style={{ display: tab === 'learn' ? 'block' : 'none' }}>
+        <LearnTab
+          t={t}
+          books={books}
+          learnings={learnings}
+          onUpdatePages={handleUpdatePages}
+          onFinishBook={handleFinishBook}
+          onAddLearning={handleAddLearning}
+          onAddBook={handleAddBook}
+          onStartBook={handleStartBook}
+                onOpenJarvis={handleOpenJarvis}
+        />
+      </div>
+      <div style={{ display: tab === 'jarvis' ? 'block' : 'none' }}>
+        <JarvisTab t={t} onQuestsChanged={refreshAfterJarvisAction} jarvisContext={jarvisContext} onClearContext={() => setJarvisContext(null)} />
+      </div>
+      <div style={{ display: tab === 'audits' ? 'block' : 'none' }}>
+        <AuditsTab t={t} onOpenJarvis={handleOpenJarvis} />
+      </div>
+    </>
+  );
 
+  const getHeaderTitle = () => {
+    switch (tab) {
+      case 'daily': return 'Today';
+      case 'stats': return 'Stats';
+      case 'learn': return 'Learn';
+      case 'goals': return 'Goals';
+      case 'jarvis': return 'Jarvis';
+      case 'audits': return 'Audits';
+      default: return 'Actions';
+    }
+  };
+
+  const getHeaderSubline = () => {
+    if (tab === 'daily') return localDateStr();
+    if (tab === 'stats') return 'Last 30 days';
+    if (tab === 'goals') return `${lifeGoals.length} active`;
+    return '';
+  };
   // ── Main render ────────────────────────────────────────────────────────────
   if (needsOnboarding) {
     return (
@@ -710,240 +782,41 @@ export default function App() {
       />
     );
   }
-
   return (
-    <div style={{
-      background: t.pageBg,
-      minHeight: '100dvh',
-      fontFamily: 'Georgia, serif',
-      color: t.pageText,
-      paddingBottom: 'env(safe-area-inset-bottom)',
-      transition: 'background 0.2s, color 0.2s',
-    }}>
-
-      {/* ── HEADER ─────────────────────────────────────────────────────────── */}
-      <div style={{
-        background: t.headerBg,
-        padding: '1rem 1.5rem',
-        paddingTop: 'calc(env(safe-area-inset-top, 0px) + 1rem)',
-        transition: 'background 0.2s',
-      }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.5rem' }}>
-          
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-            {/* Hamburger menu */}
-            <button
-              onClick={() => setShowNavDrawer(true)}
-              aria-label="Open menu"
-              style={{
-                background: 'transparent',
-                border: 'none',
-                color: t.headerText,
-                cursor: 'pointer',
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                padding: '0.2rem',
-              }}
-            >
-              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="square">
-                <line x1="3" y1="12" x2="21" y2="12"></line>
-                <line x1="3" y1="6" x2="21" y2="6"></line>
-                <line x1="3" y1="18" x2="21" y2="18"></line>
-              </svg>
-            </button>
-
-            <span style={{ fontFamily: 'monospace', fontSize: '0.58rem', letterSpacing: '0.3em', color: t.headerText, textTransform: 'uppercase' }}>
-              Actions
-            </span>
-          </div>
-
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.85rem' }}>
-            {/* Radar Stats */}
-            <button
-              onClick={() => handleTabChange('stats')}
-              aria-label="Stats"
-              style={{
-                background: 'transparent',
-                border: 'none',
-                color: tab === 'stats' ? ACCENT : t.headerText,
-                cursor: 'pointer',
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                padding: '0.2rem',
-              }}
-            >
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="square">
-                <circle cx="12" cy="12" r="10"></circle>
-                <circle cx="12" cy="12" r="6"></circle>
-                <circle cx="12" cy="12" r="2"></circle>
-                <line x1="12" y1="12" x2="19" y2="5"></line>
-              </svg>
-            </button>
-
-            <span style={{ fontFamily: 'monospace', fontSize: '0.58rem', color: ACCENT, letterSpacing: '0.1em' }}>
-              {tab === 'daily'
-                ? `${dailyDone}/4 today`
-                : `${doneTargets}/${TOTAL_TARGETS} targets`}
-            </span>
-          </div>
-        </div>
-
-        {/* Overall goal progress bar */}
-        <div style={{ marginTop: '0.75rem', height: 2, background: t.trackBg, borderRadius: 2, overflow: 'hidden' }}>
-          <div style={{
-            height: '100%',
-            width: `${(doneTargets / TOTAL_TARGETS) * 100}%`,
-            background: ACCENT,
-            transition: 'width 0.4s',
-            borderRadius: 2,
-          }} />
-        </div>
-      </div>
-
-      {/* ── CONTENT ─────────────────────────────────────────────────────────── */}
-      <div style={{ maxWidth: 560, margin: '0 auto', padding: '1.5rem' }}>
-
-        {/* Update available banner */}
-        <UpdateBanner updateInfo={updateInfo} />
-
-        {/* DB error notice (non-fatal) */}
-        {dbError && (
-          <div style={{
-            padding: '0.75rem', marginBottom: '1rem',
-            background: 'rgba(193,68,44,0.1)', border: '1px solid #c1442c',
-            fontFamily: 'monospace', fontSize: '0.48rem', color: '#c1442c', lineHeight: 1.5,
-          }}>
-            ⚠ Storage warning: {dbError}. Changes may not persist across restarts.
-          </div>
-        )}
-
-        {hasLegacyData && (
-          <div style={{
-            padding: '1rem', marginBottom: '1rem',
-            background: 'rgba(74, 123, 166, 0.1)', border: '1px solid #4a7ba6',
-            color: '#4a7ba6', borderRadius: 4, display: 'flex', justifyContent: 'space-between', alignItems: 'center'
-          }}>
-            <div>
-              <div style={{ fontWeight: 'bold', marginBottom: '0.25rem' }}>Upgrade your baseline</div>
-              <div style={{ fontSize: '0.85rem', opacity: 0.9 }}>Recalibrate your stats and unlock new features.</div>
-            </div>
-            <button
-              onClick={() => {
-                setNeedsOnboarding(true);
-              }}
-              style={{ padding: '0.5rem 1rem', background: '#4a7ba6', color: '#1c1916', border: 'none', borderRadius: 4, cursor: 'pointer', fontWeight: 'bold' }}
-            >
-              Start
-            </button>
-          </div>
-        )}
-
-        {/* Settings panel (replaces tab content when open) */}
-        {showSettings ? (
-          <SettingsTab
-            t={t}
-            dark={dark}
-            setDark={setDark}
-            reminders={reminders}
-            setReminders={setReminders}
-            onSaveReminders={handleSaveReminders}
-            todayRecord={todayRecord}
-            onClose={() => setShowSettings(false)}
-            onRunSync={handleRunSync}
-          />
-        ) : (
-          <>
-            {tab === 'daily' && (
-              <TodayTab
-                t={t}
-                todayOccurrences={todayOccurrences}
-                allQuests={allQuests}
-                onCompleteOccurrence={handleCompleteOccurrence}
-                onExcuseOccurrence={handleExcuseOccurrence}
-                onOccurrenceReason={handleOccurrenceReason}
-                completionFeedback={completionFeedback}
-                onGoToGoals={() => handleTabChange('goals')}
-              />
-            )}
-
-            {tab === 'stats' && (
-              <StatsTab
-                t={t}
-                dark={dark}
-                stats={stats}
-                axisDetails={axisDetails}
-                snapshot={latestSnapshot}
-                allQuests={allQuests}
-                allLogs={allLogs}
-                axisConfigs={axisConfigs}
-              />
-            )}
-
-            {tab === 'goals' && (
-              <GoalsTab
-                t={t}
-                dark={dark}
-                allQuests={allQuests}
-                allLogs={allLogs}
-              />
-            )}
-
-            {/* Phase 7: Learn tab */}
-            {tab === 'learn' && (
-              <LearnTab
-                t={t}
-                books={books}
-                learnings={learnings}
-                onUpdatePages={handleUpdatePages}
-                onFinishBook={handleFinishBook}
-                onAddLearning={handleAddLearning}
-                onAddBook={handleAddBook}
-                onStartBook={handleStartBook}
-              />
-            )}
-
-            {/* Phase 11: Jarvis tab */}
-            {tab === 'jarvis' && (
-              <JarvisTab t={t} onQuestsChanged={refreshAfterJarvisAction} />
-            )}
-
-            {/* Phase 12: Audits tab */}
-            {tab === 'audits' && (
-              <AuditsTab t={t} />
-            )}
-
-          </>
-        )}
-
-        <ReviewPrompt t={t} currentStats={stats} />
-      </div>
-
-      {/* ── Overlays (Phase 4) ──────────────────────────────────────────────── */}
-      {levelUpQueue.length > 0 && (
-        <LevelUpCeremony
-          levelUp={levelUpQueue[0]}
-          onDismiss={() => setLevelUpQueue(q => q.slice(1))}
+    <>
+      {showSettings ? (
+        <SettingsTab
+          t={t}
+          dark={dark}
+          setDark={setDark}
+          reminders={reminders}
+          setReminders={setReminders}
+          onSaveReminders={handleSaveReminders}
+          todayRecord={todayRecord}
+          onClose={() => setShowSettings(false)}
+          onRunSync={handleRunSync}
         />
+      ) : (
+        <AppShell
+          currentTab={tab}
+          onTabChange={handleTabChange}
+          onOpenJarvis={handleOpenJarvis}
+          onOpenSettings={() => setShowSettings(true)}
+          headerTitle={getHeaderTitle()}
+          headerSubline={getHeaderSubline()}
+        >
+          {renderPages()}
+        </AppShell>
+      )}
+      {levelUpQueue.length > 0 && (
+        <LevelUpCeremony levelUp={levelUpQueue[0]} onDismiss={() => setLevelUpQueue(q => q.slice(1))} />
       )}
       <CompletionFeedback feedback={completionFeedback} onDismiss={() => setCompletionFeedback(null)} />
-
       {showCheckin && (
-        <ProofFearCheckin
-          onComplete={async () => {
-            setShowCheckin(false);
-            await recomputeStats();
-          }}
-        />
+        <ProofFearCheckin onComplete={async () => { setShowCheckin(false); await recomputeStats(); }} />
       )}
-
-      {/* Nav Drawer Overlay */}
-      <NavDrawer
-        t={t}
-        isOpen={showNavDrawer}
-        onClose={() => setShowNavDrawer(false)}
-        tabs={TABS}
-        currentTab={tab}
-        onSelectTab={handleTabChange}
-        onOpenSettings={() => { setShowSettings(true); setTab('daily'); }}
-      />
-    </div>
+    </>
   );
+}
+
 }

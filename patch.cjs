@@ -1,0 +1,30 @@
+const fs = require('fs');
+let content = fs.readFileSync('src/App.jsx', 'utf8');
+
+const target1 = `  function handleTabChange(id) {
+    setTab(id);
+    setShowSettings(false);
+    setShowNavDrawer(false);
+  }`;
+
+const replacement1 = `  function handleTabChange(id) {
+    setTab(id);
+    setShowSettings(false);
+    setShowNavDrawer(false);
+  }
+
+  const handleOpenJarvis = useCallback((context) => {
+    if (typeof context === 'string') {
+      setJarvisContext({ page: context });
+    } else {
+      setJarvisContext(context);
+    }
+    setTab('jarvis');
+    setShowSettings(false);
+    setShowNavDrawer(false);
+  }, []);`;
+
+content = content.replace(target1, replacement1);
+
+fs.writeFileSync('src/App.jsx', content);
+console.log('Done!');
