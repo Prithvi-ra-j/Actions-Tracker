@@ -49,7 +49,7 @@ import AuditsTab         from './components/AuditsTab.jsx';  // Phase 12
 import UpdateBanner      from './components/UpdateBanner.jsx';
 import AppShell          from './components/AppShell.jsx';
 
-const USE_REDESIGN = true;
+
 
 // ─────────────────────────────────────────────────────────────────────────────
 
@@ -673,7 +673,16 @@ export default function App() {
 
   // ── Loading screen ─────────────────────────────────────────────────────────
   if (!dbReady) {
-    
+    return (
+      <div style={{ background: '#1c1916', minHeight: '100dvh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
+        <img src="/icon.jpg" alt="App Icon" style={{ width: 64, height: 64, marginBottom: '1rem', opacity: 0.8, borderRadius: '12px' }} />
+        <div style={{ fontFamily: 'monospace', fontSize: '0.65rem', letterSpacing: '0.3em', color: ACCENT, textTransform: 'uppercase' }}>
+          Actions
+        </div>
+      </div>
+    );
+  }
+
   const renderPages = () => (
     <>
       <div style={{ display: tab === 'daily' ? 'block' : 'none' }}>
@@ -817,6 +826,4 @@ export default function App() {
       )}
     </>
   );
-}
-
 }
