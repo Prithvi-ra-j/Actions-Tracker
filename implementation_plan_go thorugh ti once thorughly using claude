@@ -1,0 +1,60 @@
+# Codebase Static Analysis & Cleanup Plan
+
+I ran a comprehensive static analysis across the entire repository to map out every single disconnected function, unused component, and potential loophole. 
+
+Here is exactly what is disconnected, unused, or silently failing.
+
+## 1. Disconnected Components & Unused Files
+The following files are completely orphaned (nothing imports them). 
+
+**Old UI Components:**
+- `src/components/OnboardingScreen.jsx` (Replaced by the new V3 flow)
+- `src/components/ArchetypeCompiler.jsx` 
+- `src/components/BookTracker.jsx`
+- `src/components/EvidencePrompt.jsx`
+- `src/components/ProfileTab.jsx`
+- `src/components/SundayReflection.jsx`
+
+**Orphaned Database & Schema Models (v8 remnants):**
+- `src/database/creativeWorkRepository.js`
+- `src/database/decisionRepository.js`
+- `src/database/gymSessionsRepository.js`
+- `src/database/observationRepository.js`
+- `src/models/creativeWorkSchema.js`, `decisionSchema.js`, `observationSchema.js`, `habitSchema.js`
+
+**Simulation Scripts:**
+- `simulations/personas/*.js` and `simulations/runner*.js` (Testing scripts that aren't used in production).
+
+## 2. Disconnected Functions (Unused Exports)
+The following functions are defined but **never called anywhere in the app**.
+
+**Domain Engines (AI logic not hooked up):**
+- **Every single domain engine** (`bodyEngine.js`, `creativityEngine.js`, `disciplineEngine.js`, `knowledgeEngine.js`, `socialEngine.js`, `strategyEngine.js`) exports a `detectPatterns()` and `recommendNextActions()` function that is never used. The AI logic here is completely dormant.
+
+**Notifications (Native API not hooked up):**
+- `checkNotificationPermission`, `scheduleReminder`, `cancelReminder` in `src/native/notifications.js`.
+
+**Supabase (Cloud sync not hooked up):**
+- `getSupabaseSession` and `supabase` client in `src/integrations/supabase/`.
+
+**Database operations (Dead endpoints):**
+- `getHabitsByDomain`, `pauseHabit`, `resumeHabit`
+- `getAllInsights`, `deleteInsight`
+- `getOccurrencesForDate`, `rescheduleOccurrence`
+- `getRelationsBetween`, `getRelationsFrom`
+- `getAuditByPeriod`, `getLatestAudit`
+
+## 3. Loopholes & Silent Fails
+- **Empty Catch Blocks**: `src/App.jsx` line 430 has an empty catch block for `Haptics.impact()`. This is acceptable because we don't want the app to crash if the device lacks vibration hardware, but it is a literal "silent fail".
+- **Dynamic Imports**: There are warnings in the Vite build where static imports are mixed with dynamic imports (e.g. `booksRepository.js` imported dynamically in handlers but statically elsewhere). This creates bundle bloat and breaks code-splitting.
+
+---
+
+## User Review Required
+> [!CAUTION]
+> Deleting unused files and functions will significantly clean up the repository and reduce bugs, but we need to decide what is "dead code" vs "code we want to finish wiring up".
+
+How would you like to proceed?
+1. **The Purge**: I will aggressively delete all the unused components, orphaned schemas, and dead repository functions.
+2. **The Wiring**: Do you want me to hook up any of the disconnected features? (e.g., wiring the domain engines to the AI Insights tab, or wiring up push notifications).
+3. **Both**: Delete the dead legacy files (like `OnboardingScreen.jsx`), but wire up the dormant engines.
