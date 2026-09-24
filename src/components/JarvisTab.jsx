@@ -93,7 +93,71 @@ export default function JarvisTab({ t, onQuestsChanged, onboardingMode = false, 
       }
     })();
 
-    return (
+    return () => { cancelled = true; };
+  }, [conversationId, onboardingMode]);
+
+  const handleSend = async () => {
+    if (!input.trim() || loading) return;
+    const msg = input.trim();
+    setInput('');
+    const newMessages = [...messages, { role: 'user', content: msg }];
+    setMessages(newMessages);
+    setLoading(true);
+    setLoadingPhase('Thinking...');
+    setError(null);
+    try {
+      const response = await chatWithJarvis({
+        conversationId,
+        message: msg,
+        context: jarvisContext,
+        modeInstruction: modeInstruction(mode)
+      });
+      const finalMessages = [...newMessages, { role: 'assistant', ...response }];
+      setMessages(finalMessages);
+      await saveConversation({
+        id: conversationId,
+        type: 'Jarvis',
+        messages: finalMessages,
+        createdAt: createdAtRef.current
+      });
+      if (onboardingMode && response.action === 'complete_onboarding') {
+        onOnboardingComplete && onOnboardingComplete();
+      }
+    } catch (err) {
+      recordAppError(err, { source: 'jarvis_ui', operation: 'send_message' });
+      setError('Jarvis encountered an error processing your request.');
+    } finally {
+      setLoading(false);
+      setLoadingPhase('');
+    }
+  };
+
+  const executeApprovedProposal = async (proposal) => {
+    if (executing) return;
+    setExecuting(true);
+    try {
+      const result = await executeAction(proposal);
+      const updatedMessages = messages.map(m => m.proposal && m.proposal.id === proposal.id ? { ...m, proposalStatus: 'executed' } : m);
+      setMessages(updatedMessages);
+      await saveConversation({
+        id: conversationId,
+        type: 'Jarvis',
+        messages: updatedMessages,
+        createdAt: createdAtRef.current
+      });
+      if (proposal.type === 'create_quest' || proposal.type === 'edit_quest' || proposal.type === 'archive_quest') {
+        onQuestsChanged && onQuestsChanged();
+      }
+    } catch (err) {
+      recordAppError(err, { source: 'jarvis_ui', operation: 'execute_proposal' });
+      const updatedMessages = messages.map(m => m.proposal && m.proposal.id === proposal.id ? { ...m, proposalStatus: 'failed' } : m);
+      setMessages(updatedMessages);
+    } finally {
+      setExecuting(false);
+    }
+  };
+
+  return (
     <div className="ph" data-n="1" style={{ width: '100%', height: '100%', backgroundColor: 'var(--bg)', color: 'var(--tx)', fontFamily: 'var(--f)', display: 'flex', flexDirection: 'column', position: 'relative' }}>
       
       {/* Header */}
@@ -190,7 +254,7 @@ export default function JarvisTab({ t, onQuestsChanged, onboardingMode = false, 
               setCommandMenuOpen(false);
             }
           }}
-          onKeyDown={handleKeyDown}
+          onKeyDown={e => e.key === 'Enter' && handleSend()}
         />
         <i style={{ fontStyle: 'normal', width: '46px', height: '46px', borderRadius: '12px', display: 'grid', placeItems: 'center', background: 'var(--s1)', color: 'var(--tx)', cursor: 'pointer' }} onClick={() => setCommandMenuOpen(true)}>/</i>
         <i className="go" style={{ fontStyle: 'normal', width: '46px', height: '46px', borderRadius: '12px', display: 'grid', placeItems: 'center', background: loading || !input.trim() ? 'var(--s1)' : 'var(--ac)', color: loading || !input.trim() ? 'var(--mu)' : 'var(--bg)', cursor: loading || !input.trim() ? 'default' : 'pointer', transition: 'background 0.2s' }} onClick={handleSend}>↑</i>
@@ -249,8 +313,6 @@ export default function JarvisTab({ t, onQuestsChanged, onboardingMode = false, 
   );
 }
 
-);
-}
 
 function proposalHeading(proposal) {
   const payload = proposal?.payload || {};

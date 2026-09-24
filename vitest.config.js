@@ -12,7 +12,7 @@ import { defineConfig } from 'vitest/config';
 export default defineConfig({
   test: {
     environment: 'node',
-    include: ['tests/**/*.test.js'],
+    include: ['tests/**/*.test.js', 'tests/**/*.test.jsx'],
     coverage: {
       provider: 'v8',
       include: ['src/helpers/**', 'src/database/questBoardRepository.js'],

@@ -686,7 +686,7 @@ export default function App() {
           onOccurrenceReason={handleOccurrenceReason}
           completionFeedback={completionFeedback}
           onGoToGoals={() => handleTabChange('goals')}
-          onOpenJarvis={handleOpenJarvis}
+          onOpenJarvis={() => handleTabChange('jarvis')}
         />
       </div>
       <div style={{ display: tab === 'stats' ? 'block' : 'none' }}>
@@ -699,7 +699,7 @@ export default function App() {
           allQuests={allQuests}
           allLogs={allLogs}
           axisConfigs={axisConfigs}
-          onOpenJarvis={handleOpenJarvis}
+          onOpenJarvis={() => handleTabChange('jarvis')}
         />
       </div>
       <div style={{ display: tab === 'goals' ? 'block' : 'none' }}>
@@ -708,7 +708,7 @@ export default function App() {
           dark={dark}
           allQuests={allQuests}
           allLogs={allLogs}
-          onOpenJarvis={handleOpenJarvis}
+          onOpenJarvis={() => handleTabChange('jarvis')}
         />
       </div>
       <div style={{ display: tab === 'learn' ? 'block' : 'none' }}>
@@ -721,14 +721,14 @@ export default function App() {
           onAddLearning={handleAddLearning}
           onAddBook={handleAddBook}
           onStartBook={handleStartBook}
-                onOpenJarvis={handleOpenJarvis}
+                onOpenJarvis={() => handleTabChange('jarvis')}
         />
       </div>
       <div style={{ display: tab === 'jarvis' ? 'block' : 'none' }}>
         <JarvisTab t={t} onQuestsChanged={refreshAfterJarvisAction} jarvisContext={jarvisContext} onClearContext={() => setJarvisContext(null)} />
       </div>
       <div style={{ display: tab === 'audits' ? 'block' : 'none' }}>
-        <AuditsTab t={t} onOpenJarvis={handleOpenJarvis} />
+        <AuditsTab t={t} onOpenJarvis={() => handleTabChange('jarvis')} />
       </div>
     </>
   );
@@ -800,7 +800,7 @@ export default function App() {
         <AppShell
           currentTab={tab}
           onTabChange={handleTabChange}
-          onOpenJarvis={handleOpenJarvis}
+          onOpenJarvis={() => handleTabChange('jarvis')}
           onOpenSettings={() => setShowSettings(true)}
           headerTitle={getHeaderTitle()}
           headerSubline={getHeaderSubline()}

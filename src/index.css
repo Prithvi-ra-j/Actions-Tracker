@@ -38,6 +38,13 @@
   }
 }
 
+/* Keyboard Navigation Outlines */
+*:focus-visible {
+  outline: 2px solid var(--ac);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
 /* Base body styles using tokens */
 body {
   background-color: var(--bg);
