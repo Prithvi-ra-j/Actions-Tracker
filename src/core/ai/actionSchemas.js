@@ -1,6 +1,6 @@
 import { z } from 'zod';
 
-const ACTION_TYPES = [
+export const ACTION_TYPES = [
   'add_habit', 'modify_habit', 'pause_habit', 'archive_habit',
   'add_quest', 'modify_roadmap', 'adjust_routine', 'update_mastery_level',
   'add_learning', 'suggest_experiment', 'revise_target',
