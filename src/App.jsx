@@ -234,7 +234,8 @@ export default function App() {
         installGlobalErrorLogging();
         await migrateFromLocalStorage();
         await saveTelemetryEvent('db_migration_success', localDateStr(), {}).catch(() => {});
-        await migrateHardcodedGoalsToLifeObjects();
+        // Hardcoded goal definitions are no longer seeded for new users.
+        // Existing legacy state is handled by initGoals() when legacy checkbox data exists.
         await migrateAxisVocabulary();
 
         await initGoals();
