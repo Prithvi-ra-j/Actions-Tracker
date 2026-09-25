@@ -34,6 +34,12 @@
   --radius-sheet: 24px;
   --radius-check: 8px;
 
+  --control-height-sm: 32px;
+  --control-height-md: 44px;
+  --control-height-lg: 48px;
+  --motion-fast: 150ms;
+  --motion-base: 200ms;
+
   --font-sans: 'Geist', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
   --font-mono: 'Geist Mono', ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
 
