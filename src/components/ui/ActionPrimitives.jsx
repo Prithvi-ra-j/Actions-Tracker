@@ -1,13 +1,12 @@
 import React from 'react';
 import { Card } from './Cards.jsx';
 import { Button } from './Buttons.jsx';
-import { Chip } from './Indicators.jsx';
 import { Check, PencilSimple, X } from '@phosphor-icons/react';
 
 export function ImpactChips({ impacts = [] }) {
   // impacts: [{ label: '~ Routine', color: 'var(--mu)' }, { label: 'Body up', color: 'var(--body)' }]
   return (
-    <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', margin: '8px 0' }}>
+    <div style={{ display: 'flex', gap: 'var(--space-2)', flexWrap: 'wrap', margin: 'var(--space-2) 0' }}>
       {impacts.map((imp, i) => (
         <span key={i} className="mono" style={{ 
           fontSize: '11.5px', 
@@ -27,7 +26,7 @@ export function ActionProposalCard({ title, description, impacts = [], onApply, 
   // In a real implementation this would use framer-motion or a custom swipe gesture for swipe-to-apply
   return (
     <Card style={{ border: '1px solid var(--ac)', padding: 0, overflow: 'hidden' }}>
-      <div style={{ padding: '16px' }}>
+      <div style={{ padding: 'var(--space-4)' }}>
         <h4 style={{ margin: '0 0 4px 0', fontSize: '15px', fontWeight: 600 }}>{title}</h4>
         <p style={{ margin: '0 0 12px 0', fontSize: '14px', color: 'var(--mu)' }}>{description}</p>
         <ImpactChips impacts={impacts} />
@@ -47,7 +46,7 @@ export function Receipt({ title, subtitle, onUndo }) {
       display: 'flex',
       alignItems: 'center',
       justifyContent: 'space-between',
-      padding: '12px 16px',
+      padding: 'var(--space-3) var(--space-4)',
       backgroundColor: 'var(--s1)',
       borderRadius: 'var(--r-control)',
       border: '1px solid var(--hairline)'
