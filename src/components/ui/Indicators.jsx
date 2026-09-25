@@ -12,18 +12,18 @@ export function Chip({ label, icon, active, onClick, color = 'var(--s2)', active
       style={{
         display: 'inline-flex',
         alignItems: 'center',
-        gap: '6px',
+        gap: 'var(--space-1)',
         height: 'var(--control-height-sm)',
         padding: '0 var(--space-2)',
         borderRadius: 'var(--r-chip)',
         backgroundColor: active ? `color-mix(in srgb, ${activeColor} 20%, transparent)` : color,
         border: `1px solid ${active ? activeColor : 'var(--hairline)'}`,
         color: active ? activeColor : 'var(--tx)',
-        fontSize: '13px',
+        fontSize: '0.8125rem',
         fontWeight: 500,
         cursor: isClickable ? 'pointer' : 'default',
         whiteSpace: 'nowrap',
-        transition: 'all 0.2s'
+        transition: 'all var(--motion-base)'
       }}
     >
       {icon}
@@ -35,11 +35,12 @@ export function Chip({ label, icon, active, onClick, color = 'var(--s2)', active
 export function ModePill({ mode, icon, onClick }) {
   return (
     <button
+      type="button"
       onClick={onClick}
       style={{
         display: 'inline-flex',
         alignItems: 'center',
-        gap: '6px',
+        gap: 'var(--space-1)',
         height: 'var(--control-height-sm)',
         padding: '0 var(--space-2)',
         borderRadius: '999px',
