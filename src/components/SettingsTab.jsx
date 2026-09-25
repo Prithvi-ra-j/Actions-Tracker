@@ -234,8 +234,8 @@ export default function SettingsTab({ t, onClose }) {
       <input value={aiBaseUrl} onChange={e => setAiBaseUrl(e.target.value)} style={{ width: '100%', margin: '6px 0 12px', minHeight: '46px', padding: '0 12px', borderRadius: '10px', background: 'var(--s2)', color: 'var(--tx)', border: '1px solid var(--ln)' }} />
       <label style={{ fontSize: '12.5px', color: 'var(--mu)' }}>Model</label>
       <input value={aiModel} onChange={e => setAiModel(e.target.value)} style={{ width: '100%', margin: '6px 0 12px', minHeight: '46px', padding: '0 12px', borderRadius: '10px', background: 'var(--s2)', color: 'var(--tx)', border: '1px solid var(--ln)' }} />
-      <label style={{ fontSize: '12.5px', color: 'var(--mu)' }}>API key</label>
-      <input type="password" value={aiKey} onChange={e => setAiKey(e.target.value)} placeholder="Stored securely" style={{ width: '100%', margin: '6px 0 12px', minHeight: '46px', padding: '0 12px', borderRadius: '10px', background: 'var(--s2)', color: 'var(--tx)', border: '1px solid var(--ln)' }} />
+      <label style={{ fontSize: '12.5px', color: 'var(--mu)' }}>API key {aiKeyConfigured && <span style={{ color: 'var(--success)' }}>· configured</span>}</label>
+      <input type="password" value={aiKey} onChange={e => setAiKey(e.target.value)} placeholder={aiKeyConfigured ? "Saved securely — enter a new key to replace it" : "Enter API key"} style={{ width: '100%', margin: '6px 0 12px', minHeight: '46px', padding: '0 12px', borderRadius: '10px', background: 'var(--s2)', color: 'var(--tx)', border: '1px solid var(--ln)' }} />
       <div style={{ display: 'flex', gap: '8px' }}>
         <button onClick={handleVerifyAI} style={{ flex: 1, minHeight: '48px', borderRadius: '12px', border: 'none', background: 'var(--s2)', color: 'var(--tx)', fontWeight: 600 }}>Verify</button>
         <button onClick={handleSaveAI} style={{ flex: 1, minHeight: '48px', borderRadius: '12px', border: 'none', background: 'var(--ac)', color: 'var(--on-ac)', fontWeight: 600 }}>Save</button>
