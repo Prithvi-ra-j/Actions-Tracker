@@ -13,6 +13,7 @@ import { getAllQuests } from '../database/questBoardRepository.js';
 import { computeAllStats, computeAxisDetails } from '../helpers/statsEngine.js';
 import { recordAppError } from '../core/errorLogger.js';
 import { hasJarvisApiKey } from '../core/ai/jarvisConfig.js';
+import { isOnboardingComplete } from '../database/selfModelRepository.js';
 import JarvisApiSetup from './jarvis/JarvisApiSetup.jsx';
 import { BottomSheet } from './ui/Overlays.jsx';
 import { ActionProposalCard, ImpactDetailSheet, EditProposalSheet } from './ui/ProposalUI.jsx';
@@ -54,7 +55,9 @@ function modeInstruction(mode) {
 }
 
 export default function JarvisTab({ t, onQuestsChanged, onboardingMode = false, onOnboardingComplete, jarvisContext, onClearContext }) {
-  const conversationId = onboardingMode ? ONBOARDING_CONVERSATION_ID : DEFAULT_CONVERSATION_ID;
+  const [jarvisOnboardingRequired, setJarvisOnboardingRequired] = useState(null);
+  const activeOnboardingMode = onboardingMode || jarvisOnboardingRequired === true;
+  const conversationId = activeOnboardingMode ? ONBOARDING_CONVERSATION_ID : DEFAULT_CONVERSATION_ID;
   const [messages, setMessages] = useState([]);
   const [input, setInput] = useState('');
   const [mode, setMode] = useState('ask');
@@ -98,13 +101,31 @@ export default function JarvisTab({ t, onQuestsChanged, onboardingMode = false, 
 
     (async () => {
       try {
+        const complete = await isOnboardingComplete();
+        if (cancelled) return;
+        setJarvisOnboardingRequired(!complete);
+      } catch (err) {
+        recordAppError(err, { source: 'jarvis_ui', operation: 'check_onboarding_state' });
+        if (!cancelled) setJarvisOnboardingRequired(true);
+      }
+    })();
+
+    return () => { cancelled = true; };
+  }, [apiConfigured, onboardingMode]);
+
+  useEffect(() => {
+    let cancelled = false;
+    if (apiConfigured !== true || jarvisOnboardingRequired === null) return undefined;
+
+    (async () => {
+      try {
         const conversation = await getOrCreateConversation(conversationId, 'Jarvis');
         if (cancelled) return;
         setMessages(conversation.messages || []);
         createdAtRef.current = conversation.createdAt || new Date().toISOString();
         conversationManager.hydrateFromUiMessages(conversation.messages || []);
         setConversationReady(true);
-        if (onboardingMode && (conversation.messages || []).length === 0) {
+        if (activeOnboardingMode && (conversation.messages || []).length === 0) {
           setInput('Start my onboarding. Ask me the first question and build my profile from conversation.');
         }
       } catch (err) {
@@ -115,9 +136,9 @@ export default function JarvisTab({ t, onQuestsChanged, onboardingMode = false, 
     })();
 
     return () => { cancelled = true; };
-  }, [conversationId, onboardingMode, apiConfigured]);
+  }, [conversationId, activeOnboardingMode, apiConfigured, jarvisOnboardingRequired]);
 
-  if (apiConfigured === null) {
+  if (apiConfigured === null || (apiConfigured === true && jarvisOnboardingRequired === null)) {
     return (
       <div
         aria-label="Loading Jarvis"
@@ -198,7 +219,8 @@ export default function JarvisTab({ t, onQuestsChanged, onboardingMode = false, 
         onQuestsChanged && onQuestsChanged();
       }
 
-      if (onboardingMode && proposal.actionType === 'complete_onboarding') {
+      if (activeOnboardingMode && proposal.actionType === 'complete_onboarding') {
+        setJarvisOnboardingRequired(false);
         onOnboardingComplete && onOnboardingComplete();
       }
     } catch (err) {
@@ -246,7 +268,7 @@ export default function JarvisTab({ t, onQuestsChanged, onboardingMode = false, 
         </b>
 
         {/* Mode pill */}
-        {!onboardingMode && (
+        {!activeOnboardingMode && (
           <button
             onClick={() => setModeMenuOpen(true)}
             style={{
