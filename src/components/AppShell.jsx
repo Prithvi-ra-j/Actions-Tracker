@@ -80,8 +80,15 @@ export default function AppShell({
       <div style={{
         flex: 1,
         position: 'relative',
+        minHeight: 0,
+        boxSizing: 'border-box',
+        display: currentTab === 'jarvis' ? 'flex' : 'block',
+        flexDirection: currentTab === 'jarvis' ? 'column' : undefined,
+        height: currentTab === 'jarvis'
+          ? 'calc(100dvh - 64px - env(safe-area-inset-bottom, 0px))'
+          : undefined,
         paddingBottom: currentTab === 'jarvis'
-          ? 'calc(64px + env(safe-area-inset-bottom, 0px))'
+          ? 0
           : 'calc(64px + 58px + env(safe-area-inset-bottom, 0px))',
       }}>
         {children}
