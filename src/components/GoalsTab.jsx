@@ -8,7 +8,7 @@ import { Plus, MagicWand, PencilSimple, Pause, Play, CheckCircle, Trash, X } fro
 import { EvidenceSheet } from './EvidenceSheet.jsx';
 
 const EMPTY_FORM = {
-  label: '', domain: '', start: '', end: '', proof: '', fear: '',
+  label: '', domain: '', start: '', end: '', proof: '', whyItMatters: '', fear: '',
   targets: [{ text: '', metric: '', completed: false }],
   blockers: [''],
   supportingObjectIds: [''],
@@ -17,7 +17,7 @@ const EMPTY_FORM = {
 function toForm(goal) {
   return {
     label: goal?.label || '', domain: goal?.domain || '', start: goal?.start || '',
-    end: goal?.end || '', proof: goal?.proof || '', fear: goal?.fear || '',
+    end: goal?.end || '', proof: goal?.proof || '', whyItMatters: goal?.whyItMatters || goal?.fear || '', fear: goal?.fear || '',
     targets: goal?.targets?.length ? goal.targets.map(t => ({ ...t })) : [{ text: '', metric: '', completed: false }],
     blockers: goal?.blockers?.length ? [...goal.blockers] : [''],
     supportingObjectIds: goal?.supportingObjectIds?.length ? [...goal.supportingObjectIds] : [''],
@@ -177,7 +177,7 @@ export default function GoalsTab({ onOpenJarvis }) {
           <div className="goal-detail">
             <div className="goal-detail-grid">
               <div><span>Outcome</span><strong>{selectedGoal.label}</strong></div>
-              <div><span>Why it matters</span><p>{selectedGoal.fear || 'Not specified.'}</p></div>
+              <div><span>Why it matters</span><p>{selectedGoal.whyItMatters || selectedGoal.fear || 'Not specified.'}</p></div>
               <div><span>Starting point</span><p>{selectedGoal.start || 'Not specified.'}</p></div>
               <div><span>Target state</span><p>{selectedGoal.end || 'Not specified.'}</p></div>
             </div>
@@ -214,7 +214,7 @@ export default function GoalsTab({ onOpenJarvis }) {
           {field('Domain', form.domain, v => setForm(p => ({ ...p, domain: v })), 'Body, knowledge, strategy...')}
           {field('Starting point', form.start, v => setForm(p => ({ ...p, start: v })))}
           {field('Target state', form.end, v => setForm(p => ({ ...p, end: v })))}
-          {field('Why it matters', form.fear, v => setForm(p => ({ ...p, fear: v })))}
+          {field('Why it matters', form.whyItMatters, v => setForm(p => ({ ...p, whyItMatters: v }))}
           {field('Proof of success', form.proof, v => setForm(p => ({ ...p, proof: v })))}
 
           <div className="goal-editor-section"><strong>Milestones</strong>
