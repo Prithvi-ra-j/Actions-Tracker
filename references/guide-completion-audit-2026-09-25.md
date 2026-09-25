@@ -22,7 +22,7 @@ Production verification is also incomplete: the audited main commit currently re
 
 | Step | Requirement | Status | Evidence / gap |
 |---|---|---|---|
-| 0 | Repo audit, surface/file map, feasibility register, 360/390/432 baseline, flag strategy, green baseline tests | PARTIAL | Repository and tests are present; no persisted complete feasibility register/baseline screenshot set/feature flag was found. |
+| 0 | Repo audit, surface/file map, feasibility register, 360/390/432 baseline, flag strategy, green baseline tests | PARTIAL | Repository-side baseline is now implemented in `references/step-0-engineering-baseline-2026-09-25.md`, including surface/state/test/CI inventory, feasibility register, responsive QA contract and centralized feature flags. Runtime screenshots/device evidence and green CI remain verification gates. |
 | 1 | Tokens, self-hosted Geist, Phosphor icons, safe area, 100dvh, reduced motion | PARTIAL | CSS tokens, safe-area, 100dvh and reduced-motion exist; Geist dependency exists; icon package is used. Self-host/offline font verification and elimination of all one-off styling are not proven. |
 | 2 | Complete shared primitive set + hidden dev state route + accessibility | PARTIAL | Dev primitive page and most primitives exist. UndoToast is not a dedicated primitive; several pages still use inline implementations; full screen-reader verification is not proven. |
 | 3 | 5-tab shell, docked Jarvis, Settings, preserved drafts/scroll/context, Android back/safe areas | PARTIAL | 5-tab shell, docked Jarvis, Settings and back-handler infrastructure exist. Draft/scroll preservation across every tab and keyboard/sheet overlap require runtime verification. |
@@ -92,6 +92,15 @@ The five-step learning loop and evidence capture are implemented, but creation, 
 
 ### B10 — Device/visual verification
 No evidence currently proves the complete 360/390/432 + A52 keyboard/back/safe-area/font-scale/performance matrix.
+
+## Step 0 update
+
+The repository-side Step 0 baseline has now been implemented. Added:
+- `references/step-0-engineering-baseline-2026-09-25.md`
+- `src/core/featureFlags.js`
+- `tests/unit/featureFlags.test.js`
+
+The feature flag registry is the single source for controlled rollout flags. The 360/390/432 and A52 requirements are recorded as explicit QA contracts rather than represented as completed runtime evidence.
 
 ## Recommended completion order
 
