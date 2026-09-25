@@ -208,6 +208,7 @@ export default function AuditsTab({ t, onOpenJarvis }) {
           <div style={{ display: 'flex', gap: '8px', marginTop: '14px' }}>
             <button style={{ flex: 1, minHeight: '48px', borderRadius: '12px', background: 'var(--ac)', color: 'var(--on)', font: '600 14px var(--f)', border: 'none', cursor: 'pointer' }} onClick={handleIgnore}>Ignore</button>
             <button style={{ flex: 1, minHeight: '48px', borderRadius: '12px', background: 'var(--s2)', color: 'var(--tx)', font: '600 14px var(--f)', border: 'none', cursor: 'pointer' }} onClick={() => setShowEvidence(true)}>Based on...</button>
+            <button style={{ flex: 1, minHeight: '48px', borderRadius: '12px', background: 'var(--s2)', color: 'var(--tx)', font: '600 14px var(--f)', border: 'none', cursor: 'pointer' }} onClick={() => { const f = sheet.finding; setSheet(null); onOpenJarvis?.({ page: 'audits', entityType: 'finding', entityId: f.id, payload: { type: f.type, text: f.text, action: 'review_fix' } }); }}>Review fix</button>
           </div>
         </BottomSheet>
       )}
