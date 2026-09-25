@@ -2,6 +2,7 @@ import React from 'react';
 import { Card } from './Cards.jsx';
 import { Button } from './Buttons.jsx';
 import { Chip } from './Indicators.jsx';
+import { Check, PencilSimple, X } from '@phosphor-icons/react';
 
 export function ImpactChips({ impacts = [] }) {
   // impacts: [{ label: '~ Routine', color: 'var(--mu)' }, { label: 'Body up', color: 'var(--body)' }]
@@ -32,9 +33,9 @@ export function ActionProposalCard({ title, description, impacts = [], onApply, 
         <ImpactChips impacts={impacts} />
       </div>
       <div style={{ display: 'flex', borderTop: '1px solid var(--hairline)' }}>
-        <button onClick={onDismiss} style={{ flex: 1, padding: '12px', background: 'transparent', border: 'none', color: 'var(--tx)', borderRight: '1px solid var(--hairline)', cursor: 'pointer' }}>Dismiss</button>
-        <button onClick={onEdit} style={{ flex: 1, padding: '12px', background: 'transparent', border: 'none', color: 'var(--tx)', borderRight: '1px solid var(--hairline)', cursor: 'pointer' }}>Edit</button>
-        <button onClick={onApply} style={{ flex: 2, padding: '12px', background: 'color-mix(in srgb, var(--ac) 15%, transparent)', border: 'none', color: 'var(--ac)', fontWeight: 600, cursor: 'pointer' }}>Apply</button>
+        <button aria-label="Dismiss proposal" onClick={onDismiss} style={{ flex: 1, padding: '12px', background: 'transparent', border: 'none', color: 'var(--tx)', borderRight: '1px solid var(--hairline)', cursor: 'pointer' }}><X size={16} aria-hidden="true" /> Dismiss</button>
+        <button onClick={onEdit} style={{ flex: 1, padding: '12px', background: 'transparent', border: 'none', color: 'var(--tx)', borderRight: '1px solid var(--hairline)', cursor: 'pointer' }}><PencilSimple size={16} aria-hidden="true" /> Edit</button>
+        <button onClick={onApply} style={{ flex: 2, padding: '12px', background: 'color-mix(in srgb, var(--ac) 15%, transparent)', border: 'none', color: 'var(--ac)', fontWeight: 600, cursor: 'pointer' }}><Check size={16} aria-hidden="true" /> Apply</button>
       </div>
     </Card>
   );
