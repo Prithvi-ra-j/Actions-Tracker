@@ -113,3 +113,26 @@ export async function updateGoal(id, fields) {
 export async function deleteGoal(id) {
   await dbDelete(STORE, id);
 }
+
+
+export async function setGoalStatus(id, status) {
+  const goal = await getGoal(id);
+  if (!goal) throw new Error('[goalsRepository] Goal not found: ' + id);
+  const now = new Date().toISOString();
+  const fields = { status, updatedAt: now };
+  if (status === 'paused') fields.pausedAt = now;
+  if (status === 'active') fields.pausedAt = null;
+  if (status === 'completed') fields.completedAt = now;
+  const updated = { ...goal, ...fields };
+  await dbPut(STORE, updated);
+  return updated;
+}
+
+export async function reviseGoalTarget(id, targetIndex, fields) {
+  const goal = await getGoal(id);
+  if (!goal) throw new Error('[goalsRepository] Goal not found: ' + id);
+  const targets = [...(goal.targets || [])];
+  if (!targets[targetIndex]) throw new Error('[goalsRepository] Target not found: ' + targetIndex);
+  targets[targetIndex] = { ...targets[targetIndex], ...fields };
+  return updateGoal(id, { targets });
+}
