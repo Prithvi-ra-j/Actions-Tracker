@@ -1,4 +1,5 @@
 import React, { useRef, useState, useEffect } from 'react';
+import { ArrowRight, PencilSimple, Check, WarningCircle } from '@phosphor-icons/react';
 import { Card, EntityRow } from './Cards';
 import { Button, IconButton } from './Buttons';
 import { BottomSheet } from './Overlays';
@@ -190,7 +191,7 @@ export function ImpactDetailSheet({ proposal, impact, onApply, onEdit, onDismiss
       {impact && (
         <div style={{ marginTop: '16px' }}>
           <div style={{ fontSize: '12.5px', color: 'var(--mu)', marginBottom: '8px', fontWeight: 500 }}>Weekly capacity</div>
-          <SegmentedBar fill={Math.min(10, Math.ceil((impact.capacityAfter || 0) / 10))} total={10} />
+          <SegmentedBar value={Math.min(10, Math.ceil((impact.capacityAfter || 0) / 10))} projected={0} segments={10} />
           <p style={{ fontSize: '13px', color: 'var(--mu)', marginTop: '8px' }}>
             {impact.capacityBefore}% now, {impact.capacityAfter}% after
           </p>
