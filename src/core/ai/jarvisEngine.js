@@ -11,6 +11,7 @@ import { AIInsightSchema } from './aiSchemas.js';
 import { ActionProposalSchema } from './actionSchemas.js';
 import { validateClaimSupport } from './contextBuilder.js';
 import { z } from 'zod';
+import { formatJarvisContext, normalizeJarvisEntryContext } from './jarvisContext.js';
 
 const ConversationalResponseSchema = z.object({
   message: z.string(),
@@ -121,8 +122,10 @@ export async function generateInsight(userQuery = "Analyze my current state and 
  * @param {Array} history Previous messages [{ role, content }] (optional).
  * @returns {Promise<object>} Returns { message, proposal }
  */
-export async function chatWithJarvis(userMessage, history = [], modificationContext = null) {
+export async function chatWithJarvis(userMessage, history = [], modificationContext = null, entryContext = null) {
+  const normalizedEntryContext = normalizeJarvisEntryContext(entryContext);
   const contextText = await assembleContext('chat', userMessage);
+  const entryContextText = formatJarvisContext(normalizedEntryContext);
 
   const modificationInstruction = modificationContext
     ? {
@@ -143,6 +146,7 @@ export async function chatWithJarvis(userMessage, history = [], modificationCont
   const messages = [
     { role: 'system', content: JARVIS_SYSTEM_PROMPT },
     { role: 'system', content: `Here is the CURRENT system state and evidence:\n\n${contextText}` },
+    ...(entryContextText ? [{ role: 'system', content: entryContextText }] : []),
     ...(modificationInstruction ? [modificationInstruction] : []),
     ...history,
     { role: 'user', content: userMessage }
