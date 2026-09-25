@@ -273,6 +273,7 @@ export default function JarvisTab({ t, isActive = true, onQuestsChanged, onboard
   return (
     <div
       className="jarvis-screen"
+      aria-label={activeOnboardingMode ? 'Jarvis onboarding' : 'Jarvis workspace'}
       style={{
         width: '100%',
         height: '100%',
