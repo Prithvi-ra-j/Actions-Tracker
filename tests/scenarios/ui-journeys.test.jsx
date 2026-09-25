@@ -42,11 +42,11 @@ describe('UI Journeys', () => {
     expect(screen.getByLabelText('Jarvis API key')).toBeTruthy();
   });
 
-  it('renders onboarding and allows to start interview', async () => {
+  it('starts first-run onboarding at Jarvis API setup', async () => {
+    await clearSecureValue('aiApiKey');
     render(<App />);
-    expect(await screen.findByText(/Let us build your system/i)).toBeTruthy();
-    fireEvent.click(screen.getByText('Start interview'));
-    expect(await screen.findByPlaceholderText(/Tell Jarvis what you want/i)).toBeTruthy();
+    expect(await screen.findByText(/Connect Jarvis/i)).toBeTruthy();
+    expect(screen.getByLabelText('Jarvis API key')).toBeTruthy();
   });
 
   it('skips onboarding if data exists and renders tabs', async () => {
