@@ -7,7 +7,7 @@ import App from '../../src/App.jsx';
 import JarvisTab from '../../src/components/JarvisTab.jsx';
 import { clearSecureValue, setSecureValue } from '../../src/native/secureStorage.js';
 import { initDB } from '../../src/database/db.js';
-import { markOnboardingComplete } from '../../src/database/selfModelRepository.js';
+import { addLog } from '../../src/database/logsRepository.js';
 
 // Wait until the bootstrap finished and the loading splash is gone.
 async function waitForApp() {
@@ -49,8 +49,12 @@ describe('UI Journeys', () => {
     expect(screen.getByLabelText('Jarvis API key')).toBeTruthy();
   });
 
-  it('does not bypass onboarding when legacy data exists', async () => {
-    const { addLog } = await import('../../src/database/logsRepository.js');
+  it('uses the empty database as the first-run state', async () => {
+    render(<App />);
+    expect(await screen.findByLabelText('Jarvis onboarding')).toBeTruthy();
+  });
+
+  it('opens the normal app when user data already exists', async () => {
     await addLog({
       axis: 'body',
       type: 'manual_evidence',
@@ -58,27 +62,31 @@ describe('UI Journeys', () => {
       date: '2026-09-25',
     });
     render(<App />);
-    expect(await screen.findByText(/Let's build your system/i)).toBeTruthy();
-  });
-
-  it('skips onboarding if data exists and renders tabs', async () => {
-    await markOnboardingComplete();
-    render(<App />);
     await waitForApp();
     expect(screen.getByText('Goals')).toBeTruthy();
     fireEvent.click(screen.getByText('Goals'));
     expect(await screen.findByText(/^\d+\s+active$/i)).toBeTruthy();
   });
 
-  it('can navigate to the Stats tab (empty state on a fresh DB)', async () => {
-    await markOnboardingComplete();
+  it('can navigate to the Stats tab when user data exists', async () => {
+    await addLog({
+      axis: 'body',
+      type: 'manual_evidence',
+      value: 1,
+      date: '2026-09-25',
+    });
     render(<App />);
     fireEvent.click(await waitForApp());
     expect(await screen.findByText(/Not enough evidence/i)).toBeTruthy();
   });
 
-  it('can open Jarvis from the docked pill', async () => {
-    await markOnboardingComplete();
+  it('can open normal Jarvis from the docked pill', async () => {
+    await addLog({
+      axis: 'body',
+      type: 'manual_evidence',
+      value: 1,
+      date: '2026-09-25',
+    });
     render(<App />);
     await waitForApp();
     const dockedJarvisBtn = document.getElementById('jarvis-pill-btn');
