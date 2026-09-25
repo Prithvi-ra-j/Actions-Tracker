@@ -1,6 +1,5 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { Button } from './Buttons.jsx';
-import { X } from '@phosphor-icons/react';
 
 export function BottomSheet({ isOpen, onClose, title, children }) {
   const previousFocusRef = useRef(null);
