@@ -5,7 +5,7 @@ import { getGraceState } from './core/occurrenceEngine.js';
 
 // ── Database ──────────────────────────────────────────────────────────────────
 import { initDB }                from './database/db.js';
-import { migrateFromLocalStorage, migrateHardcodedGoalsToLifeObjects, migrateAxisVocabulary } from './database/migration.js';
+import { migrateFromLocalStorage, migrateAxisVocabulary } from './database/migration.js';
 import { initAxisConfigs, getAllAxisConfigs } from './database/axisConfigRepository.js';
 import { getAllLogs, addLog, deleteDailyCheckboxLog } from './database/logsRepository.js';
 import { initQuestBoard, getAllQuests, syncQuestProgress } from './database/questBoardRepository.js';
@@ -738,8 +738,19 @@ export default function App() {
                 onOpenJarvis={() => handleTabChange('jarvis')}
         />
       </div>
-      <div style={{ display: tab === 'jarvis' ? 'block' : 'none' }}>
-        <JarvisTab t={t} isActive={tab === 'jarvis'} onQuestsChanged={refreshAfterJarvisAction} jarvisContext={jarvisContext} onClearContext={() => setJarvisContext(null)} />
+      <div style={{
+        display: tab === 'jarvis' ? 'flex' : 'none',
+        height: tab === 'jarvis' ? '100%' : undefined,
+        minHeight: tab === 'jarvis' ? 0 : undefined,
+        flexDirection: tab === 'jarvis' ? 'column' : undefined,
+      }}>
+        <JarvisTab
+          t={t}
+          isActive={tab === 'jarvis'}
+          onQuestsChanged={refreshAfterJarvisAction}
+          jarvisContext={jarvisContext}
+          onClearContext={() => setJarvisContext(null)}
+        />
       </div>
       <div style={{ display: tab === 'audits' ? 'block' : 'none' }}>
         <AuditsTab t={t} onOpenJarvis={() => handleTabChange('jarvis')} />
