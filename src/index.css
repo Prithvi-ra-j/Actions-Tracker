@@ -20,7 +20,15 @@
   --strategy: #3cc48f;  /* axis dots/charts only */
   
   --hairline: rgba(255, 255, 255, 0.08);
-  
+  --ln: var(--hairline);
+  --f: 'Geist', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  --font-sans: var(--f);
+  --font-mono: 'Geist Mono', ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  --on: var(--on-ac);
+  --bad: var(--danger);
+  --success: #3f8f62;
+  --warning: #c88a2b;
+
   --r-container: 16px;
   --r-control: 12px;
   --r-chip: 10px;
@@ -46,6 +54,10 @@
 }
 
 /* Base body styles using tokens */
+html, body, #root {
+  min-height: 100%;
+}
+
 body {
   background-color: var(--bg);
   color: var(--tx);
