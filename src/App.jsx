@@ -15,7 +15,7 @@ import { getSetting, setSetting, getReminders, saveReminders } from './database/
 import { checkAndWriteWeeklySnapshot, getLatestSnapshot } from './database/statSnapshotsRepository.js';
 import { runAnomalyDetection, saveTelemetryEvent } from './database/telemetryRepository.js';
 import { runAutoBackup, restoreLatestBackupIfDatabaseEmpty } from './database/backupService.js';
-import { isOnboardingComplete } from './database/selfModelRepository.js';
+import { hasUserData } from './database/bootstrapState.js';
 import { hasJarvisApiKey } from './core/ai/jarvisConfig.js';
 import { registerConnector } from './core/sync/syncManager.js';
 import { HealthConnectConnector } from './core/sync/connectors/HealthConnectConnector.js';
@@ -160,7 +160,6 @@ export default function App() {
   const [dbReady,         setDbReady]         = useState(false);
   const [dbError,         setDbError]         = useState(null);
   const [needsOnboarding, setNeedsOnboarding] = useState(false);
-  const [hasLegacyData,   setHasLegacyData]   = useState(false);
   const [updateInfo,      setUpdateInfo]       = useState(null);
 
   // ── UI state ───────────────────────────────────────────────────────────────
@@ -285,12 +284,10 @@ export default function App() {
         await syncQuestProgress(allLogs);
         const syncedQuests = await getAllQuests();
 
-        // Use selfModelRepository as the authoritative onboarding state.
-        const onboardingDone = await isOnboardingComplete();
-        // Onboarding is now the single source of truth for first-run access.
-        // Legacy logs must never bypass the onboarding gate.
-        setNeedsOnboarding(!onboardingDone);
-        setHasLegacyData(!onboardingDone && allLogs.some(l => l.type !== 'daily_checkbox'));
+        // First-run detection is intentionally data-based:
+        // an empty user-data layer means the app has never been set up.
+        const userDataExists = await hasUserData();
+        setNeedsOnboarding(!userDataExists);
 
         setAllLogs(allLogs);
         setAxisConfigs(axisConfigs);
@@ -375,7 +372,7 @@ export default function App() {
 
         // Do not run analysis, anomaly detection, or AI scheduler until the
         // user has completed onboarding and explicitly configured an API key.
-        if (onboardingDone && apiConfigured) {
+        if (userDataExists && apiConfigured) {
           await runAnomalyDetection(today);
           bootstrapAnalysisScheduler();
         }
@@ -385,7 +382,7 @@ export default function App() {
 
         // Phase 3B: Shadow comparison on boot. It is diagnostic work and is
         // deferred until onboarding/API setup is complete.
-        if (onboardingDone && apiConfigured) {
+        if (userDataExists && apiConfigured) {
           setTimeout(() => {
             import('./core/scoring/scoreParityCheck.js').then(m => m.runParityCheck());
           }, 15000);
