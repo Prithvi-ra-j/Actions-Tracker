@@ -8,13 +8,14 @@ export default function SettingsTab({ t, onClose }) {
   const [restoreFile, setRestoreFile] = useState(null);
   const [restoreError, setRestoreError] = useState(null);
   const [aiKey, setAiKey] = useState('');
+  const [aiKeyConfigured, setAiKeyConfigured] = useState(false);
   const [aiBaseUrl, setAiBaseUrl] = useState('');
   const [aiModel, setAiModel] = useState('');
   const [aiVerify, setAiVerify] = useState(null);
   
   // Data state
-  const [backupDate, setBackupDate] = useState('Automatic, today 6:12 am');
-  const [storageUsed, setStorageUsed] = useState('12');
+  const [backupDate, setBackupDate] = useState('Not backed up yet');
+  const [storageUsed, setStorageUsed] = useState('—');
   
   // Memory state
   const [saveMemories, setSaveMemories] = useState(true);
@@ -32,7 +33,17 @@ export default function SettingsTab({ t, onClose }) {
     ]).then(async ([settings, secure]) => {
       setAiBaseUrl(await settings.getSetting('aiBaseUrl') || 'https://api.groq.com/openai/v1');
       setAiModel(await settings.getSetting('aiModel') || 'openai/gpt-oss-20b');
-      setAiKey(await secure.getSecureValue('aiApiKey') || '');
+      const storedKey = await secure.getSecureValue('aiApiKey');
+      setAiKey('');
+      setAiKeyConfigured(Boolean(storedKey));
+      const lastBackup = await settings.getSetting('lastAutoBackupDate');
+      const restoredAt = await settings.getSetting('restoredFromBackupAt');
+      if (restoredAt) setBackupDate(`Restored ${new Date(restoredAt).toLocaleString()}`);
+      else if (lastBackup) setBackupDate(`Automatic, ${new Date(`${lastBackup}T00:00:00`).toLocaleDateString()}`);
+      if (navigator.storage?.estimate) {
+        const estimate = await navigator.storage.estimate();
+        if (Number.isFinite(estimate.usage)) setStorageUsed((estimate.usage / (1024 * 1024)).toFixed(1));
+      }
     }).catch(() => {});
     import('../database/memoryRepository.js').then(m => {
       m.getSemanticMemories().then(setMemories);
@@ -80,7 +91,13 @@ export default function SettingsTab({ t, onClose }) {
   const handleVerifyAI = async () => {
     setAiVerify({ status: 'checking' });
     const { verifyLLMConnection } = await import('../core/ai/llmClient.js');
-    const result = await verifyLLMConnection(aiKey, aiBaseUrl, aiModel);
+    const { getSecureValue } = await import('../native/secureStorage.js');
+    const key = aiKey.trim() || await getSecureValue('aiApiKey');
+    if (!key) {
+      setAiVerify({ status: 'error', error: 'Enter an API key or save one before verifying.' });
+      return;
+    }
+    const result = await verifyLLMConnection(key, aiBaseUrl, aiModel);
     setAiVerify(result.ok ? { status: 'ok', ...result } : { status: 'error', error: result.error });
   };
 
@@ -89,8 +106,11 @@ export default function SettingsTab({ t, onClose }) {
     const { setSecureValue } = await import('../native/secureStorage.js');
     await setSetting('aiBaseUrl', aiBaseUrl);
     await setSetting('aiModel', aiModel);
-    if (aiKey) await setSecureValue('aiApiKey', aiKey);
-    setAiKey(aiKey ? '••••••••••••' : '');
+    if (aiKey.trim()) {
+      await setSecureValue('aiApiKey', aiKey.trim());
+      setAiKeyConfigured(true);
+      setAiKey('');
+    }
   };
 
   const handleCopyDiagnostics = async () => {
