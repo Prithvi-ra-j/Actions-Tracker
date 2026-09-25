@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { Sparkle, DiamondsFour, Circle, ArrowRight, Plus, ArrowsClockwise, Diamond, Target, Clock, Books, CheckCircle, Brain, Experiment, Crosshair, MagnifyingGlass, ClipboardText, ListChecks, X } from '@phosphor-icons/react';
+import { Sparkle, DiamondsFour, Circle, ArrowRight, Plus, ArrowsClockwise, Diamond, Target, Clock, Books, CheckCircle, Brain, Flask, Crosshair, MagnifyingGlass, ClipboardText, ListChecks, X } from '@phosphor-icons/react';
 import { ACCENT } from '../constants.js';
 import { chatWithJarvis, generateInsight } from '../core/ai/jarvisEngine.js';
 import { executeAction, undoAction } from '../core/ai/actionExecutor.js';
@@ -38,7 +38,7 @@ const COMMANDS = [
   { id: 'learn', label: 'Add learning', description: 'Capture a learning item or study plan', icon: Books, prompt: 'Add learning' },
   { id: 'evidence', label: 'Log evidence', description: 'Record an observation, result, or reflection', icon: CheckCircle, prompt: 'Log this evidence' },
   { id: 'memory', label: 'Save memory', description: 'Ask Jarvis to remember durable context', icon: Brain, prompt: 'Save this as a memory' },
-  { id: 'experiment', label: 'Run experiment', description: 'Create or update a personal experiment', icon: Experiment, prompt: 'Create an experiment' },
+  { id: 'experiment', label: 'Run experiment', description: 'Create or update a personal experiment', icon: Flask, prompt: 'Create an experiment' },
   { id: 'target', label: 'Revise target', description: 'Change what success means', icon: Crosshair, prompt: 'Revise my target' },
   { id: 'review', label: 'Review my system', description: 'Find trends, gaps, and bottlenecks', icon: MagnifyingGlass, prompt: 'Review my system' },
   { id: 'audit', label: 'Audit my system', description: 'Look for contradictions and risks', icon: ClipboardText, prompt: 'Audit my system' },
