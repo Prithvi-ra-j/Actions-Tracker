@@ -73,17 +73,32 @@ export function ActionProposalCard({ proposal, onApply, onEdit, status }) {
 
   if (!proposal) return null;
 
+  const actionType = proposal.actionType || proposal.type || 'action';
+  const payload = proposal.payload || {};
+  const proposalName =
+    proposal.name ||
+    payload.name ||
+    payload.title ||
+    payload.label ||
+    (actionType === 'complete_onboarding' ? 'Complete Jarvis onboarding' : actionType.replaceAll('_', ' '));
+  const proposalDescription = {
+    complete_onboarding: 'Saves your profile, focus areas, baseline and desired direction.',
+    add_habit: 'Creates a new habit',
+    modify_habit: 'Modifies an existing habit',
+    add_quest: 'Creates a new quest',
+    add_goal: 'Creates a new goal',
+    create_plan: 'Creates an approved multi-step plan',
+  }[actionType] || 'Proposes a change to your system';
+
   return (
     <Card style={{ padding: '0', overflow: 'hidden', border: 'none', boxShadow: 'inset 0 0 0 1px var(--ln)' }}>
       <div style={{ padding: '16px' }}>
         <span className="mono" style={{ fontSize: '11.5px', color: 'var(--mu)', textTransform: 'uppercase' }}>
           Proposal
         </span>
-        <h3 style={{ fontSize: '17px', margin: '6px 0 2px' }}>{proposal.name}</h3>
+        <h3 style={{ fontSize: '17px', margin: '6px 0 2px' }}>{proposalName}</h3>
         <p style={{ fontSize: '13.5px', color: 'var(--mu)', marginBottom: '14px' }}>
-          {proposal.type === 'create_habit' && 'Creates a new habit'}
-          {proposal.type === 'edit_habit' && 'Modifies existing habit'}
-          {proposal.type === 'create_quest' && 'Creates a new quest'}
+          {proposalDescription}
         </p>
 
         {status === 'pending' && (
@@ -173,17 +188,39 @@ export function ImpactDetailSheet({ proposal, impact, onApply, onEdit, onDismiss
     <BottomSheet isOpen={!!proposal} onClose={onDismiss}>
       <h3 className="h3">What will change</h3>
       <div style={{ marginTop: '14px', backgroundColor: 'var(--s1)', borderRadius: '16px', padding: '8px', boxShadow: 'inset 0 0 0 1px var(--ln)' }}>
-        <EntityRow 
-          title="Habits" 
-          leftElement={<span className="mono" style={{ color: 'var(--ac)' }}>+</span>} 
-          label="1 habit added" 
-        />
-        {impact?.routineDiff && (
-          <EntityRow 
-            title="Routine capacity" 
-            leftElement={<span className="mono" style={{ color: 'var(--tx)' }}>~</span>} 
-            label="Affects mornings" 
-          />
+        {proposal.actionType === 'complete_onboarding' ? (
+          <>
+            <EntityRow
+              title="Profile"
+              leftElement={<span className="mono" style={{ color: 'var(--ac)' }}>+</span>}
+              label="Stores your Jarvis profile and constraints"
+            />
+            <EntityRow
+              title="Focus"
+              leftElement={<span className="mono" style={{ color: 'var(--ac)' }}>+</span>}
+              label="Stores your selected focus areas"
+            />
+            <EntityRow
+              title="Direction"
+              leftElement={<span className="mono" style={{ color: 'var(--ac)' }}>+</span>}
+              label="Stores your desired outcomes and baseline"
+            />
+          </>
+        ) : (
+          <>
+            <EntityRow
+              title="Habits"
+              leftElement={<span className="mono" style={{ color: 'var(--ac)' }}>+</span>}
+              label="1 habit added"
+            />
+            {impact?.routineDiff && (
+              <EntityRow
+                title="Routine capacity"
+                leftElement={<span className="mono" style={{ color: 'var(--tx)' }}>~</span>}
+                label="Affects mornings"
+              />
+            )}
+          </>
         )}
       </div>
       
