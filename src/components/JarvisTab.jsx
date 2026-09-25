@@ -233,26 +233,35 @@ export default function JarvisTab({ t, onQuestsChanged, onboardingMode = false, 
   };
 
   return (
-    <div style={{
-      width: '100%',
-      height: '100%',
-      backgroundColor: 'var(--bg)',
-      color: 'var(--tx)',
-      fontFamily: "'Geist', sans-serif",
-      display: 'flex',
-      flexDirection: 'column',
-      position: 'relative',
-    }}>
+    <div
+      className="jarvis-screen"
+      style={{
+        width: '100%',
+        height: '100%',
+        backgroundColor: 'var(--bg)',
+        color: 'var(--tx)',
+        fontFamily: "'Geist', sans-serif",
+        display: 'flex',
+        flexDirection: 'column',
+        position: 'relative',
+        minHeight: 0,
+        overflow: 'hidden',
+      }}
+    >
 
       {/* ✦ Jarvis header — wordmark left, mode pill right */}
-      <div style={{
-        position: 'relative',
-        display: 'flex',
-        alignItems: 'center',
-        gap: '10px',
-        padding: 'calc(20px + env(safe-area-inset-top, 0px)) 18px 10px',
-        borderBottom: loading ? undefined : 'none',
-      }}>
+      <div
+        className="jarvis-screen__header"
+        style={{
+          position: 'relative',
+          display: 'flex',
+          alignItems: 'center',
+          gap: '10px',
+          padding: 'calc(14px + env(safe-area-inset-top, 0px)) 16px 10px',
+          borderBottom: loading ? undefined : 'none',
+          flex: '0 0 auto',
+        }}
+      >
         {/* loading shimmer line */}
         {loading && (
           <div style={{
@@ -335,58 +344,113 @@ export default function JarvisTab({ t, onQuestsChanged, onboardingMode = false, 
       )}
 
       {/* Messages / feed */}
-      <div style={{ flex: 1, overflowY: 'auto', overflowX: 'hidden', padding: '0 14px' }}>
+      <div
+        className="jarvis-screen__messages"
+        style={{
+          flex: '1 1 auto',
+          minHeight: 0,
+          overflowY: 'auto',
+          overflowX: 'hidden',
+          padding: '8px 14px 12px',
+          WebkitOverflowScrolling: 'touch',
+        }}
+      >
         {messages.length === 0 ? (
           /* Empty state — 2-col masonry starter pins */
-          <div style={{ paddingTop: '32px', textAlign: 'center' }}>
-            <div style={{ fontSize: '30px', lineHeight: 1 }}>✦</div>
-            <h2 style={{ margin: '12px 0 8px', fontSize: '22px', fontWeight: 600, letterSpacing: '-0.02em' }}>
-              Tell Jarvis what you're working on
-            </h2>
-            <p style={{ fontSize: '14px', color: 'var(--mu)', marginBottom: '24px', lineHeight: 1.5 }}>
-              It turns your direction into a system you approve.
-            </p>
+          <div style={{
+            minHeight: '100%',
+            maxWidth: '680px',
+            margin: '0 auto',
+            padding: 'clamp(28px, 10vh, 88px) 4px 28px',
+            display: 'flex',
+            flexDirection: 'column',
+            justifyContent: activeOnboardingMode ? 'flex-start' : 'center',
+            textAlign: activeOnboardingMode ? 'left' : 'center',
+          }}>
             <div style={{
+              width: '48px',
+              height: '48px',
+              margin: activeOnboardingMode ? '0 0 18px' : '0 auto 18px',
               display: 'grid',
-              gridTemplateColumns: '1fr 1fr',
-              gap: '10px',
-              textAlign: 'left',
-              padding: '0 4px',
+              placeItems: 'center',
+              borderRadius: '14px',
+              background: 'var(--s1)',
+              color: 'var(--ac)',
+              boxShadow: 'inset 0 0 0 1px var(--hairline)',
+              fontSize: '24px',
             }}>
-              {[
-                { label: 'Start setup interview', color: 'var(--creativity)', prompt: 'Continue my onboarding' },
-                { label: 'Review my system',       color: 'var(--ac)',         prompt: 'Review my system'       },
-                { label: 'Create a goal',          color: 'var(--body)',       prompt: 'Create a goal'          },
-                { label: 'Log something I did',    color: 'var(--social)',     prompt: 'Log this evidence'      },
-              ].map((pin, i) => (
-                <button
-                  key={i}
-                  onClick={() => setInput(pin.prompt)}
-                  style={{
-                    background: 'var(--s1)',
-                    borderRadius: 'var(--r-container)',
-                    padding: '14px',
-                    boxShadow: 'inset 0 0 0 1px var(--hairline)',
-                    textAlign: 'left',
-                    border: 'none',
-                    cursor: 'pointer',
-                    minHeight: '104px',
-                    display: 'flex',
-                    flexDirection: 'column',
-                    transition: 'transform 0.12s',
-                  }}
-                  onPointerDown={e => e.currentTarget.style.transform = 'scale(0.97)'}
-                  onPointerUp={e => e.currentTarget.style.transform = 'scale(1)'}
-                  onPointerLeave={e => e.currentTarget.style.transform = 'scale(1)'}
-                >
-                  <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: pin.color, display: 'inline-block', marginBottom: '22px' }} />
-                  <span style={{ fontSize: '15px', fontWeight: 600, lineHeight: 1.25, color: 'var(--tx)' }}>{pin.label}</span>
-                </button>
-              ))}
+              ✦
             </div>
+
+            <h2 style={{
+              margin: 0,
+              fontSize: activeOnboardingMode ? '26px' : '22px',
+              lineHeight: 1.15,
+              letterSpacing: '-0.025em',
+              fontWeight: 650,
+              maxWidth: '560px',
+            }}>
+              {activeOnboardingMode ? "Let's build your system" : "What do you want to work on?"}
+            </h2>
+
+            <p style={{
+              margin: '10px 0 0',
+              maxWidth: '560px',
+              color: 'var(--mu)',
+              fontSize: '14px',
+              lineHeight: 1.6,
+            }}>
+              {activeOnboardingMode
+                ? "I'll ask a few focused questions about who you are, your constraints, priorities and where you want to go."
+                : 'Tell Jarvis what you want to understand, plan, change or record.'}
+            </p>
+
+            {!activeOnboardingMode && (
+              <div style={{
+                display: 'grid',
+                gridTemplateColumns: 'repeat(2, minmax(0, 1fr))',
+                gap: '10px',
+                width: '100%',
+                maxWidth: '520px',
+                margin: '28px auto 0',
+                textAlign: 'left',
+              }}>
+                {[
+                  { label: 'Create a goal', color: 'var(--ac)', prompt: 'Create a goal' },
+                  { label: 'Create a habit', color: 'var(--creativity)', prompt: 'Create a habit' },
+                  { label: 'Review my system', color: 'var(--body)', prompt: 'Review my system' },
+                  { label: 'Log something I did', color: 'var(--social)', prompt: 'Log this evidence' },
+                ].map((pin, i) => (
+                  <button
+                    key={i}
+                    onClick={() => setInput(pin.prompt)}
+                    style={{
+                      background: 'var(--s1)',
+                      borderRadius: '14px',
+                      padding: '14px',
+                      boxShadow: 'inset 0 0 0 1px var(--hairline)',
+                      textAlign: 'left',
+                      border: 'none',
+                      cursor: 'pointer',
+                      minHeight: '76px',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      justifyContent: 'space-between',
+                      transition: 'transform 0.12s',
+                    }}
+                    onPointerDown={e => e.currentTarget.style.transform = 'scale(0.97)'}
+                    onPointerUp={e => e.currentTarget.style.transform = 'scale(1)'}
+                    onPointerLeave={e => e.currentTarget.style.transform = 'scale(1)'}
+                  >
+                    <span style={{ width: '7px', height: '7px', borderRadius: '50%', background: pin.color, display: 'inline-block' }} />
+                    <span style={{ fontSize: '14px', fontWeight: 600, lineHeight: 1.25, color: 'var(--tx)' }}>{pin.label}</span>
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
         ) : (
-          <div style={{ paddingBottom: '140px' }}>
+          <div style={{ paddingBottom: '28px', maxWidth: '760px', margin: '0 auto' }}>
             {messages.map((msg, i) => (
               <div key={i} style={{ marginBottom: '16px' }}>
                 {msg.role === 'user' ? (
@@ -492,7 +556,7 @@ export default function JarvisTab({ t, onQuestsChanged, onboardingMode = false, 
 
       {/* Loading skeleton when thinking */}
       {loading && (
-        <div style={{ padding: '0 14px 8px' }}>
+        <div className="jarvis-screen__loading" style={{ padding: '0 14px 8px', flex: '0 0 auto' }}>
           <p style={{ fontSize: '14px', color: 'var(--mu)', margin: '0 0 8px' }}>
             {loadingPhase || 'Thinking...'}
           </p>
@@ -509,9 +573,12 @@ export default function JarvisTab({ t, onQuestsChanged, onboardingMode = false, 
 
       {/* Error banner */}
       {error && (
-        <div style={{
-          margin: '0 14px 8px',
-          padding: '12px 14px',
+        <div
+          className="jarvis-screen__error"
+          style={{
+            margin: '0 14px 8px',
+            padding: '12px 14px',
+            flex: '0 0 auto',
           borderRadius: 'var(--r-container)',
           background: 'var(--s1)',
           boxShadow: 'inset 4px 0 0 var(--danger)',
@@ -536,22 +603,26 @@ export default function JarvisTab({ t, onQuestsChanged, onboardingMode = false, 
         </div>
       )}
 
-      {/* Composer — floating, 60px, 30px radius */}
-      <div style={{
-        position: 'absolute',
-        left: '12px', right: '12px', bottom: '14px',
-        height: '60px',
-        borderRadius: '30px',
-        background: 'var(--s2)',
-        boxShadow: 'inset 0 0 0 1px rgba(255,255,255,0.08)',
-        display: 'flex',
-        alignItems: 'center',
-        gap: '6px',
-        padding: '0 7px',
-        color: 'var(--mu)',
-        fontSize: '14px',
-        zIndex: 20,
-      }}>
+      {/* Composer — anchored below the conversation viewport */}
+      <div
+        className="jarvis-screen__composer"
+        style={{
+          position: 'relative',
+          flex: '0 0 auto',
+          margin: '0 10px 10px',
+          minHeight: '60px',
+          borderRadius: '18px',
+          background: 'var(--s2)',
+          boxShadow: 'inset 0 0 0 1px var(--hairline)',
+          display: 'flex',
+          alignItems: 'center',
+          gap: '6px',
+          padding: '7px',
+          color: 'var(--mu)',
+          fontSize: '14px',
+          zIndex: 20,
+        }}
+      >
         <button
           aria-label="Attach or add"
           onClick={() => { setInput('/'); setCommandMenuOpen(true); }}
@@ -637,17 +708,22 @@ export default function JarvisTab({ t, onQuestsChanged, onboardingMode = false, 
 
       {/* Slash Palette — bottom sheet style */}
       {commandMenuOpen && (
-        <div style={{
-          position: 'absolute',
-          left: '8px', right: '8px', bottom: '84px',
-          background: 'var(--s1)',
+        <div
+          className="jarvis-screen__commands"
+          style={{
+            position: 'absolute',
+            left: '10px',
+            right: '10px',
+            bottom: '80px',
+            background: 'var(--s1)',
           borderRadius: '24px',
           padding: '8px 14px 14px',
-          boxShadow: '0 -10px 40px rgba(0,0,0,0.6), inset 0 0 0 1px rgba(255,255,255,0.08)',
-          zIndex: 21,
-          maxHeight: '280px',
-          overflowY: 'auto',
-        }}>
+            boxShadow: '0 -10px 40px rgba(0,0,0,0.6), inset 0 0 0 1px rgba(255,255,255,0.08)',
+            zIndex: 30,
+            maxHeight: 'min(50dvh, 360px)',
+            overflowY: 'auto',
+          }}
+        >
           <div style={{ width: '36px', height: '4px', borderRadius: '2px', background: 'rgba(255,255,255,0.15)', margin: '0 auto 8px' }} />
 
           {/* Recent chips */}
