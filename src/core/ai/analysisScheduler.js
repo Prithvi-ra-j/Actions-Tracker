@@ -9,7 +9,7 @@ import { generateInsight } from './jarvisEngine.js';
 import { addInsight } from '../../database/insightsRepository.js';
 import { getSetting, setSetting } from '../../database/settingsRepository.js';
 import { saveTelemetryEvent } from '../../database/telemetryRepository.js';
-import { getSelfModel, isOnboardingComplete } from '../../database/selfModelRepository.js';
+import { hasUserData } from '../../database/bootstrapState.js';
 import { hasJarvisApiKey } from './jarvisConfig.js';
 import { getAllLogs } from '../../database/logsRepository.js';
 import { runMonthlyAudit } from './auditEngine.js';
@@ -25,13 +25,13 @@ export async function bootstrapAnalysisScheduler() {
 }
 
 async function runScheduledAnalysis() {
-  const ready = await Promise.all([
-    isOnboardingComplete(),
+  const [userDataExists, apiConfigured] = await Promise.all([
+    hasUserData(),
     hasJarvisApiKey(),
   ]);
 
-  if (!ready[0] || !ready[1]) {
-    console.log('[AnalysisScheduler] Skipping passive analysis: onboarding/API setup incomplete.');
+  if (!userDataExists || !apiConfigured) {
+    console.log('[AnalysisScheduler] Skipping passive analysis: user data/API setup incomplete.');
     return;
   }
 
@@ -77,25 +77,23 @@ async function runScheduledAnalysis() {
   // running long enough for a 30-day period to be meaningful.
   const currentMonth = today.substring(0, 7); // YYYY-MM
   const lastMonthlyMonth = await getSetting('lastMonthlyAuditMonth');
-  const [selfModel, allLogs] = await Promise.all([
-    getSelfModel(),
-    getAllLogs(),
-  ]);
+  const allLogs = await getAllLogs();
 
   const meaningfulLogs = allLogs.filter(l =>
     !['onboarding_assessment', 'proof_check_in'].includes(l.type)
   );
 
-  const onboardingDate = selfModel.onboardingCompletedAt
-    ? new Date(selfModel.onboardingCompletedAt)
-    : null;
-  const daysSinceOnboarding = onboardingDate
-    ? (Date.now() - onboardingDate.getTime()) / (1000 * 60 * 60 * 24)
+  const firstMeaningfulDate = meaningfulLogs
+    .map(log => log?.date)
+    .filter(date => typeof date === 'string')
+    .sort()[0];
+
+  const daysSinceFirstMeaningfulData = firstMeaningfulDate
+    ? (Date.now() - new Date(firstMeaningfulDate + 'T00:00:00').getTime()) / (1000 * 60 * 60 * 24)
     : 0;
 
   const auditEligible =
-    !!onboardingDate &&
-    daysSinceOnboarding >= 30 &&
+    daysSinceFirstMeaningfulData >= 30 &&
     meaningfulLogs.length > 0;
 
   if (lastMonthlyMonth !== currentMonth && auditEligible) {
