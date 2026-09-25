@@ -10,7 +10,7 @@
 import { APP_VERSION } from '../version.js';
 
 const REPO            = 'Prithvi-ra-j/Actions-Tracker';
-const API_URL         = `https://api.github.com/repos/${REPO}/releases/latest`;
+const API_URL         = `https://api.github.com/repos/${REPO}/releases?per_page=1`;
 // Cache is version-scoped. Android updates can preserve WebView session storage;
 // a cache from the previous APK must never keep an old "update available" state.
 const SESSION_KEY     = `at_update_check_${APP_VERSION}`;
@@ -64,14 +64,23 @@ export async function checkForUpdate() {
     });
 
     if (!res.ok) {
-      // 404 = no releases yet (repo is new), anything else = transient error
       sessionStorage.setItem(SESSION_KEY, JSON.stringify({ ts: Date.now(), result: null }));
       return null;
     }
 
-    const data = await res.json();
-    const tag  = data.tag_name ?? '';                 // e.g. "v1.6.0"
-    const remoteVersion = tag.replace(/^v/, '');      // e.g. "1.6.0"
+    const releases = await res.json();
+    const data = Array.isArray(releases) ? releases[0] : null;
+
+    // An empty release list is the normal state for a repo that has not
+    // published an APK/web release yet. Treat it as "up to date" without
+    // generating a browser-console 404 from /releases/latest.
+    if (!data?.tag_name) {
+      sessionStorage.setItem(SESSION_KEY, JSON.stringify({ ts: Date.now(), result: null }));
+      return null;
+    }
+
+    const tag  = data.tag_name;
+    const remoteVersion = tag.replace(/^v/, '');
 
     const result = isNewer(APP_VERSION, remoteVersion)
       ? {
