@@ -35,7 +35,7 @@ describe('UI Journeys', () => {
     render(<App />);
     expect(await screen.findByText(/Let us build your system/i)).toBeTruthy();
     fireEvent.click(screen.getByText('Start interview'));
-    expect(await screen.findByPlaceholderText(/Ask Jarvis/i)).toBeTruthy();
+    expect(await screen.findByPlaceholderText(/Tell Jarvis what you want/i)).toBeTruthy();
   });
 
   it('skips onboarding if data exists and renders tabs', async () => {
@@ -44,7 +44,7 @@ describe('UI Journeys', () => {
     await waitForApp();
     expect(screen.getByText('Goals')).toBeTruthy();
     fireEvent.click(screen.getByText('Goals'));
-    expect(await screen.findByText(/active goals/i)).toBeTruthy();
+    expect(await screen.findByText(/^\d+\s+active$/i)).toBeTruthy();
   });
 
   it('can navigate to the Stats tab (empty state on a fresh DB)', async () => {
@@ -58,8 +58,9 @@ describe('UI Journeys', () => {
     await markOnboardingComplete();
     render(<App />);
     await waitForApp();
-    const jarvisBtn = await screen.findByRole('button', { name: /Ask Jarvis/i });
-    fireEvent.click(jarvisBtn);
+    const dockedJarvisBtn = document.getElementById('jarvis-pill-btn');
+    expect(dockedJarvisBtn).toBeTruthy();
+    fireEvent.click(dockedJarvisBtn);
     expect(await screen.findByPlaceholderText(/Ask Jarvis/i)).toBeTruthy();
   });
 });
