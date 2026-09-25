@@ -49,6 +49,18 @@ describe('UI Journeys', () => {
     expect(screen.getByLabelText('Jarvis API key')).toBeTruthy();
   });
 
+  it('does not bypass onboarding when legacy data exists', async () => {
+    const { addLog } = await import('../../src/database/logsRepository.js');
+    await addLog({
+      axis: 'body',
+      type: 'manual_evidence',
+      value: 1,
+      date: '2026-09-25',
+    });
+    render(<App />);
+    expect(await screen.findByText(/Let's build your system/i)).toBeTruthy();
+  });
+
   it('skips onboarding if data exists and renders tabs', async () => {
     await markOnboardingComplete();
     render(<App />);
