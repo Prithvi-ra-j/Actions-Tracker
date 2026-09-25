@@ -67,7 +67,7 @@ export function Receipt({ title, subtitle, onUndo }) {
 
 export function EvidenceCard({ title, date, description, onClick }) {
   return (
-    <Card onClick={onClick} style={{ padding: '12px', marginBottom: '8px' }}>
+    <Card onClick={onClick} ariaLabel={onClick ? title : undefined} style={{ padding: '12px', marginBottom: '8px' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}>
         <span style={{ fontSize: '14px', fontWeight: 500 }}>{title}</span>
         <span className="mono" style={{ fontSize: '11.5px', color: 'var(--mu)' }}>{date}</span>
@@ -80,6 +80,9 @@ export function EvidenceCard({ title, date, description, onClick }) {
 export function ProvenanceRow({ text, onClick }) {
   return (
     <div 
+      role={onClick ? 'button' : undefined}
+      tabIndex={onClick ? 0 : undefined}
+      onKeyDown={(event) => { if (onClick && (event.key === 'Enter' || event.key === ' ')) { event.preventDefault(); onClick(event); } }}
       onClick={onClick}
       style={{ 
         display: 'inline-flex', 
