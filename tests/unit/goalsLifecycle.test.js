@@ -18,11 +18,13 @@ describe('goal lifecycle', () => {
       label: 'Run a faster 10K',
       blockers: ['ankle recovery'],
       supportingObjectIds: ['habit_run'],
+      timeframe: '8 weeks',
     });
 
     expect(goal.status).toBe('active');
     expect(goal.blockers).toEqual(['ankle recovery']);
     expect(goal.supportingObjectIds).toEqual(['habit_run']);
+    expect(goal.timeframe).toBe('8 weeks');
     expect(goal.pausedAt).toBeNull();
     expect(goal.completedAt).toBeNull();
     expect(goal.evidenceFactIds).toEqual([]);
