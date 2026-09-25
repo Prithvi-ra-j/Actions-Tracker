@@ -4,6 +4,8 @@ import React from 'react';
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { render, screen, fireEvent, cleanup } from '@testing-library/react';
 import App from '../../src/App.jsx';
+import JarvisTab from '../../src/components/JarvisTab.jsx';
+import { clearSecureValue, setSecureValue } from '../../src/native/secureStorage.js';
 import { initDB } from '../../src/database/db.js';
 import { markOnboardingComplete } from '../../src/database/selfModelRepository.js';
 
@@ -20,6 +22,8 @@ describe('UI Journeys', () => {
       indexedDB.deleteDatabase(db.name);
     }
     await initDB();
+    await clearSecureValue('aiApiKey');
+    await setSecureValue('aiApiKey', 'test-api-key');
     Object.defineProperty(navigator, 'onLine', { value: true, writable: true });
     Element.prototype.getBoundingClientRect = vi.fn(() => (
       { width: 120, height: 120, top: 0, left: 0, bottom: 0, right: 0 }
@@ -29,6 +33,13 @@ describe('UI Journeys', () => {
   afterEach(() => {
     cleanup(); // vitest globals are off, so RTL will not auto-clean between tests
     vi.restoreAllMocks();
+  });
+
+  it('shows API setup before the Jarvis workspace when no key is configured', async () => {
+    await clearSecureValue('aiApiKey');
+    render(<JarvisTab />);
+    expect(await screen.findByText(/Connect Jarvis/i)).toBeTruthy();
+    expect(screen.getByLabelText('Jarvis API key')).toBeTruthy();
   });
 
   it('renders onboarding and allows to start interview', async () => {
