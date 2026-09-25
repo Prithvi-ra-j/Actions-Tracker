@@ -5,7 +5,7 @@ import { BottomSheet } from './Overlays';
 import { SegmentedBar } from './Indicators';
 import { EvidenceSheet } from '../EvidenceSheet.jsx';
 
-export function ActionProposalCard({ proposal, onApply, onEdit, status }) {
+export function ActionProposalCard({ proposal, onApply, onEdit, onDismiss, status }) {
   const containerRef = useRef(null);
   const swipeRef = useRef(null);
   const applyThreshold = 120;
@@ -39,23 +39,30 @@ export function ActionProposalCard({ proposal, onApply, onEdit, status }) {
       }
     };
     
+    const resetSwipe = () => {
+      currentX = 0;
+      el.style.transition = 'transform 0.18s ease-out';
+      el.style.transform = 'translateX(0px)';
+      el.style.backgroundColor = 'var(--ac)';
+    };
+
     const handlePointerUp = (e) => {
       if (!isDragging) return;
       isDragging = false;
-      el.releasePointerCapture(e.pointerId);
+      if (el.hasPointerCapture?.(e.pointerId)) {
+        el.releasePointerCapture(e.pointerId);
+      }
       
       if (currentX >= applyThreshold) {
-        el.style.transition = 'transform 0.3s ease-out';
-        el.style.transform = `translateX(${window.innerWidth}px)`;
+        el.style.transition = 'transform 0.24s ease-out';
+        el.style.transform = `translateX(${Math.min(window.innerWidth, 420)}px)`;
         setTimeout(() => {
+          resetSwipe();
           if (onApply) onApply();
-        }, 300);
+        }, 240);
       } else {
-        el.style.transition = 'transform 0.3s cubic-bezier(0.18, 0.89, 0.32, 1.28)';
-        el.style.transform = `translateX(0px)`;
-        el.style.backgroundColor = 'var(--ac)';
+        resetSwipe();
       }
-      currentX = 0;
     };
     
     el.addEventListener('pointerdown', handlePointerDown);
@@ -64,6 +71,7 @@ export function ActionProposalCard({ proposal, onApply, onEdit, status }) {
     el.addEventListener('pointercancel', handlePointerUp);
     
     return () => {
+      resetSwipe();
       el.removeEventListener('pointerdown', handlePointerDown);
       el.removeEventListener('pointermove', handlePointerMove);
       el.removeEventListener('pointerup', handlePointerUp);
@@ -89,6 +97,21 @@ export function ActionProposalCard({ proposal, onApply, onEdit, status }) {
     add_goal: 'Creates a new goal',
     create_plan: 'Creates an approved multi-step plan',
   }[actionType] || 'Proposes a change to your system';
+
+  if (status === 'dismissed') {
+    return (
+      <div style={{
+        padding: '10px 12px',
+        borderRadius: '12px',
+        background: 'var(--s1)',
+        boxShadow: 'inset 0 0 0 1px var(--hairline)',
+        color: 'var(--mu)',
+        fontSize: '12px',
+      }}>
+        Proposal dismissed. Your data was not changed.
+      </div>
+    );
+  }
 
   return (
     <Card style={{ padding: '0', overflow: 'hidden', border: 'none', boxShadow: 'inset 0 0 0 1px var(--ln)' }}>
@@ -145,6 +168,15 @@ export function ActionProposalCard({ proposal, onApply, onEdit, status }) {
                   <path d="M12 20h9"></path>
                   <path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"></path>
                 </svg>
+              </Button>
+            )}
+            {onDismiss && (
+              <Button
+                variant="secondary"
+                onClick={onDismiss}
+                style={{ height: '48px', padding: '0 12px', fontSize: '12px' }}
+              >
+                Dismiss
               </Button>
             )}
           </div>
