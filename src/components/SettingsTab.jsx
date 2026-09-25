@@ -4,6 +4,7 @@ import { BottomSheet, ConfirmDialog } from './ui/Overlays';
 export default function SettingsTab({ t, onClose }) {
   const [activeSection, setActiveSection] = useState(null); // 'data', 'memory', 'integrations', 'notifications', 'appearance', 'ai'
   const [restoreOpen, setRestoreOpen] = useState(false);
+  const [clearMemoryOpen, setClearMemoryOpen] = useState(false);
   const [restoreFile, setRestoreFile] = useState(null);
   const [restoreError, setRestoreError] = useState(null);
   const [aiKey, setAiKey] = useState('');
@@ -39,7 +40,6 @@ export default function SettingsTab({ t, onClose }) {
   }, []);
 
   const handleClearMemories = async () => {
-    setRestoreError(null);
     const { getSemanticMemories, rejectMemory } = await import('../database/memoryRepository.js');
     const all = await getSemanticMemories();
     for (const mem of all) {
@@ -163,7 +163,7 @@ export default function SettingsTab({ t, onClose }) {
       </div>
       <p style={{ fontSize: '13px', color: 'var(--mu)' }}>Restoring replaces current data after you confirm.</p>
       {restoreError && <p style={{ fontSize: '13px', color: restoreError.startsWith('Restored') ? 'var(--success)' : 'var(--danger)' }}>{restoreError}</p>}
-      <input id="backup-restore-file" type="file" accept="application/json,.json" hidden onChange={e => setRestoreFile(e.target.files?.[0] || null)} />
+      <input id="backup-restore-file" type="file" accept="application/json,.json" style={{ width: '100%', marginTop: '10px', color: 'var(--mu)' }} onChange={e => { setRestoreFile(e.target.files?.[0] || null); setRestoreOpen(true); }} />
     </div>
   );
 
@@ -200,7 +200,7 @@ export default function SettingsTab({ t, onClose }) {
       
       <button 
         style={{ marginTop: '14px', minHeight: '48px', width: '100%', padding: '0 20px', borderRadius: '12px', background: 'var(--s2)', color: '#e5484d', font: '600 14px var(--f)', border: 'none', cursor: 'pointer' }}
-        onClick={handleClearMemories}
+        onClick={() => setClearMemoryOpen(true)}
       >
         Clear all memories
       </button>
@@ -369,7 +369,8 @@ export default function SettingsTab({ t, onClose }) {
       {activeSection === 'memory' && renderMemorySection()}
       {activeSection === 'ai' && renderAISection()}
       {activeSection === 'integrations' && renderIntegrationsSection()}
-      <ConfirmDialog isOpen={!!restoreOpen} onClose={() => setRestoreOpen(false)} onConfirm={handleRestore} title="Restore backup" description={restoreFile ? `Restore ${restoreFile.name}? This replaces current data.` : 'Choose a backup file first.'} />
+      <ConfirmDialog isOpen={!!restoreOpen && !!restoreFile} onClose={() => setRestoreOpen(false)} onConfirm={handleRestore} title="Restore backup" description={restoreFile ? `Restore ${restoreFile.name}? This replaces current data.` : 'Choose a backup file first.'} />
+      <ConfirmDialog isOpen={clearMemoryOpen} onClose={() => setClearMemoryOpen(false)} onConfirm={async () => { setClearMemoryOpen(false); await handleClearMemories(); }} title="Clear all memories" description="This removes all saved semantic memories. Hold to confirm." />
       {activeSection === 'notifications' && renderNotificationsSection()}
       {activeSection === 'appearance' && renderAppearanceSection()}
     </BottomSheet>
