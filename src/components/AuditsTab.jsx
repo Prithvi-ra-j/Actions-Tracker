@@ -15,6 +15,7 @@ export default function AuditsTab({ t, onOpenJarvis }) {
   const [sheet, setSheet] = useState(null);
   const [toast, setToast] = useState(null);
   const [showEvidence, setShowEvidence] = useState(false);
+  const [ignoredIds, setIgnoredIds] = useState(new Set());
 
   useEffect(() => {
     loadAudits();
@@ -26,6 +27,9 @@ export default function AuditsTab({ t, onOpenJarvis }) {
       const { getAllAudits } = await import('../database/auditRepository.js');
       const all = await getAllAudits();
       setAudits(all.reverse());
+      const { getAllFacts } = await import('../database/factsRepository.js');
+      const resolutions = (await getAllFacts()).filter(f => f.type === 'audit_finding_resolution' && f.meta?.status === 'ignored');
+      setIgnoredIds(new Set(resolutions.map(f => f.objectId)));
     } catch (err) {
       console.error(err);
       setError("Failed to load audits.");
@@ -63,7 +67,12 @@ export default function AuditsTab({ t, onOpenJarvis }) {
     setSheet({ type: 'ignore', finding });
   };
 
-  const handleIgnore = () => {
+  const handleIgnore = async () => {
+    if (!sheet?.finding) return;
+    const finding = sheet.finding;
+    const { addFact } = await import('../database/factsRepository.js');
+    await addFact({ type: 'audit_finding_resolution', objectId: finding.id, value: 1, meta: { status: 'ignored', findingType: finding.type, text: finding.text } });
+    setIgnoredIds(prev => new Set([...prev, finding.id]));
     setSheet(null);
     setToast('Finding ignored.');
     setTimeout(() => setToast(null), 3000);
@@ -74,7 +83,7 @@ export default function AuditsTab({ t, onOpenJarvis }) {
       <div className="hd" style={{ display: 'flex', alignItems: 'flex-end', padding: '26px 18px 12px' }}>
         <div>
           <h2 style={{ font: '600 26px/1.1 var(--f)', letterSpacing: '-.02em' }}>Audits</h2>
-          <p style={{ fontSize: '13px', color: 'var(--mu)' }}>{findings.length} open, 0 resolved</p>
+          <p style={{ fontSize: '13px', color: 'var(--mu)' }}>{findings.filter(f => !ignoredIds.has(f.id)).length} open, {findings.filter(f => ignoredIds.has(f.id)).length} resolved</p>
         </div>
         <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: '8px' }}>
           <ContextualJarvisCTA label="Ask Jarvis" contextIcon={<MagicWand size={16} />} onClick={() => onOpenJarvis?.({ page: 'audits', entityType: 'audit', entityId: latestAudit?.id || null })} />
@@ -111,21 +120,37 @@ export default function AuditsTab({ t, onOpenJarvis }) {
           ))}
         </div>
 
+        {activeTab === 'resolved' && (
+          <div>
+            {findings.filter(f => ignoredIds.has(f.id)).map(f => (
+              <div key={f.id} style={{ background: 'var(--s1)', borderRadius: '16px', padding: '14px 14px 12px 18px', marginBottom: '10px', boxShadow: 'inset 4px 0 0 var(--ac)' }}>
+                <h3 style={{ font: '600 15px var(--f)' }}>{f.type}</h3>
+                <p style={{ fontSize: '12.5px', color: 'var(--mu)' }}>{f.text}</p>
+                <button style={{ marginTop: '8px', border: 'none', background: 'transparent', color: 'var(--ac)', padding: 0, font: '500 12px var(--font-mono)' }} onClick={async () => {
+                  const { addFact } = await import('../database/factsRepository.js');
+                  await addFact({ type: 'audit_finding_resolution', objectId: f.id, value: 1, meta: { status: 'restored', findingType: f.type } });
+                  setIgnoredIds(prev => { const next = new Set(prev); next.delete(f.id); return next; });
+                }}>Restore finding</button>
+              </div>
+            ))}
+          </div>
+        )}
+
         {activeTab === 'unresolved' && (
           <>
-            {findings.length === 0 && !loading && (
+            {findings.filter(f => !ignoredIds.has(f.id)).length === 0 && !loading && (
               <div style={{ padding: '2rem', textAlign: 'center', color: 'var(--mu)' }}>
                 No findings. Run an audit to generate one.
               </div>
             )}
             
-            {findings.map(f => (
+            {findings.filter(f => !ignoredIds.has(f.id)).map(f => (
               <div key={f.id} style={{ background: 'var(--s1)', borderRadius: '16px', padding: '14px 14px 12px 18px', marginBottom: '10px', boxShadow: 'inset 4px 0 0 var(--mu)' }} onClick={() => showIgnoreSheet(f)}>
                 <h3 style={{ font: '600 15px var(--f)' }}>{f.type}</h3>
                 <p style={{ fontSize: '12.5px', color: 'var(--mu)', marginTop: '2px' }}>{f.text}</p>
                 <div style={{ display: 'flex', marginTop: '8px' }}>
                   <span style={{ font: '500 11.5px "Geist Mono", monospace', color: 'var(--mu)' }}>Unresolved</span>
-                  <span style={{ font: '500 11.5px "Geist Mono", monospace', marginLeft: 'auto', color: 'var(--tx)' }}>Ignore ›</span>
+                  <button style={{ marginLeft: 'auto', border: 'none', background: 'transparent', color: 'var(--tx)', font: '500 11.5px "Geist Mono", monospace' }} onClick={(e) => { e.stopPropagation(); showIgnoreSheet(f); }}>Review ›</button>
                 </div>
               </div>
             ))}
@@ -183,6 +208,7 @@ export default function AuditsTab({ t, onOpenJarvis }) {
           <div style={{ display: 'flex', gap: '8px', marginTop: '14px' }}>
             <button style={{ flex: 1, minHeight: '48px', borderRadius: '12px', background: 'var(--ac)', color: 'var(--on)', font: '600 14px var(--f)', border: 'none', cursor: 'pointer' }} onClick={handleIgnore}>Ignore</button>
             <button style={{ flex: 1, minHeight: '48px', borderRadius: '12px', background: 'var(--s2)', color: 'var(--tx)', font: '600 14px var(--f)', border: 'none', cursor: 'pointer' }} onClick={() => setShowEvidence(true)}>Based on...</button>
+            <button style={{ flex: 1, minHeight: '48px', borderRadius: '12px', background: 'var(--s2)', color: 'var(--tx)', font: '600 14px var(--f)', border: 'none', cursor: 'pointer' }} onClick={() => { const f = sheet.finding; setSheet(null); onOpenJarvis?.({ page: 'audits', entityType: 'finding', entityId: f.id, payload: { type: f.type, text: f.text, action: 'review_fix' } }); }}>Review fix</button>
           </div>
         </BottomSheet>
       )}

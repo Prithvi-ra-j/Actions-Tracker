@@ -10,6 +10,8 @@ export default function LearnTab({ t, learnings = [], onAddLearning, onOpenJarvi
   const [topic, setTopic] = useState('');
   const [objective, setObjective] = useState('');
   const [axis, setAxis] = useState('Knowledge');
+  const [evidence, setEvidence] = useState('');
+  const [selected, setSelected] = useState(null);
 
   const axes = ['Knowledge', 'Creativity', 'Strategy'];
 
@@ -21,6 +23,7 @@ export default function LearnTab({ t, learnings = [], onAddLearning, onOpenJarvi
       whyItMatters: objective,
       tags: [axis],
       sourceType: 'other',
+      explanation: objective || `Learning roadmap for ${topic.trim()}`,
     });
     setSheet(null);
     setTopic('');
@@ -109,7 +112,7 @@ export default function LearnTab({ t, learnings = [], onAddLearning, onOpenJarvi
           <div style={{ display: 'flex', gap: '8px', marginTop: '14px' }}>
             <Button variant="primary" style={{ flex: 1 }} onClick={handleNext}>Next</Button>
           </div>
-          <Button variant="secondary" style={{ marginTop: '8px', width: '100%' }}>Let Jarvis draft a plan</Button>
+          <Button variant="secondary" style={{ marginTop: '8px', width: '100%' }} onClick={() => { setSheet(null); onOpenJarvis?.({ page: 'learn', entityType: 'learning', entityId: sheet?.topic?.id, payload: { concept: sheet?.topic?.concept } }); }}>Let Jarvis draft a plan</Button>
         </BottomSheet>
       )}
 
@@ -123,34 +126,59 @@ export default function LearnTab({ t, learnings = [], onAddLearning, onOpenJarvi
             <span style={{ font: '500 11.5px "Geist Mono", monospace', color: 'var(--mu)', padding: '9px 12px', borderRadius: '12px', boxShadow: 'inset 0 0 0 1px var(--ln)' }}>Review in 2 days</span>
           </div>
 
-          <div style={{ font: '500 12.5px var(--f)', color: 'var(--mu)', margin: '16px 4px 8px' }}>Roadmap</div>
+          <div style={{ font: '500 12.5px var(--f)', color: 'var(--mu)', margin: '16px 4px 8px' }}>Five-step loop</div>
           <div className="grp" style={{ borderRadius: '16px', overflow: 'hidden', boxShadow: 'inset 0 0 0 1px var(--ln)', background: 'var(--s1)' }}>
-            <div style={{ display: 'flex', alignItems: 'center', minHeight: '52px', padding: '0 14px', borderBottom: '1px solid var(--ln)', font: '500 14.5px var(--f)' }}>
-              <div style={{ width: '24px', height: '24px', borderRadius: '8px', display: 'grid', placeItems: 'center', marginRight: '12px', background: 'var(--ac)', color: 'var(--on)' }}>✓</div>
-              Foundations
-            </div>
-            <div style={{ display: 'flex', alignItems: 'center', minHeight: '52px', padding: '0 14px', borderBottom: '1px solid var(--ln)', font: '500 14.5px var(--f)' }}>
-              <div style={{ width: '24px', height: '24px', borderRadius: '8px', display: 'grid', placeItems: 'center', marginRight: '12px', boxShadow: 'inset 0 0 0 2px var(--mu)' }}></div>
-              Mock exam
-            </div>
+            <LearningLoop learning={sheet.topic} />
           </div>
 
           <div style={{ font: '500 12.5px var(--f)', color: 'var(--mu)', margin: '16px 4px 8px' }}>Resources</div>
           <div className="grp" style={{ borderRadius: '16px', overflow: 'hidden', boxShadow: 'inset 0 0 0 1px var(--ln)', background: 'var(--s1)' }}>
             <div style={{ display: 'flex', alignItems: 'center', minHeight: '52px', padding: '0 14px', font: '500 14.5px var(--f)' }}>
-              No resources linked
+              {sheet.topic.sourceId ? `Source linked: ${sheet.topic.sourceType || 'resource'}` : 'No resources linked — add one through Jarvis.'}
             </div>
           </div>
 
           <div style={{ font: '500 12.5px var(--f)', color: 'var(--mu)', margin: '16px 4px 8px' }}>Evidence of understanding</div>
           <div className="grp" style={{ borderRadius: '16px', overflow: 'hidden', boxShadow: 'inset 0 0 0 1px var(--ln)', background: 'var(--s1)' }}>
             <div style={{ display: 'flex', alignItems: 'center', minHeight: '52px', padding: '0 14px', font: '500 14.5px var(--f)' }}>
-              Log evidence
-              <span style={{ marginLeft: 'auto', font: '500 12px "Geist Mono", monospace', color: 'var(--mu)' }}>Add ›</span>
+              <div style={{ width: '100%' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between' }}><span>Log evidence</span><span style={{ font: '500 12px "Geist Mono", monospace', color: 'var(--mu)' }}>Application is strongest evidence</span></div>
+                <textarea value={evidence} onChange={e => setEvidence(e.target.value)} placeholder="How did you apply or demonstrate this?" aria-label="Learning evidence" style={{ width: '100%', marginTop: '10px', minHeight: '72px', padding: '10px', borderRadius: '10px', background: 'var(--s2)', color: 'var(--tx)', border: '1px solid var(--ln)' }} />
+                <Button variant="primary" disabled={!evidence.trim()} style={{ marginTop: '8px' }} onClick={async () => {
+                  const { updateLearning } = await import('../database/learningRepository.js');
+                  await updateLearning(sheet.topic.id, { personalApplication: evidence.trim() });
+                  setEvidence('');
+                  const next = { ...sheet.topic, personalApplication: evidence.trim(), mastery: { ...(sheet.topic.mastery || {}), application: Math.max(sheet.topic.mastery?.application || 0, 0.5) } };
+                  setSheet({ type: 'detail', topic: next });
+                }}>Save evidence</Button>
+              </div>
             </div>
           </div>
         </BottomSheet>
       )}
+    </div>
+  );
+}
+
+
+function LearningLoop({ learning }) {
+  const mastery = learning?.mastery || {};
+  const steps = [
+    ['Exposure', mastery.exposure || 0],
+    ['Understanding', mastery.understanding || 0],
+    ['Retention', mastery.retention || 0],
+    ['Synthesis', mastery.synthesis || 0],
+    ['Application', mastery.application || 0],
+  ];
+  return (
+    <div className="grp" style={{ borderRadius: '16px', overflow: 'hidden', boxShadow: 'inset 0 0 0 1px var(--ln)', background: 'var(--s1)' }}>
+      {steps.map(([label, value], i) => (
+        <div key={label} style={{ display: 'flex', alignItems: 'center', minHeight: '52px', padding: '0 14px', borderBottom: i === steps.length - 1 ? 'none' : '1px solid var(--ln)' }}>
+          <div style={{ width: '24px', height: '24px', borderRadius: '8px', marginRight: '12px', display: 'grid', placeItems: 'center', background: value > 0 ? 'var(--ac)' : 'var(--s2)', color: value > 0 ? 'var(--on)' : 'var(--mu)', fontSize: '12px' }}>{value > 0 ? '✓' : i + 1}</div>
+          <span>{label}</span>
+          <span className="mono" style={{ marginLeft: 'auto', color: 'var(--mu)' }}>{Math.round(value * 100)}%</span>
+        </div>
+      ))}
     </div>
   );
 }

@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
+import { getJarvisCapabilities } from '../core/ai/capabilityRegistry.js';
 import { Sparkle, DiamondsFour, Circle, ArrowRight, Plus, ArrowsClockwise, Diamond, Target, Clock, Books, CheckCircle, Brain, Flask, Crosshair, MagnifyingGlass, ClipboardText, ListChecks, X } from '@phosphor-icons/react';
 import { ACCENT } from '../constants.js';
 import { chatWithJarvis, generateInsight } from '../core/ai/jarvisEngine.js';
@@ -29,21 +30,7 @@ const MODES = [
   { id: 'audit', label: 'Audit', hint: 'Find contradictions and bottlenecks', icon: ClipboardText },
 ];
 
-const COMMANDS = [
-  { id: 'habit', label: 'Create habit', description: 'Add a recurring habit', icon: ArrowsClockwise, prompt: 'Create a habit' },
-  { id: 'quest', label: 'Create quest', description: 'Add a measurable quest or benchmark', icon: Diamond, prompt: 'Create a quest' },
-  { id: 'goal', label: 'Create goal', description: 'Define or update a goal', icon: Target, prompt: 'Create a goal' },
-  { id: 'routine', label: 'Adjust routine', description: 'Change the daily/weekly routine', icon: Clock, prompt: 'Adjust my routine' },
-  { id: 'plan', label: 'Build a plan', description: 'Turn a ready plan into app changes', icon: ListChecks, prompt: 'Build and apply this plan' },
-  { id: 'learn', label: 'Add learning', description: 'Capture a learning item or study plan', icon: Books, prompt: 'Add learning' },
-  { id: 'evidence', label: 'Log evidence', description: 'Record an observation, result, or reflection', icon: CheckCircle, prompt: 'Log this evidence' },
-  { id: 'memory', label: 'Save memory', description: 'Ask Jarvis to remember durable context', icon: Brain, prompt: 'Save this as a memory' },
-  { id: 'experiment', label: 'Run experiment', description: 'Create or update a personal experiment', icon: Flask, prompt: 'Create an experiment' },
-  { id: 'target', label: 'Revise target', description: 'Change what success means', icon: Crosshair, prompt: 'Revise my target' },
-  { id: 'review', label: 'Review my system', description: 'Find trends, gaps, and bottlenecks', icon: MagnifyingGlass, prompt: 'Review my system' },
-  { id: 'audit', label: 'Audit my system', description: 'Look for contradictions and risks', icon: ClipboardText, prompt: 'Audit my system' },
-  { id: 'onboarding', label: 'Continue onboarding', description: 'Let Jarvis interview me and configure my system', icon: Sparkle, prompt: 'Continue my onboarding' },
-];
+const COMMANDS = getJarvisCapabilities().map(item => ({ ...item, icon: item.id === 'ask' ? Sparkle : item.id === 'review' ? MagnifyingGlass : item.id === 'audit' ? ClipboardText : item.id === 'add_habit' ? ArrowsClockwise : item.id === 'add_quest' ? Diamond : item.id === 'add_goal' ? Target : item.id === 'adjust_routine' ? Clock : item.id === 'add_learning' ? Books : item.id === 'log_evidence' ? CheckCircle : item.id === 'propose_memory' ? Brain : item.id === 'suggest_experiment' ? Flask : item.id === 'revise_target' ? Crosshair : item.id === 'create_plan' ? ListChecks : Sparkle }));
 
 const destructiveActions = new Set(['archive_habit']);
 
@@ -71,6 +58,8 @@ export default function JarvisTab({ t, onQuestsChanged, onboardingMode = false, 
   const [conversationReady, setConversationReady] = useState(false);
   const [reviewLoading, setReviewLoading] = useState(false);
   const [proactiveInsight, setProactiveInsight] = useState(null);
+  const [receipt, setReceipt] = useState(null);
+  const receiptTimerRef = useRef(null);
   const messagesEndRef = useRef(null);
   const createdAtRef = useRef(null);
 
@@ -142,6 +131,11 @@ export default function JarvisTab({ t, onQuestsChanged, onboardingMode = false, 
     setExecuting(true);
     try {
       const result = await executeAction(proposal);
+      if (result?.actionFactId) {
+        if (receiptTimerRef.current) clearTimeout(receiptTimerRef.current);
+        setReceipt({ actionFactId: result.actionFactId, title: proposalHeading(proposal), expiresAt: Date.now() + 8000 });
+        receiptTimerRef.current = setTimeout(() => setReceipt(null), 8000);
+      }
       const updatedMessages = messages.map(m => m.proposal && m.proposal.id === proposal.id ? { ...m, proposalStatus: 'executed' } : m);
       setMessages(updatedMessages);
       await saveConversation({
@@ -218,8 +212,13 @@ export default function JarvisTab({ t, onQuestsChanged, onboardingMode = false, 
                     )}
                     
                     {msg.contextUsed && (
-                      <div className="btn s" style={{ background: 'var(--s2)', color: 'var(--tx)', width: 'fit-content', minHeight: '36px', padding: '0 12px', fontSize: '12px', marginTop: '8px' }}>
-                        Based on {msg.contextUsed.length} sources
+                      <button className="btn s" style={{ background: 'var(--s2)', color: 'var(--tx)', width: 'fit-content', minHeight: '36px', padding: '0 12px', fontSize: '12px', marginTop: '8px', border: '1px solid var(--ln)' }} onClick={() => setSheet({ type: 'provenance', message: msg })}>
+                        Based on {((msg.contextUsed.recentEvidence || []).length + (msg.contextUsed.activeHabits || []).length + (msg.contextUsed.activeGoals || []).length)} sources
+                      </button>
+                    )}
+                    {msg.claims?.length > 0 && (
+                      <div style={{ marginTop: '8px', display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                        {msg.claims.slice(0, 4).map((claim, ci) => <div key={ci} style={{ paddingLeft: '10px', borderLeft: `2px ${claim.evidenceIds?.length ? 'solid' : 'dashed'} var(--ac)`, fontSize: '12.5px', color: 'var(--mu)' }}>{claim.text}</div>)}
                       </div>
                     )}
                   </div>
@@ -265,12 +264,32 @@ export default function JarvisTab({ t, onQuestsChanged, onboardingMode = false, 
         <button aria-label="Send message" className="go" style={{ width: '46px', height: '46px', borderRadius: '12px', display: 'grid', placeItems: 'center', background: loading || !input.trim() ? 'var(--s1)' : 'var(--ac)', color: loading || !input.trim() ? 'var(--mu)' : 'var(--bg)', cursor: loading || !input.trim() ? 'default' : 'pointer', transition: 'background 0.2s', border: 'none' }} onClick={handleSend}><ArrowRight size={20} /></button>
       </div>
 
+      {receipt && (
+        <div style={{ position: 'absolute', left: '14px', right: '14px', bottom: '82px', zIndex: 20, padding: '12px 14px', borderRadius: '12px', background: 'var(--s2)', boxShadow: 'inset 0 0 0 1px var(--ln)' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+            <div style={{ flex: 1 }}><b style={{ fontSize: '13.5px' }}>Applied</b><div style={{ color: 'var(--mu)', fontSize: '12px' }}>{receipt.title}</div></div>
+            <button style={{ minHeight: '40px', padding: '0 12px', border: 'none', borderRadius: '8px', background: 'var(--ac)', color: 'var(--on-ac)', fontWeight: 600 }} onClick={async () => { await undoAction(receipt.actionFactId); setReceipt(null); }}>Undo</button>
+          </div>
+        </div>
+      )}
+
+      <BottomSheet isOpen={sheet?.type === 'provenance'} onClose={() => setSheet(null)} title="Based on">
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+          <p style={{ color: 'var(--mu)', fontSize: '13px' }}>Observed context is shown separately from Jarvis suggestions. Missing references are not presented as verified evidence.</p>
+          <div className="grp">
+            {(sheet?.message?.contextUsed?.recentEvidence || []).map(item => <div key={item.id} className="rw"><span>Observed evidence</span><span className="v n">{item.type} · {item.date}</span></div>)}
+            {(sheet?.message?.contextUsed?.activeHabits || []).map(item => <div key={item.id} className="rw"><span>Observed habit</span><span className="v n">{item.name}</span></div>)}
+            {(sheet?.message?.contextUsed?.activeGoals || []).map((item, i) => <div key={i} className="rw"><span>Observed goal</span><span className="v n">{item}</span></div>)}
+          </div>
+        </div>
+      </BottomSheet>
+
       {/* Slash Palette */}
       {commandMenuOpen && (
         <div className="kb" style={{ position: 'absolute', left: 0, right: 0, bottom: '80px', height: '250px', background: 'var(--bg)', display: 'flex', flexDirection: 'column', color: 'var(--tx)', zIndex: 15, borderTop: '1px solid var(--ln)', boxShadow: '0 -4px 12px rgba(0,0,0,0.2)', padding: '14px', overflowY: 'auto' }}>
           <h3 className="lb" style={{ marginTop: 0 }}>Commands</h3>
           <div className="grp">
-            {COMMANDS.filter(c => c.label.toLowerCase().includes(commandQuery.toLowerCase()) || c.id.includes(commandQuery.toLowerCase())).map(cmd => {
+            {getJarvisCapabilities(commandQuery).map(item => COMMANDS.find(c => c.id === item.id) || { ...item, icon: Sparkle }).filter(Boolean).map(cmd => {
               const Icon = cmd.icon;
               return <button key={cmd.id} className="rw" style={{ cursor: 'pointer', width: '100%', background: 'transparent', border: 'none', color: 'inherit', textAlign: 'left', display: 'flex', alignItems: 'center' }} onClick={() => { setInput(cmd.prompt + ' '); setCommandMenuOpen(false); }}>
                 <div className="sq" style={{ borderRadius: '8px', boxShadow: 'inset 0 0 0 2px var(--mu)', display: 'grid', placeItems: 'center', marginRight: '12px' }}><Icon size={18} aria-hidden="true" /></div>
