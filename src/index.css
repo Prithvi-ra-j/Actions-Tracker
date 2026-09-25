@@ -161,3 +161,12 @@ svg {
 @media (max-width: 599px) {
   :root { --space-page-x: 1rem; }
 }
+
+.ui-state { display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center; padding:var(--space-12) var(--space-6); }
+.ui-state h3 { margin:0 0 var(--space-2); font-size:1.125rem; font-weight:600; color:var(--color-text); }
+.ui-state p { margin:0 0 var(--space-6); font-size:.90625rem; line-height:1.5; color:var(--color-text-muted); }
+.ui-state-error { background:var(--color-surface-1); border:1px solid var(--color-danger); border-radius:var(--radius-container); padding:var(--space-6); }
+.ui-state-error p { color:var(--color-danger); margin-bottom:var(--space-4); }
+.ui-loading-skeleton { display:flex; flex-direction:column; gap:var(--space-2); width:100%; }
+.ui-skeleton-row { background:var(--color-surface-2); border-radius:var(--radius-control); animation:pulse 1.5s infinite ease-in-out; }
+@keyframes pulse { 0%,100%{opacity:.4} 50%{opacity:.8} }
