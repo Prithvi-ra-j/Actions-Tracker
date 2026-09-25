@@ -13,7 +13,6 @@ import { getAllQuests } from '../database/questBoardRepository.js';
 import { computeAllStats, computeAxisDetails } from '../helpers/statsEngine.js';
 import { recordAppError } from '../core/errorLogger.js';
 import { hasJarvisApiKey } from '../core/ai/jarvisConfig.js';
-import { isOnboardingComplete } from '../database/selfModelRepository.js';
 import JarvisApiSetup from './jarvis/JarvisApiSetup.jsx';
 import { BottomSheet } from './ui/Overlays.jsx';
 import { ActionProposalCard, ImpactDetailSheet, EditProposalSheet } from './ui/ProposalUI.jsx';
@@ -55,8 +54,7 @@ function modeInstruction(mode) {
 }
 
 export default function JarvisTab({ t, isActive = true, onQuestsChanged, onboardingMode = false, onOnboardingComplete, jarvisContext, onClearContext }) {
-  const [jarvisOnboardingRequired, setJarvisOnboardingRequired] = useState(null);
-  const activeOnboardingMode = onboardingMode || jarvisOnboardingRequired === true;
+  const activeOnboardingMode = onboardingMode;
   const conversationId = activeOnboardingMode ? ONBOARDING_CONVERSATION_ID : DEFAULT_CONVERSATION_ID;
   const [messages, setMessages] = useState([]);
   const [input, setInput] = useState('');
@@ -78,6 +76,7 @@ export default function JarvisTab({ t, isActive = true, onQuestsChanged, onboard
   const [apiConfigured, setApiConfigured] = useState(null);
   const messagesEndRef = useRef(null);
   const createdAtRef = useRef(null);
+  const onboardingStartedRef = useRef(false);
 
   // The app keeps Jarvis mounted while switching tabs. Draft text must not
   // leak from a previous visit into the next visible Jarvis session.
@@ -110,32 +109,58 @@ export default function JarvisTab({ t, isActive = true, onQuestsChanged, onboard
 
     (async () => {
       try {
-        const complete = await isOnboardingComplete();
-        if (cancelled) return;
-        setJarvisOnboardingRequired(!complete);
-      } catch (err) {
-        recordAppError(err, { source: 'jarvis_ui', operation: 'check_onboarding_state' });
-        if (!cancelled) setJarvisOnboardingRequired(true);
-      }
-    })();
-
-    return () => { cancelled = true; };
-  }, [apiConfigured, onboardingMode]);
-
-  useEffect(() => {
-    let cancelled = false;
-    if (apiConfigured !== true || jarvisOnboardingRequired === null) return undefined;
-
-    (async () => {
-      try {
         const conversation = await getOrCreateConversation(conversationId, 'Jarvis');
         if (cancelled) return;
-        setMessages(conversation.messages || []);
+
+        const existingMessages = conversation.messages || [];
+        setMessages(existingMessages);
         createdAtRef.current = conversation.createdAt || new Date().toISOString();
-        conversationManager.hydrateFromUiMessages(conversation.messages || []);
+        conversationManager.hydrateFromUiMessages(existingMessages);
         setConversationReady(true);
-        if (activeOnboardingMode && (conversation.messages || []).length === 0) {
-          setInput('Start my onboarding. Ask me the first question and build my profile from conversation.');
+
+        if (
+          activeOnboardingMode &&
+          existingMessages.length === 0 &&
+          !onboardingStartedRef.current
+        ) {
+          onboardingStartedRef.current = true;
+          setLoading(true);
+          setLoadingPhase('Starting your onboarding…');
+          setError(null);
+
+          try {
+            const response = await chatWithJarvis(
+              'Start the onboarding interview now. Ask the user only the first focused question. Do not ask them to type a command or press send, and do not create or propose any changes yet.',
+              [],
+              null
+            );
+
+            if (cancelled) return;
+
+            const initialMessages = [{
+              role: 'assistant',
+              ...response,
+            }];
+
+            setMessages(initialMessages);
+            await saveConversation({
+              id: conversationId,
+              type: 'Jarvis',
+              messages: initialMessages,
+              createdAt: createdAtRef.current,
+            });
+          } catch (err) {
+            if (!cancelled) {
+              recordAppError(err, { source: 'jarvis_ui', operation: 'start_onboarding' });
+              setError('Jarvis could not start the onboarding interview. Try again.');
+              onboardingStartedRef.current = false;
+            }
+          } finally {
+            if (!cancelled) {
+              setLoading(false);
+              setLoadingPhase('');
+            }
+          }
         }
       } catch (err) {
         recordAppError(err, { source: 'jarvis_ui', operation: 'load_conversation' });
@@ -145,14 +170,14 @@ export default function JarvisTab({ t, isActive = true, onQuestsChanged, onboard
     })();
 
     return () => { cancelled = true; };
-  }, [conversationId, activeOnboardingMode, apiConfigured, jarvisOnboardingRequired]);
+  }, [conversationId, activeOnboardingMode, apiConfigured]);
 
   useEffect(() => {
     if (!messagesEndRef.current) return;
     messagesEndRef.current.scrollIntoView({ behavior: 'smooth', block: 'end' });
   }, [messages, loading, error]);
 
-  if (apiConfigured === null || (apiConfigured === true && jarvisOnboardingRequired === null)) {
+  if (apiConfigured === null) {
     return (
       <div
         aria-label="Loading Jarvis"
@@ -234,7 +259,6 @@ export default function JarvisTab({ t, isActive = true, onQuestsChanged, onboard
       }
 
       if (activeOnboardingMode && proposal.actionType === 'complete_onboarding') {
-        setJarvisOnboardingRequired(false);
         onOnboardingComplete && onOnboardingComplete();
       }
     } catch (err) {
