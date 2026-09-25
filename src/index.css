@@ -115,6 +115,9 @@ svg {
   max-width: 100%;
 }
 
+.spin { animation: spin 0.9s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+
 .mono {
   font-family: var(--font-mono);
 }
