@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
+import { getJarvisCapabilities } from '../core/ai/capabilityRegistry.js';
 import { Sparkle, DiamondsFour, Circle, ArrowRight, Plus, ArrowsClockwise, Diamond, Target, Clock, Books, CheckCircle, Brain, Flask, Crosshair, MagnifyingGlass, ClipboardText, ListChecks, X } from '@phosphor-icons/react';
 import { ACCENT } from '../constants.js';
 import { chatWithJarvis, generateInsight } from '../core/ai/jarvisEngine.js';
@@ -29,21 +30,7 @@ const MODES = [
   { id: 'audit', label: 'Audit', hint: 'Find contradictions and bottlenecks', icon: ClipboardText },
 ];
 
-const COMMANDS = [
-  { id: 'habit', label: 'Create habit', description: 'Add a recurring habit', icon: ArrowsClockwise, prompt: 'Create a habit' },
-  { id: 'quest', label: 'Create quest', description: 'Add a measurable quest or benchmark', icon: Diamond, prompt: 'Create a quest' },
-  { id: 'goal', label: 'Create goal', description: 'Define or update a goal', icon: Target, prompt: 'Create a goal' },
-  { id: 'routine', label: 'Adjust routine', description: 'Change the daily/weekly routine', icon: Clock, prompt: 'Adjust my routine' },
-  { id: 'plan', label: 'Build a plan', description: 'Turn a ready plan into app changes', icon: ListChecks, prompt: 'Build and apply this plan' },
-  { id: 'learn', label: 'Add learning', description: 'Capture a learning item or study plan', icon: Books, prompt: 'Add learning' },
-  { id: 'evidence', label: 'Log evidence', description: 'Record an observation, result, or reflection', icon: CheckCircle, prompt: 'Log this evidence' },
-  { id: 'memory', label: 'Save memory', description: 'Ask Jarvis to remember durable context', icon: Brain, prompt: 'Save this as a memory' },
-  { id: 'experiment', label: 'Run experiment', description: 'Create or update a personal experiment', icon: Flask, prompt: 'Create an experiment' },
-  { id: 'target', label: 'Revise target', description: 'Change what success means', icon: Crosshair, prompt: 'Revise my target' },
-  { id: 'review', label: 'Review my system', description: 'Find trends, gaps, and bottlenecks', icon: MagnifyingGlass, prompt: 'Review my system' },
-  { id: 'audit', label: 'Audit my system', description: 'Look for contradictions and risks', icon: ClipboardText, prompt: 'Audit my system' },
-  { id: 'onboarding', label: 'Continue onboarding', description: 'Let Jarvis interview me and configure my system', icon: Sparkle, prompt: 'Continue my onboarding' },
-];
+const COMMANDS = getJarvisCapabilities().map(item => ({ ...item, icon: item.id === 'ask' ? Sparkle : item.id === 'review' ? MagnifyingGlass : item.id === 'audit' ? ClipboardText : item.id === 'add_habit' ? ArrowsClockwise : item.id === 'add_quest' ? Diamond : item.id === 'add_goal' ? Target : item.id === 'adjust_routine' ? Clock : item.id === 'add_learning' ? Books : item.id === 'log_evidence' ? CheckCircle : item.id === 'propose_memory' ? Brain : item.id === 'suggest_experiment' ? Flask : item.id === 'revise_target' ? Crosshair : item.id === 'create_plan' ? ListChecks : Sparkle }));
 
 const destructiveActions = new Set(['archive_habit']);
 
@@ -302,7 +289,7 @@ export default function JarvisTab({ t, onQuestsChanged, onboardingMode = false, 
         <div className="kb" style={{ position: 'absolute', left: 0, right: 0, bottom: '80px', height: '250px', background: 'var(--bg)', display: 'flex', flexDirection: 'column', color: 'var(--tx)', zIndex: 15, borderTop: '1px solid var(--ln)', boxShadow: '0 -4px 12px rgba(0,0,0,0.2)', padding: '14px', overflowY: 'auto' }}>
           <h3 className="lb" style={{ marginTop: 0 }}>Commands</h3>
           <div className="grp">
-            {COMMANDS.filter(c => c.label.toLowerCase().includes(commandQuery.toLowerCase()) || c.id.includes(commandQuery.toLowerCase())).map(cmd => {
+            {getJarvisCapabilities(commandQuery).map(item => COMMANDS.find(c => c.id === item.id) || { ...item, icon: Sparkle }).filter(Boolean).map(cmd => {
               const Icon = cmd.icon;
               return <button key={cmd.id} className="rw" style={{ cursor: 'pointer', width: '100%', background: 'transparent', border: 'none', color: 'inherit', textAlign: 'left', display: 'flex', alignItems: 'center' }} onClick={() => { setInput(cmd.prompt + ' '); setCommandMenuOpen(false); }}>
                 <div className="sq" style={{ borderRadius: '8px', boxShadow: 'inset 0 0 0 2px var(--mu)', display: 'grid', placeItems: 'center', marginRight: '12px' }}><Icon size={18} aria-hidden="true" /></div>
