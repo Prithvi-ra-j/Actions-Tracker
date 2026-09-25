@@ -1,5 +1,6 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { Button } from './Buttons.jsx';
+import { X } from '@phosphor-icons/react';
 
 export function BottomSheet({ isOpen, onClose, title, children }) {
   const previousFocusRef = useRef(null);
@@ -53,7 +54,7 @@ export function BottomSheet({ isOpen, onClose, title, children }) {
           backgroundColor: 'var(--s1)',
           borderTopLeftRadius: 'var(--r-sheet)',
           borderTopRightRadius: 'var(--r-sheet)',
-          padding: '24px 16px',
+          padding: 'var(--space-6) var(--space-4)',
           paddingBottom: 'calc(24px + env(safe-area-inset-bottom, 0px))',
           zIndex: 101,
           animation: 'slideUp 0.35s cubic-bezier(0.16, 1, 0.3, 1)'
@@ -63,7 +64,7 @@ export function BottomSheet({ isOpen, onClose, title, children }) {
           width: '32px', height: '4px', backgroundColor: 'var(--s2)', 
           borderRadius: '2px', margin: '0 auto 24px', opacity: 0.5
         }} />
-        {title && <h2 style={{ margin: '0 0 16px 0', fontSize: '20px', fontWeight: 600 }}>{title}</h2>}
+        {title && <h2 style={{ margin: '0 0 16px 0', fontSize: 'var(--space-5)', fontWeight: 600 }}>{title}</h2>}
         <div>{children}</div>
       </div>
       <style>{`
