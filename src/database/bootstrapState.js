@@ -17,7 +17,6 @@ const USER_DATA_STORES = [
   'creativeWorks',
   'observations',
   'routineConfig',
-  'statSnapshots',
 ];
 
 export async function hasUserData() {
