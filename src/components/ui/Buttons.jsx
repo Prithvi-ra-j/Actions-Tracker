@@ -15,11 +15,11 @@ export function Button({
     alignItems: 'center',
     justifyContent: 'center',
     minHeight: 'var(--control-height-lg)',
-    padding: '0 24px',
+    padding: '0 var(--space-6)',
     borderRadius: 'var(--radius-control)',
     border: 'none',
     fontFamily: 'inherit',
-    fontSize: '15px',
+    fontSize: '0.9375rem',
     fontWeight: 600,
     cursor: disabled ? 'not-allowed' : 'pointer',
     opacity: disabled ? 0.5 : 1,
@@ -38,7 +38,7 @@ export function Button({
     },
     destructive: {
       backgroundColor: 'var(--danger)',
-      color: '#fff'
+      color: var(--color-text)
     }
   };
 
