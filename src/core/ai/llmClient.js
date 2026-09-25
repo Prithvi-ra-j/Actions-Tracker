@@ -9,8 +9,39 @@ import { getSetting, setSetting } from '../../database/settingsRepository.js';
 import { getSecureValue } from '../../native/secureStorage.js';
 import { saveTelemetryEvent } from '../../database/telemetryRepository.js';
 
+function normalizeApiKey(value) {
+  let key = String(value ?? '')
+    .normalize('NFKC')
+    .replace(/[\u200B-\u200D\uFEFF]/g, '')
+    .trim();
+
+  // Users sometimes paste the key together with smart/curly quotes or
+  // Markdown code fences. Strip only a wrapping pair.
+  key = key.replace(/^(?:[\"'\x60\u2018\u2019\u201C\u201D])(.+)(?:[\"'\x60\u2018\u2019\u201C\u201D])$/s, '$1').trim();
+
+  return key;
+}
+
+function assertHeaderSafeApiKey(value) {
+  const key = normalizeApiKey(value);
+
+  if (!key) {
+    throw new Error('API key is empty.');
+  }
+
+  // Fetch request-header values must be ByteString-safe. API keys are expected
+  // to be ASCII, so provide a useful validation error instead of the opaque
+  // browser ByteString exception.
+  const invalid = [...key].find(char => char.charCodeAt(0) > 0x7F);
+  if (invalid) {
+    throw new Error('API key contains an invalid character. Paste the raw API key without smart quotes, spaces, or formatting.');
+  }
+
+  return key;
+}
 export async function queryLLM(messages, options = {}) {
-  const apiKey = await getSecureValue('aiApiKey');
+  const storedApiKey = await getSecureValue('aiApiKey');
+  const apiKey = normalizeApiKey(storedApiKey);
   const baseUrl = await getSetting('aiBaseUrl') || 'https://api.groq.com/openai/v1';
   let model = await getSetting('aiModel') || 'openai/gpt-oss-20b';
 
@@ -26,6 +57,8 @@ export async function queryLLM(messages, options = {}) {
   if (!apiKey) {
     throw new Error('AI API Key is not configured. Please set it in Settings.');
   }
+
+  assertHeaderSafeApiKey(apiKey);
 
   const endpoint = baseUrl.endsWith('/chat/completions') ? baseUrl : `${baseUrl.replace(/\/$/, '')}/chat/completions`;
 
@@ -114,7 +147,14 @@ export async function queryLlmJson(prompt, schema, options = {}) {
  * Returns { ok: true, model, latencyMs } on success or { ok: false, error } on failure.
  */
 export async function verifyLLMConnection(apiKey, baseUrl, model) {
-  if (!apiKey) {
+  let safeApiKey;
+  try {
+    safeApiKey = assertHeaderSafeApiKey(apiKey);
+  } catch (err) {
+    return { ok: false, error: err.message };
+  }
+
+  if (!safeApiKey) {
     return { ok: false, error: 'API key is empty.' };
   }
   if (!baseUrl) {
@@ -135,7 +175,7 @@ export async function verifyLLMConnection(apiKey, baseUrl, model) {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${apiKey}`,
+        'Authorization': `Bearer ${safeApiKey}`,
       },
       body: JSON.stringify({
         model,
