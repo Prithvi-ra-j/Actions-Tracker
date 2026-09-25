@@ -24,7 +24,8 @@ export async function initGoals() {
   if (existing.length === 0) {
     console.log('[goalsRepository] No goals found. Migrating legacy goals.');
     
-    // We also read the old 'goals' store to restore checkbox states to the new objects
+    // Only migrate legacy goals when the legacy checkbox store actually
+    // contains user state. A brand-new install must not get placeholder goals.
     let legacyChecks = {};
     try {
       const rows = await dbGetAll('goals');
@@ -34,6 +35,8 @@ export async function initGoals() {
     } catch (err) {
       console.warn('[goalsRepository] Could not read legacy goals checkbox store:', err);
     }
+
+    if (Object.keys(legacyChecks).length === 0) return;
 
     for (let gi = 0; gi < LEGACY_GOALS.length; gi++) {
       const legacyGoal = LEGACY_GOALS[gi];
