@@ -1,83 +1,50 @@
 import React from 'react';
 
+const COLORS = ['--color-bg','--color-surface-1','--color-surface-2','--color-text','--color-text-muted','--color-accent','--color-on-accent','--color-danger','--color-success','--color-warning','--color-axis-body','--color-axis-discipline','--color-axis-knowledge','--color-axis-social','--color-axis-creativity','--color-axis-strategy'];
+const RADII = ['--radius-container','--radius-control','--radius-chip','--radius-sheet','--radius-check'];
+const SPACING = ['--space-1','--space-2','--space-3','--space-4','--space-5','--space-6','--space-8','--space-10','--space-12'];
+
 export default function TokensDevPage() {
-  const radii = [
-    { name: '--r-container', val: 'var(--r-container)' },
-    { name: '--r-sheet', val: 'var(--r-sheet)' },
-    { name: '--r-control', val: 'var(--r-control)' },
-    { name: '--r-chip', val: 'var(--r-chip)' },
-    { name: '--r-check', val: 'var(--r-check)' }
-  ];
-
-  const colors = [
-    { name: '--bg', val: 'var(--bg)' },
-    { name: '--s1', val: 'var(--s1)' },
-    { name: '--s2', val: 'var(--s2)' },
-    { name: '--tx', val: 'var(--tx)' },
-    { name: '--mu', val: 'var(--mu)' },
-    { name: '--ac', val: 'var(--ac)' },
-    { name: '--on-ac', val: 'var(--on-ac)', bg: 'var(--ac)' },
-    { name: '--danger', val: 'var(--danger)' },
-    { name: '--body', val: 'var(--body)' },
-    { name: '--discipline', val: 'var(--discipline)' },
-    { name: '--knowledge', val: 'var(--knowledge)' },
-    { name: '--social', val: 'var(--social)' },
-    { name: '--creativity', val: 'var(--creativity)' },
-    { name: '--strategy', val: 'var(--strategy)' },
-  ];
-
   return (
-    <div className="min-h-100dvh safe-pt safe-pb safe-pl safe-pr" style={{ padding: '16px', color: 'var(--tx)' }}>
+    <div className="min-h-100dvh safe-pt safe-pb safe-pl safe-pr" style={{ padding: 'var(--space-4)', color: 'var(--color-text)' }}>
       <h1 style={{ fontSize: '26px', letterSpacing: '-0.02em', marginBottom: '16px' }}>Design Tokens</h1>
-      
       <section style={{ marginBottom: '32px' }}>
         <h2 style={{ fontSize: '18px', marginBottom: '16px' }}>Colors</h2>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(120px, 1fr))', gap: '10px' }}>
-          {colors.map(c => (
-            <div key={c.name} style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-              <div style={{ 
-                height: '60px', 
-                backgroundColor: c.val, 
-                borderRadius: 'var(--r-control)',
-                border: c.name === '--bg' ? '1px solid var(--hairline)' : 'none'
-              }} />
-              <div className="mono" style={{ fontSize: '11.5px', color: c.bg ? c.val : 'var(--mu)' }}>
-                {c.name}
-              </div>
-            </div>
-          ))}
+          {COLORS.map(name => <div key={name} style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+            <div style={{ height: '60px', backgroundColor: 'var(' + name + ')', borderRadius: 'var(--radius-control)', border: name === '--color-bg' ? '1px solid var(--color-hairline)' : 'none' }} />
+            <div className="mono" style={{ fontSize: '11.5px', color: 'var(--color-text-muted)' }}>{name}</div>
+          </div>)}
         </div>
       </section>
-
+      <section style={{ marginBottom: '32px' }}>
+        <h2 style={{ fontSize: '18px', marginBottom: '16px' }}>Spacing</h2>
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '12px' }}>
+          {SPACING.map(name => <div key={name} style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <div style={{ width: 'var(' + name + ')', minWidth: '4px', height: '12px', background: 'var(--color-accent)' }} />
+            <span className="mono" style={{ fontSize: '10px', color: 'var(--color-text-muted)' }}>{name}</span>
+          </div>)}
+        </div>
+      </section>
       <section style={{ marginBottom: '32px' }}>
         <h2 style={{ fontSize: '18px', marginBottom: '16px' }}>Radii</h2>
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: '16px' }}>
-          {radii.map(r => (
-            <div key={r.name} style={{ 
-              width: '80px', height: '80px', 
-              backgroundColor: 'var(--s1)', 
-              borderRadius: r.val,
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-              border: '1px solid var(--hairline)'
-            }}>
-              <span className="mono" style={{ fontSize: '10px', color: 'var(--mu)' }}>{r.name}</span>
-            </div>
-          ))}
+          {RADII.map(name => <div key={name} style={{ width: '80px', height: '80px', backgroundColor: 'var(--color-surface-1)', borderRadius: 'var(' + name + ')', display: 'flex', alignItems: 'center', justifyContent: 'center', border: '1px solid var(--color-hairline)' }}>
+            <span className="mono" style={{ fontSize: '10px', color: 'var(--color-text-muted)' }}>{name}</span>
+          </div>)}
         </div>
       </section>
-
-      <section style={{ marginBottom: '32px' }}>
+      <section>
         <h2 style={{ fontSize: '18px', marginBottom: '16px' }}>Typography</h2>
         <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-          <div style={{ fontSize: '26px', letterSpacing: '-0.02em' }}>Screen Title 26px Geist</div>
-          <div style={{ fontSize: '18px', fontWeight: 600 }}>Card Title 18/600 Geist</div>
-          <div style={{ fontSize: '14.5px' }}>Body 14.5px Geist</div>
-          <div style={{ fontSize: '12.5px', color: 'var(--mu)' }}>Secondary 12.5px Geist</div>
-          <div className="mono" style={{ fontSize: '11.5px', color: 'var(--mu)' }}>Mono metadata 11.5px Geist Mono</div>
-          <div className="mono" style={{ fontSize: '32px' }}>Hero 32px Geist Mono</div>
+          <div style={{ fontFamily: 'var(--font-sans)', fontSize: '26px', letterSpacing: '-0.02em' }}>Screen Title · 26px</div>
+          <div style={{ fontFamily: 'var(--font-sans)', fontSize: '18px', fontWeight: 600 }}>Card Title · 18/600</div>
+          <div style={{ fontFamily: 'var(--font-sans)', fontSize: '14.5px' }}>Body · 14.5px</div>
+          <div style={{ fontFamily: 'var(--font-sans)', fontSize: '12.5px', color: 'var(--color-text-muted)' }}>Secondary · 12.5px</div>
+          <div className="mono" style={{ fontSize: '11.5px', color: 'var(--color-text-muted)' }}>Metadata · Geist Mono 11.5px</div>
+          <div className="mono" style={{ fontSize: '32px' }}>Hero · Geist Mono 32px</div>
         </div>
       </section>
-
     </div>
   );
 }
