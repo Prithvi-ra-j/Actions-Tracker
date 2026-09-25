@@ -29,7 +29,7 @@ Production verification is also incomplete: the audited main commit currently re
 | 4 | Global loading/empty/error/success/undo + lifecycle banners | PARTIAL | States and global banners exist. A complete single toast/undo queue and all lifecycle notices wired across every relevant flow are not evidenced. |
 | 5 | Today complete/uncomplete, evidence, details, overload, empty/no-history, create/edit | PARTIAL | Evidence composer, contextual Jarvis, detail/reason sheets and overload/empty states exist. Full create/edit quest/habit flow and verified optimistic rollback are incomplete/not evidenced. |
 | 6 | Stats radar, six axis sheets, trends/contribution/evidence, text alternative, no overall score | PARTIAL | Radar, six-axis list/sheet, trends/contributions/evidence and Why→Jarvis exist. The chart accessibility/text-equivalent contract is not fully evidenced. |
-| 7 | Goals lifecycle and complete detail model | PARTIAL | Goal cards/detail, milestones, evidence, Jarvis and destructive confirmation exist. Create/edit/pause/revise-target and supporting-object/blocker lifecycle is incomplete. |
+| 7 | Goals lifecycle and complete detail model | PARTIAL | Goal cards/detail, milestones, create/edit/pause/resume/complete, milestone revision, blockers and supporting-object references are now persisted. Full evidence/provenance linkage and a supporting-object selector remain. |
 | 8 | Typed JarvisEntryContext + all page entry points + context chip | DONE/PARTIAL | Canonical context object and Today/Stats/Goals/Learn/Audits entry points exist; Jarvis displays a context-attached UI. Runtime correctness of every context payload still needs tests. |
 | 9 | Proposal UI, impact, real swipe, edit, destructive hold, receipt/undo, plan, full lifecycle | PARTIAL | Proposal/impact/edit UI, pointer swipe, executor and receipt/undo exist. Edit sheet is placeholder-like; a dedicated UndoToast primitive is absent; lifecycle coverage and idempotency need end-to-end tests. |
 | 10 | Nine Jarvis screens, mode sheet, history, slash palette, keyboard/error/offline, contract | PARTIAL | History, chat, mode selection, slash registry, context, provenance, proposals and error handling exist. Home masonry, review stories, plan board, keyboard-specific behavior and some state fidelity are incomplete. |
@@ -138,13 +138,23 @@ Current shared primitive surface:
 
 Step 2 work is now materially implemented across the shared primitive layer: semantic token alignment, normalized button semantics, keyboard-accessible clickable cards/chips, centralized state/overlay/toast styling, and Phosphor action affordances. Remaining Step 2 acceptance work is the repository-level verification pass and any uncovered primitive edge cases.
 
+## Goals lifecycle implementation update
+
+Implemented on the audit branch:
+- Goal schema now persists blockers, supportingObjectIds, pausedAt, and completedAt.
+- Goal repository now supports persisted status transitions and individual milestone revision.
+- Lifecycle timestamp semantics clear stale pause/completion timestamps when a goal is reopened or moved to another state.
+- Added tests/unit/goalsLifecycle.test.js covering schema defaults, active → paused → completed → active transitions, persistence, and milestone revision.
+- The Goals UI now exposes create/edit, lifecycle actions, milestone completion, blockers, supporting-object references, contextual Jarvis, evidence entry, loading/empty/error states, and destructive confirmation.
+
+**Step 7 status: PARTIAL.** The remaining gaps are full evidence/provenance linkage and a proper supporting-object picker/relationship surface rather than free-form IDs.
+
 ## Recommended completion order
 
-1. Fix B2-B8 and add targeted tests.
-2. Complete Goals lifecycle.
-3. Complete Learn lifecycle.
-4. Complete Audits run/proposal workflow.
-5. Finish Jarvis missing screens/states.
+1. Finish Step 2 repository verification and targeted primitive tests.
+2. Complete Learn lifecycle.
+3. Complete Audits run/proposal workflow.
+4. Finish Jarvis missing screens/states.
 6. Normalize shared primitives and remove remaining hand-drawn/one-off UI.
 7. Add the guide-required interaction journeys.
 8. Run 360/390/432 visual QA and A52 device QA.
