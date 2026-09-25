@@ -16,7 +16,7 @@ export function GlobalBanners() {
   }, []);
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', position: 'sticky', top: '64px', zIndex: 9, width: '100%' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-1)', position: 'sticky', top: '64px', zIndex: 9, width: '100%' }}>
       {offline && (
         <Banner 
           icon={<WifiSlash size={16} />}
@@ -60,10 +60,10 @@ function Banner({ icon, text, color, textColor }) {
       display: 'flex',
       alignItems: 'center',
       gap: '8px',
-      padding: '8px 16px',
+      padding: 'var(--space-2) var(--space-4)',
       backgroundColor: color,
       color: textColor,
-      fontSize: '13px',
+      fontSize: '0.8125rem',
       fontWeight: 500,
       backdropFilter: 'blur(4px)'
     }}>
