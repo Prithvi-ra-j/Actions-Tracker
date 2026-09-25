@@ -9,7 +9,7 @@
   overflow: hidden;
   color: var(--j-text);
   background: var(--j-bg);
-  font-family: Georgia, serif;
+  font-family: var(--font-sans);
 }
 
 .jarvis-header {
@@ -42,7 +42,7 @@
   place-items: center;
   border-radius: 10px;
   background: var(--j-accent);
-  color: #fff;
+  color: var(--color-text);
   box-shadow: 0 7px 18px rgba(0,0,0,0.14);
 }
 
@@ -410,8 +410,8 @@
   place-items: center;
   border-radius: 9px;
   background: var(--j-accent);
-  color: #fff;
-  font: 800 0.7rem/1 Georgia, serif;
+  color: var(--color-text);
+  font: 800 0.7rem/1 var(--font-sans);
   box-shadow: 0 6px 14px rgba(0,0,0,0.12);
 }
 
@@ -582,7 +582,7 @@
   grid-column: 1 / -1;
   border: 1px solid var(--j-accent);
   background: var(--j-accent);
-  color: #fff;
+  color: var(--color-text);
 }
 
 .jarvis-proposal-secondary {
@@ -812,7 +812,7 @@
   resize: none;
   background: transparent;
   color: var(--j-text);
-  font: 0.80rem/1.42 Georgia, serif;
+  font: 0.80rem/1.42 var(--font-sans);
 }
 
 .jarvis-textarea::placeholder {
@@ -829,7 +829,7 @@
   display: grid;
   place-items: center;
   background: var(--j-accent);
-  color: #fff;
+  color: var(--color-text);
   box-shadow: 0 7px 16px rgba(0,0,0,0.12);
 }
 
@@ -953,7 +953,7 @@
 .jarvis-sheet-primary {
   border: 1px solid var(--j-accent);
   background: var(--j-accent);
-  color: #fff;
+  color: var(--color-text);
 }
 
 .jarvis-sheet-secondary {
@@ -965,7 +965,7 @@
 .jarvis-sheet-danger {
   border: 1px solid #c1442c;
   background: #c1442c;
-  color: #fff;
+  color: var(--color-text);
 }
 
 @keyframes jarvisFadeIn {
