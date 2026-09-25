@@ -350,6 +350,25 @@ export function dbGetAllByIndex(storeName, indexName, key) {
   });
 }
 
+/**
+ * Clears every user-data store in the current database.
+ *
+ * This is intentionally destructive and is used only by a one-time fresh-start
+ * migration when the app is being restarted from a clean baseline.
+ */
+export function clearAllDatabaseData() {
+  return new Promise((resolve, reject) => {
+    const tx = getDB().transaction(ALL_STORES, 'readwrite');
+    tx.oncomplete = () => resolve();
+    tx.onerror = () => reject(tx.error || new Error('Database reset transaction failed.'));
+    tx.onabort = () => reject(tx.error || new Error('Database reset transaction aborted.'));
+
+    for (const storeName of ALL_STORES) {
+      tx.objectStore(storeName).clear();
+    }
+  });
+}
+
 // ─── Data Safety ─────────────────────────────────────────────────────────────
 
 // All stores included in export/import — add new stores here as they are created.
