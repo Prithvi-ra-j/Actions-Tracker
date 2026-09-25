@@ -69,6 +69,7 @@ export function createGoal(fields) {
     end:     fields.end    ?? '',
     targets: fields.targets ?? [],
     proof:   fields.proof  ?? '',
+    whyItMatters: fields.whyItMatters ?? '',
     fear:    fields.fear   ?? '',
     blockers: fields.blockers ?? [],
     supportingObjectIds: fields.supportingObjectIds ?? [],
