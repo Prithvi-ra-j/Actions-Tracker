@@ -21,6 +21,10 @@ export default function TodayTab({
 }) {
   const [selectedHabit, setSelectedHabit] = useState(null);
   const [composerOpen, setComposerOpen] = useState(false);
+  const [evidenceText, setEvidenceText] = useState('');
+  const [reasonText, setReasonText] = useState('');
+  const [reasonMode, setReasonMode] = useState(null);
+  const [savingEvidence, setSavingEvidence] = useState(false);
   
   const mainQuest = allQuests?.find(q => q.status === 'active' && q.priority === 'main') || allQuests?.find(q => q.status === 'active');
   const occurrences = todayOccurrences || [];
@@ -85,7 +89,6 @@ export default function TodayTab({
               
               const labelParts = [];
               if (occ.axis) labelParts.push(occ.axis);
-              labelParts.push('+10 xp'); // per mockup
               if (occ.streak && occ.streak > 1) labelParts.push(`${occ.streak}-day run`);
               
               const gracePrompt = getGracePrompt(occ.status, occ.graceState);
@@ -130,7 +133,11 @@ export default function TodayTab({
             <ContextualJarvisCTA 
               label="Adjust today's routine" 
               contextIcon={<MagicWand size={18} weight="fill" />} 
-              onClick={() => {/* will be wired to open Jarvis with context */}}
+              onClick={() => onOpenJarvis?.({
+                page: 'today',
+                entityType: 'routine',
+                payload: { scheduledCount: occurrences.length, completedCount: occurrences.filter(item => item.status === 'completed').length }
+              })}
             />
           </div>
         )}
@@ -164,11 +171,8 @@ export default function TodayTab({
                   variant="secondary"
                   style={{ flex: 1 }}
                   onClick={() => {
-                    const reason = prompt('Reason for skipping?');
-                    if (reason) {
-                      onExcuseOccurrence(selectedHabit.id, reason);
-                      setSelectedHabit(null);
-                    }
+                    setReasonMode('skip');
+                    setReasonText('');
                   }}
                 >
                   Skip
@@ -180,11 +184,8 @@ export default function TodayTab({
               <Button 
                 variant="destructive"
                 onClick={() => {
-                  const reason = prompt('What got in the way?');
-                  if (reason) {
-                    onOccurrenceReason(selectedHabit.id, reason);
-                    setSelectedHabit(null);
-                  }
+                  setReasonMode('missing');
+                  setReasonText('');
                 }}
               >
                 Log missing reason
@@ -192,6 +193,34 @@ export default function TodayTab({
             )}
           </div>
         )}
+      </BottomSheet>
+
+      {/* Reason Sheet */}
+      <BottomSheet
+        isOpen={!!reasonMode}
+        onClose={() => { setReasonMode(null); setReasonText(''); }}
+        title={reasonMode === 'skip' ? 'Why skip this?' : 'What got in the way?'}
+      >
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+          <textarea
+            value={reasonText}
+            onChange={e => setReasonText(e.target.value)}
+            placeholder={reasonMode === 'skip' ? 'Optional reason' : 'What happened?'}
+            aria-label={reasonMode === 'skip' ? 'Reason for skipping' : 'Missing occurrence reason'}
+            style={{ width: '100%', minHeight: '100px', padding: '12px', borderRadius: 'var(--r-control)', border: '1px solid var(--hairline)', backgroundColor: 'var(--bg)', color: 'var(--tx)', fontFamily: 'inherit', resize: 'vertical' }}
+          />
+          <div style={{ display: 'flex', gap: '12px' }}>
+            <Button variant="primary" style={{ flex: 1 }} onClick={() => {
+              if (!selectedHabit || !reasonText.trim()) return;
+              if (reasonMode === 'skip') onExcuseOccurrence(selectedHabit.id, reasonText.trim());
+              else onOccurrenceReason(selectedHabit.id, reasonText.trim());
+              setReasonMode(null);
+              setReasonText('');
+              setSelectedHabit(null);
+            }}>Save</Button>
+            <Button variant="secondary" onClick={() => { setReasonMode(null); setReasonText(''); }}>Cancel</Button>
+          </div>
+        </div>
       </BottomSheet>
 
       {/* Evidence Composer Sheet */}
@@ -202,6 +231,9 @@ export default function TodayTab({
       >
         <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
           <textarea 
+            value={evidenceText}
+            onChange={e => setEvidenceText(e.target.value)}
+            aria-label="Evidence note"
             placeholder="What did you do?" 
             style={{ 
               width: '100%', minHeight: '100px', padding: '12px', 
@@ -211,7 +243,23 @@ export default function TodayTab({
             }}
           />
           <div style={{ display: 'flex', gap: '12px' }}>
-            <Button variant="primary" style={{ flex: 1 }} onClick={() => setComposerOpen(false)}>Save</Button>
+            <Button variant="primary" style={{ flex: 1 }} disabled={!evidenceText.trim() || savingEvidence} onClick={async () => {
+              if (!evidenceText.trim() || savingEvidence) return;
+              setSavingEvidence(true);
+              try {
+                const { addFact } = await import('../database/factsRepository.js');
+                await addFact({
+                  type: 'evidence_note',
+                  value: 1,
+                  meta: { text: evidenceText.trim(), page: 'today' },
+                  source: { type: 'user' },
+                });
+                setEvidenceText('');
+                setComposerOpen(false);
+              } finally {
+                setSavingEvidence(false);
+              }
+            }}>Save</Button>
             <Button variant="secondary" onClick={() => setComposerOpen(false)}>Cancel</Button>
           </div>
         </div>
