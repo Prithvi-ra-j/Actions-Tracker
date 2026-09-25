@@ -4,7 +4,7 @@ import { Button } from '../ui/Buttons.jsx';
 
 export default function OnboardingFlow({ t, onComplete }) {
   // 'welcome', 'resume' or 'interview'
-  const [stage, setStage] = useState('welcome');
+  const [stage, setStage] = useState('interview');
 
   if (stage === 'interview') {
     return (
