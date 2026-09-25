@@ -123,12 +123,9 @@ const DEFAULT_QUESTS = [
 // ── Repository ──────────────────────────────────────────────────────────────────
 
 export async function initQuestBoard() {
-  const existing = await dbGetAll('questBoard');
-  if (existing.length === 0) {
-    for (const quest of DEFAULT_QUESTS) {
-      await dbPut('questBoard', quest);
-    }
-  }
+  // New installs start with no preset quests. Jarvis/onboarding creates the
+  // user's actual system after setup. Existing records are left untouched.
+  return dbGetAll('questBoard');
 }
 
 export async function getAllQuests() {
