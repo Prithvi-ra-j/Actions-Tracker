@@ -37,8 +37,56 @@ const EXISTING_ENTITY_ACTIONS = new Set([
   'update_mastery_level',
 ]);
 
+function normalizeActionProposal(proposal) {
+  if (!proposal || typeof proposal !== 'object') return proposal;
+
+  const actionType = proposal.actionType;
+  const payload = { ...(proposal.payload || {}) };
+
+  // Models occasionally use a nearby field name for goal title/label.
+  if (actionType === 'add_goal' && !payload.label && !payload.title) {
+    payload.label = payload.name || payload.outcome || payload.goal || payload.description;
+  }
+
+  const rawImpact = proposal.impact && typeof proposal.impact === 'object'
+    ? proposal.impact
+    : {};
+
+  const impact = {
+    affectedDomains: Array.isArray(rawImpact.affectedDomains) ? rawImpact.affectedDomains : [],
+    scoringImpact: typeof rawImpact.scoringImpact === 'string'
+      ? rawImpact.scoringImpact
+      : 'No immediate score change; evidence accumulates after the change.',
+    routineImpact: typeof rawImpact.routineImpact === 'string'
+      ? rawImpact.routineImpact
+      : 'No routine change specified.',
+    identityAlignment: typeof rawImpact.identityAlignment === 'string'
+      ? rawImpact.identityAlignment
+      : '',
+    disciplineImpact: typeof rawImpact.disciplineImpact === 'string'
+      ? rawImpact.disciplineImpact
+      : 'No direct discipline change.',
+    risks: Array.isArray(rawImpact.risks) ? rawImpact.risks : [],
+    dependencies: Array.isArray(rawImpact.dependencies) ? rawImpact.dependencies : [],
+  };
+
+  const confidenceNumber = Number(proposal.confidence);
+  return {
+    ...proposal,
+    payload,
+    impact,
+    reasoning: typeof proposal.reasoning === 'string' ? proposal.reasoning : '',
+    confidence: Number.isFinite(confidenceNumber)
+      ? Math.max(0, Math.min(1, confidenceNumber))
+      : 0.5,
+  };
+}
+
 function normalizeConversationalResponse(responseObj, modificationContext = null) {
-  const normalized = { ...responseObj };
+  const normalized = {
+    ...responseObj,
+    proposal: normalizeActionProposal(responseObj?.proposal),
+  };
 
   // Normalize null to the same internal representation as an omitted proposal.
   if (normalized.proposal === null) delete normalized.proposal;
@@ -183,7 +231,10 @@ export async function chatWithJarvis(userMessage, history = [], modificationCont
       },
     };
   } catch (err) {
-    console.error("[JarvisEngine] Chat failed:", err);
+    if (err?.issues) {
+      console.error('[JarvisEngine] Chat schema validation failed:', err.issues);
+    }
+    console.error('[JarvisEngine] Chat failed:', err);
     throw err;
   }
 }
