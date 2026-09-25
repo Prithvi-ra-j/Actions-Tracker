@@ -4,7 +4,7 @@ import { BottomSheet, ConfirmDialog } from './ui/Overlays.jsx';
 import { Button, ContextualJarvisCTA } from './ui/Buttons.jsx';
 import { EmptyState, ErrorState, LoadingSkeleton } from './ui/States.jsx';
 import { Checkbox } from './ui/Inputs.jsx';
-import { Plus, MagicWand, PencilSimple, Pause, Play, CheckCircle, Trash } from '@phosphor-icons/react';
+import { Plus, MagicWand, PencilSimple, Pause, Play, CheckCircle, Trash, X } from '@phosphor-icons/react';
 import { EvidenceSheet } from './EvidenceSheet.jsx';
 
 const EMPTY_FORM = {
@@ -222,19 +222,19 @@ export default function GoalsTab({ onOpenJarvis }) {
               <div className="goal-editor-row" key={i}>
                 <input value={target.text} onChange={e => updateList('targets', i, { text: e.target.value })} placeholder="Milestone" />
                 <input value={target.metric || ''} onChange={e => updateList('targets', i, { metric: e.target.value })} placeholder="Metric / threshold" />
-                <button type="button" onClick={() => removeListItem('targets', i)} aria-label="Remove milestone">×</button>
+                <button type="button" onClick={() => removeListItem('targets', i)} aria-label="Remove milestone"><X size={16} aria-hidden="true" /></button>
               </div>
             ))}
             <Button variant="secondary" onClick={() => addListItem('targets', { text: '', metric: '', completed: false })}><Plus size={16} /> Add milestone</Button>
           </div>
 
           <div className="goal-editor-section"><strong>Blockers</strong>
-            {form.blockers.map((b, i) => <div className="goal-editor-row" key={i}><input value={b} onChange={e => updateList('blockers', i, e.target.value)} placeholder="Known blocker or risk" /><button type="button" onClick={() => removeListItem('blockers', i)} aria-label="Remove blocker">×</button></div>)}
+            {form.blockers.map((b, i) => <div className="goal-editor-row" key={i}><input value={b} onChange={e => updateList('blockers', i, e.target.value)} placeholder="Known blocker or risk" /><button type="button" onClick={() => removeListItem('blockers', i)} aria-label="Remove blocker"><X size={16} aria-hidden="true" /></button></div>)}
             <Button variant="secondary" onClick={() => addListItem('blockers', '')}><Plus size={16} /> Add blocker</Button>
           </div>
 
           <div className="goal-editor-section"><strong>Supporting object IDs</strong>
-            {form.supportingObjectIds.map((id, i) => <div className="goal-editor-row" key={i}><input value={id} onChange={e => updateList('supportingObjectIds', i, e.target.value)} placeholder="Goal-linked object ID" /><button type="button" onClick={() => removeListItem('supportingObjectIds', i)} aria-label="Remove supporting object">×</button></div>)}
+            {form.supportingObjectIds.map((id, i) => <div className="goal-editor-row" key={i}><input value={id} onChange={e => updateList('supportingObjectIds', i, e.target.value)} placeholder="Goal-linked object ID" /><button type="button" onClick={() => removeListItem('supportingObjectIds', i)} aria-label="Remove supporting object"><X size={16} aria-hidden="true" /></button></div>)}
           </div>
 
           <Button variant="primary" loading={saving} onClick={saveGoal} style={{ width: '100%' }}>Save goal</Button>
