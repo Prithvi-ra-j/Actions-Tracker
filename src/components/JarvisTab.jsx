@@ -71,6 +71,8 @@ export default function JarvisTab({ t, onQuestsChanged, onboardingMode = false, 
   const [conversationReady, setConversationReady] = useState(false);
   const [reviewLoading, setReviewLoading] = useState(false);
   const [proactiveInsight, setProactiveInsight] = useState(null);
+  const [receipt, setReceipt] = useState(null);
+  const receiptTimerRef = useRef(null);
   const messagesEndRef = useRef(null);
   const createdAtRef = useRef(null);
 
@@ -142,6 +144,11 @@ export default function JarvisTab({ t, onQuestsChanged, onboardingMode = false, 
     setExecuting(true);
     try {
       const result = await executeAction(proposal);
+      if (result?.actionFactId) {
+        if (receiptTimerRef.current) clearTimeout(receiptTimerRef.current);
+        setReceipt({ actionFactId: result.actionFactId, title: proposalHeading(proposal), expiresAt: Date.now() + 8000 });
+        receiptTimerRef.current = setTimeout(() => setReceipt(null), 8000);
+      }
       const updatedMessages = messages.map(m => m.proposal && m.proposal.id === proposal.id ? { ...m, proposalStatus: 'executed' } : m);
       setMessages(updatedMessages);
       await saveConversation({
@@ -218,8 +225,13 @@ export default function JarvisTab({ t, onQuestsChanged, onboardingMode = false, 
                     )}
                     
                     {msg.contextUsed && (
-                      <div className="btn s" style={{ background: 'var(--s2)', color: 'var(--tx)', width: 'fit-content', minHeight: '36px', padding: '0 12px', fontSize: '12px', marginTop: '8px' }}>
-                        Based on {msg.contextUsed.length} sources
+                      <button className="btn s" style={{ background: 'var(--s2)', color: 'var(--tx)', width: 'fit-content', minHeight: '36px', padding: '0 12px', fontSize: '12px', marginTop: '8px', border: '1px solid var(--ln)' }} onClick={() => setSheet({ type: 'provenance', message: msg })}>
+                        Based on {((msg.contextUsed.recentEvidence || []).length + (msg.contextUsed.activeHabits || []).length + (msg.contextUsed.activeGoals || []).length)} sources
+                      </button>
+                    )}
+                    {msg.claims?.length > 0 && (
+                      <div style={{ marginTop: '8px', display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                        {msg.claims.slice(0, 4).map((claim, ci) => <div key={ci} style={{ paddingLeft: '10px', borderLeft: `2px ${claim.evidenceIds?.length ? 'solid' : 'dashed'} var(--ac)`, fontSize: '12.5px', color: 'var(--mu)' }}>{claim.text}</div>)}
                       </div>
                     )}
                   </div>
@@ -264,6 +276,26 @@ export default function JarvisTab({ t, onQuestsChanged, onboardingMode = false, 
         <button aria-label="Open slash commands" style={{ fontStyle: 'normal', width: '46px', height: '46px', borderRadius: '12px', display: 'grid', placeItems: 'center', background: 'var(--s1)', color: 'var(--tx)', cursor: 'pointer', border: 'none' }} onClick={() => setCommandMenuOpen(true)}>/</button>
         <button aria-label="Send message" className="go" style={{ width: '46px', height: '46px', borderRadius: '12px', display: 'grid', placeItems: 'center', background: loading || !input.trim() ? 'var(--s1)' : 'var(--ac)', color: loading || !input.trim() ? 'var(--mu)' : 'var(--bg)', cursor: loading || !input.trim() ? 'default' : 'pointer', transition: 'background 0.2s', border: 'none' }} onClick={handleSend}><ArrowRight size={20} /></button>
       </div>
+
+      {receipt && (
+        <div style={{ position: 'absolute', left: '14px', right: '14px', bottom: '82px', zIndex: 20, padding: '12px 14px', borderRadius: '12px', background: 'var(--s2)', boxShadow: 'inset 0 0 0 1px var(--ln)' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+            <div style={{ flex: 1 }}><b style={{ fontSize: '13.5px' }}>Applied</b><div style={{ color: 'var(--mu)', fontSize: '12px' }}>{receipt.title}</div></div>
+            <button style={{ minHeight: '40px', padding: '0 12px', border: 'none', borderRadius: '8px', background: 'var(--ac)', color: 'var(--on-ac)', fontWeight: 600 }} onClick={async () => { await undoAction(receipt.actionFactId); setReceipt(null); }}>Undo</button>
+          </div>
+        </div>
+      )}
+
+      <BottomSheet isOpen={sheet?.type === 'provenance'} onClose={() => setSheet(null)} title="Based on">
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+          <p style={{ color: 'var(--mu)', fontSize: '13px' }}>Observed context is shown separately from Jarvis suggestions. Missing references are not presented as verified evidence.</p>
+          <div className="grp">
+            {(sheet?.message?.contextUsed?.recentEvidence || []).map(item => <div key={item.id} className="rw"><span>Observed evidence</span><span className="v n">{item.type} · {item.date}</span></div>)}
+            {(sheet?.message?.contextUsed?.activeHabits || []).map(item => <div key={item.id} className="rw"><span>Observed habit</span><span className="v n">{item.name}</span></div>)}
+            {(sheet?.message?.contextUsed?.activeGoals || []).map((item, i) => <div key={i} className="rw"><span>Observed goal</span><span className="v n">{item}</span></div>)}
+          </div>
+        </div>
+      </BottomSheet>
 
       {/* Slash Palette */}
       {commandMenuOpen && (
