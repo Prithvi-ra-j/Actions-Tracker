@@ -20,48 +20,9 @@ const GOAL_TYPE = 'goal';
  * Ensures baseline goals exist. If none exist, migrates from constants.
  */
 export async function initGoals() {
-  const existing = await dbGetAllByIndex(STORE, 'type', GOAL_TYPE);
-  if (existing.length === 0) {
-    console.log('[goalsRepository] No goals found. Migrating legacy goals.');
-    
-    // Only migrate legacy goals when the legacy checkbox store actually
-    // contains user state. A brand-new install must not get placeholder goals.
-    let legacyChecks = {};
-    try {
-      const rows = await dbGetAll('goals');
-      for (const row of rows) {
-        legacyChecks[row.key] = !!row.value;
-      }
-    } catch (err) {
-      console.warn('[goalsRepository] Could not read legacy goals checkbox store:', err);
-    }
-
-    if (Object.keys(legacyChecks).length === 0) return;
-
-    for (let gi = 0; gi < LEGACY_GOALS.length; gi++) {
-      const legacyGoal = LEGACY_GOALS[gi];
-      
-      // Preserve target completion status from legacy store
-      const targetsWithStatus = legacyGoal.targets.map((t, ti) => ({
-        ...t,
-        completed: !!legacyChecks[`${gi}-${ti}`],
-      }));
-
-      const goal = createGoal({
-        domain:  legacyGoal.domain,
-        label:   legacyGoal.label,
-        color:   legacyGoal.color,
-        icon:    legacyGoal.icon,
-        start:   legacyGoal.start,
-        end:     legacyGoal.end,
-        targets: targetsWithStatus,
-        proof:   legacyGoal.proof,
-        fear:    legacyGoal.fear,
-      });
-
-      await dbPut(STORE, goal);
-    }
-  }
+  // Fresh baseline: goals are created by the user/Jarvis after setup.
+  // Existing database records remain untouched; this initializer never seeds
+  // placeholder goals into a new database.
 }
 
 // ─── CRUD ──────────────────────────────────────────────────────────────────────
