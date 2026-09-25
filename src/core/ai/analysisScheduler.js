@@ -9,7 +9,8 @@ import { generateInsight } from './jarvisEngine.js';
 import { addInsight } from '../../database/insightsRepository.js';
 import { getSetting, setSetting } from '../../database/settingsRepository.js';
 import { saveTelemetryEvent } from '../../database/telemetryRepository.js';
-import { getSelfModel } from '../../database/selfModelRepository.js';
+import { getSelfModel, isOnboardingComplete } from '../../database/selfModelRepository.js';
+import { hasJarvisApiKey } from './jarvisConfig.js';
 import { getAllLogs } from '../../database/logsRepository.js';
 import { runMonthlyAudit } from './auditEngine.js';
 
@@ -24,6 +25,16 @@ export async function bootstrapAnalysisScheduler() {
 }
 
 async function runScheduledAnalysis() {
+  const ready = await Promise.all([
+    isOnboardingComplete(),
+    hasJarvisApiKey(),
+  ]);
+
+  if (!ready[0] || !ready[1]) {
+    console.log('[AnalysisScheduler] Skipping passive analysis: onboarding/API setup incomplete.');
+    return;
+  }
+
   const today = new Date().toISOString().split('T')[0];
   const lastDailyDate = await getSetting('lastDailyAnalysisDate');
 
