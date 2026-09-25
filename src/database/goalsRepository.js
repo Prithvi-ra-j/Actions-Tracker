@@ -9,6 +9,7 @@
 
 import { dbGet, dbPut, dbDelete, dbGetAllByIndex, dbGetAll } from './db.js';
 import { createGoal } from '../models/lifeObjectSchema.js';
+import { addFact, getFactsByObject } from './factsRepository.js';
 import { GOALS as LEGACY_GOALS } from '../constants.js';
 
 const STORE = 'lifeObjects';
@@ -144,4 +145,27 @@ export async function reviseGoalTarget(id, targetIndex, fields) {
   if (!targets[targetIndex]) throw new Error('[goalsRepository] Target not found: ' + targetIndex);
   targets[targetIndex] = { ...targets[targetIndex], ...fields };
   return updateGoal(id, { targets });
+}
+
+
+export async function addGoalEvidence(id, text) {
+  const goal = await getGoal(id);
+  if (!goal) throw new Error('[goalsRepository] Goal not found: ' + id);
+  const content = String(text || '').trim();
+  if (!content) throw new Error('[goalsRepository] Evidence text is required');
+  const factId = await addFact({
+    type: 'goal_evidence',
+    objectId: id,
+    value: 1,
+    meta: { text: content, page: 'goals' },
+    source: { type: 'user' },
+  });
+  const evidenceFactIds = [...new Set([...(goal.evidenceFactIds || []), factId])];
+  return updateGoal(id, { evidenceFactIds });
+}
+
+export async function getGoalEvidence(id) {
+  return getFactsByObject(id).then(facts =>
+    facts.filter(f => f.type === 'goal_evidence')
+  );
 }
