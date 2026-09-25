@@ -74,6 +74,7 @@ export default function JarvisTab({ t, isActive = true, onQuestsChanged, onboard
   const [reviewLoading, setReviewLoading] = useState(false);
   const [proactiveInsight, setProactiveInsight] = useState(null);
   const [apiConfigured, setApiConfigured] = useState(null);
+  const [onboardingRetryNonce, setOnboardingRetryNonce] = useState(0);
   const messagesEndRef = useRef(null);
   const createdAtRef = useRef(null);
   const onboardingStartedRef = useRef(false);
@@ -152,7 +153,10 @@ export default function JarvisTab({ t, isActive = true, onQuestsChanged, onboard
           } catch (err) {
             if (!cancelled) {
               recordAppError(err, { source: 'jarvis_ui', operation: 'start_onboarding' });
-              setError('Jarvis could not start the onboarding interview. Try again.');
+              const detail = err?.message
+                ? String(err.message).slice(0, 320)
+                : 'Unknown AI connection error.';
+              setError(`Jarvis could not start the onboarding interview: ${detail}`);
               onboardingStartedRef.current = false;
             }
           } finally {
@@ -170,7 +174,7 @@ export default function JarvisTab({ t, isActive = true, onQuestsChanged, onboard
     })();
 
     return () => { cancelled = true; };
-  }, [conversationId, activeOnboardingMode, apiConfigured]);
+  }, [conversationId, activeOnboardingMode, apiConfigured, onboardingRetryNonce]);
 
   useEffect(() => {
     if (!messagesEndRef.current) return;
@@ -636,10 +640,25 @@ export default function JarvisTab({ t, isActive = true, onQuestsChanged, onboard
           fontSize: '13px',
           color: 'var(--tx)',
         }}>
-          <strong>The change wasn't applied.</strong> Your existing data is unchanged.
+          {activeOnboardingMode ? (
+            <>
+              <strong>Jarvis couldn't start onboarding.</strong>
+              <div style={{ marginTop: '5px', color: 'var(--mu)' }}>{error}</div>
+            </>
+          ) : (
+            <>
+              <strong>The change wasn't applied.</strong> Your existing data is unchanged.
+            </>
+          )}
           <div style={{ display: 'flex', gap: '8px', marginTop: '10px' }}>
             <button
-              onClick={() => setError(null)}
+              onClick={() => {
+                setError(null);
+                if (activeOnboardingMode) {
+                  onboardingStartedRef.current = false;
+                  setOnboardingRetryNonce(value => value + 1);
+                }
+              }}
               style={{ flex: 1, height: '40px', borderRadius: 'var(--r-control)', background: 'var(--ac)', color: 'var(--on-ac)', border: 'none', fontSize: '13px', fontWeight: 600, cursor: 'pointer' }}
             >
               Retry
