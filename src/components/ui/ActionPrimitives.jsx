@@ -12,8 +12,8 @@ export function ImpactChips({ impacts = [] }) {
           fontSize: '11.5px', 
           color: imp.color || 'var(--tx)',
           backgroundColor: `color-mix(in srgb, ${imp.color || 'var(--mu)'} 15%, transparent)`,
-          padding: '4px 8px',
-          borderRadius: '4px'
+          padding: 'var(--space-1) var(--space-2)',
+          borderRadius: 'var(--radius-chip)'
         }}>
           {imp.label}
         </span>
