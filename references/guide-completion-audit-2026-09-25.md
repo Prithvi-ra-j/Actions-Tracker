@@ -136,7 +136,7 @@ Current shared primitive surface:
 - reusable UndoToast
 - action proposal primitives
 
-Step 2 work has begun by moving primitive styling toward the canonical token system and replacing proposal action text-only controls with Phosphor icons. The remaining Step 2 acceptance work includes full primitive API normalization, shared focus/overlay behavior, dev-state coverage and interaction tests.
+Step 2 work is now materially implemented across the shared primitive layer: semantic token alignment, normalized button semantics, keyboard-accessible clickable cards/chips, centralized state/overlay/toast styling, and Phosphor action affordances. Remaining Step 2 acceptance work is the repository-level verification pass and any uncovered primitive edge cases.
 
 ## Recommended completion order
 
