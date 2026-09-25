@@ -120,6 +120,24 @@ The shared foundation has now been extended into the common primitives: control 
 
 **Step 1 status: IMPLEMENTED.**
 
+## Step 2 implementation update
+
+Started after completing the Step 1 repository foundation.
+
+Current shared primitive surface:
+- Button / IconButton / contextual Jarvis CTA
+- Card, Pin, StatCard, EntityRow
+- AppHeader, SectionHeader
+- Chip, ModePill, SegmentedBar, ProgressRing, TrustRail
+- keyboard-accessible Checkbox
+- BottomSheet, ConfirmDialog
+- EmptyState, ErrorState, LoadingSkeleton
+- centralized ToastProvider
+- reusable UndoToast
+- action proposal primitives
+
+Step 2 work has begun by moving primitive styling toward the canonical token system and replacing proposal action text-only controls with Phosphor icons. The remaining Step 2 acceptance work includes full primitive API normalization, shared focus/overlay behavior, dev-state coverage and interaction tests.
+
 ## Recommended completion order
 
 1. Fix B2-B8 and add targeted tests.
