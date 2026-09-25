@@ -8,7 +8,10 @@ export function Button({
   loading = false, 
   onClick, 
   className = '', 
-  style = {} 
+  style = {},
+  type = 'button',
+  ariaLabel
+
 }) {
   const baseStyle = {
     display: 'inline-flex',
@@ -51,6 +54,8 @@ export function Button({
 
   return (
     <button
+      type={type}
+      aria-label={ariaLabel}
       onClick={onClick}
       disabled={disabled || loading}
       style={{ ...baseStyle, ...variants[variant] }}
@@ -70,10 +75,12 @@ export function IconButton({
   disabled = false, 
   label, 
   className = '', 
-  style = {} 
+  style = {},
+  type = 'button'
 }) {
   return (
     <button
+      type={type}
       aria-label={label}
       onClick={onClick}
       disabled={disabled}
