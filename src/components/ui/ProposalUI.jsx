@@ -206,27 +206,65 @@ export function ImpactDetailSheet({ proposal, impact, onApply, onEdit, onDismiss
 }
 
 export function EditProposalSheet({ proposal, onSave, onCancel, onDismiss }) {
-  if (!proposal) return null;
-  
-  // Real implementation would parse proposal schema and render inputs dynamically.
-  // For the UI step, we just show a placeholder representation.
+  const [draft, setDraft] = useState(null);
+
+  useEffect(() => {
+    if (!proposal) {
+      setDraft(null);
+      return;
+    }
+    setDraft({
+      name: proposal.name || '',
+      description: proposal.description || '',
+      payload: { ...(proposal.payload || {}) },
+    });
+  }, [proposal]);
+
+  if (!proposal || !draft) return null;
+
+  const payload = draft.payload;
+  const fields = [
+    ['name', 'Name', 'text', draft.name, value => setDraft(prev => ({ ...prev, name: value }))],
+    ...(payload.title !== undefined ? [['title', 'Title', 'text', payload.title, value => setDraft(prev => ({ ...prev, payload: { ...prev.payload, title: value } }))]] : []),
+    ...(payload.label !== undefined ? [['label', 'Label', 'text', payload.label, value => setDraft(prev => ({ ...prev, payload: { ...prev.payload, label: value } }))]] : []),
+    ...(payload.hypothesis !== undefined ? [['hypothesis', 'Hypothesis', 'textarea', payload.hypothesis, value => setDraft(prev => ({ ...prev, payload: { ...prev.payload, hypothesis: value } }))]] : []),
+    ...(payload.content !== undefined ? [['content', 'Content', 'textarea', payload.content, value => setDraft(prev => ({ ...prev, payload: { ...prev.payload, content: value } }))]] : []),
+  ];
+
+  const handleSave = () => {
+    onSave?.({
+      ...proposal,
+      name: draft.name.trim() || proposal.name,
+      description: draft.description,
+      payload: draft.payload,
+    });
+  };
+
   return (
     <BottomSheet isOpen={!!proposal} onClose={onDismiss}>
       <h3 className="h3">Edit proposal</h3>
-      <p style={{ fontSize: '13.5px', color: 'var(--mu)' }}>{proposal.name}</p>
-      
+      <p style={{ fontSize: '13px', color: 'var(--mu)' }}>Review the fields before approval.</p>
+
       <div style={{ marginTop: '16px' }}>
-        <div style={{ fontSize: '13px', fontWeight: 500, marginBottom: '8px' }}>Name</div>
-        <div style={{ 
-          minHeight: '48px', display: 'flex', alignItems: 'center', padding: '0 14px', 
-          backgroundColor: 'var(--s2)', borderRadius: '12px', boxShadow: 'inset 0 0 0 1px var(--ln)'
-        }}>
-          {proposal.name}
-        </div>
+        {fields.map(([key, label, type, value, onChange]) => (
+          <label key={key} style={{ display: 'block', marginBottom: '14px', fontSize: '13px', fontWeight: 500 }}>
+            {label}
+            {type === 'textarea' ? (
+              <textarea value={value || ''} onChange={e => onChange(e.target.value)} style={{ width: '100%', minHeight: '78px', marginTop: '6px', padding: '10px 12px', borderRadius: '12px', background: 'var(--s2)', color: 'var(--tx)', border: '1px solid var(--ln)', resize: 'vertical' }} />
+            ) : (
+              <input value={value || ''} onChange={e => onChange(e.target.value)} style={{ width: '100%', minHeight: '48px', marginTop: '6px', padding: '0 12px', borderRadius: '12px', background: 'var(--s2)', color: 'var(--tx)', border: '1px solid var(--ln)' }} />
+            )}
+          </label>
+        ))}
+        {fields.length === 1 && (
+          <p style={{ fontSize: '12.5px', color: 'var(--mu)' }}>
+            This proposal has no additional editable schema fields. The existing action payload will be preserved unchanged.
+          </p>
+        )}
       </div>
-      
+
       <div style={{ display: 'flex', gap: '8px', marginTop: '24px' }}>
-        <Button variant="primary" style={{ flex: 1 }} onClick={onSave}>Apply changes</Button>
+        <Button variant="primary" style={{ flex: 1 }} onClick={handleSave}>Save changes</Button>
         <Button variant="secondary" style={{ flex: 1 }} onClick={onCancel}>Cancel</Button>
       </div>
     </BottomSheet>
