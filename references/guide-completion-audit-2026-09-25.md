@@ -112,7 +112,13 @@ Implemented on the audit branch:
 - token development page updated to exercise the canonical token names;
 - checkbox keyboard semantics and shared loading spinner utility improved.
 
-Step 1 remains open only for the repository-wide one-off-style/icon audit and runtime visual verification.
+Step 1 repository implementation is complete. Runtime visual/device verification remains an evidence gate for the overall release, not a reason to leave the token foundation unfinished.
+
+## Step 1 completion update
+
+The shared foundation has now been extended into the common primitives: control heights, pill radius, motion tokens, state/overlay spacing, and proposal chip geometry. Geist is loaded from the installed package and Jarvis uses the shared typography foundation. No new icon system was introduced; the existing Phosphor dependency remains the canonical icon library.
+
+**Step 1 status: IMPLEMENTED.**
 
 ## Recommended completion order
 
