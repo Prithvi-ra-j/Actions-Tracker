@@ -23,6 +23,7 @@ import { NutriLiftConnector } from './core/sync/connectors/NutriLiftConnector.js
 import { bootstrapAnalysisScheduler } from './core/ai/analysisScheduler.js';
 import { installGlobalErrorLogging, markErrorLoggerReady } from './core/errorLogger.js';
 import { checkForUpdate } from './core/updateChecker.js';
+import { applyFreshStartReset } from './core/freshStartReset.js';
 
 // ── Helpers ─────────────────────────────────────────────────────────────────────────────
 import { computeAllStats, computeAxisDetails, getThresholdTitle } from './helpers/statsEngine.js';
@@ -225,15 +226,22 @@ export default function App() {
         await saveTelemetryEvent('app_started', localDateStr(), { type: 'boot' }).catch(() => {});
         await initDB();
 
-        // Recover user data before any migration/seed logic runs. This only
-        // activates when IndexedDB is genuinely empty, so normal app updates
-        // never overwrite existing data.
-        await restoreLatestBackupIfDatabaseEmpty();
+        const didFreshStartReset = await applyFreshStartReset();
 
-        await markErrorLoggerReady();
-        installGlobalErrorLogging();
-        await migrateFromLocalStorage();
-        await saveTelemetryEvent('db_migration_success', localDateStr(), {}).catch(() => {});
+        if (!didFreshStartReset) {
+          // Normal recovery/migration path. The fresh-start release has already
+          // removed the old local backup and legacy localStorage dataset.
+          await restoreLatestBackupIfDatabaseEmpty();
+
+          await markErrorLoggerReady();
+          installGlobalErrorLogging();
+          await migrateFromLocalStorage();
+          await saveTelemetryEvent('db_migration_success', localDateStr(), {}).catch(() => {});
+        } else {
+          await markErrorLoggerReady();
+          installGlobalErrorLogging();
+          await saveTelemetryEvent('fresh_start_reset_complete', localDateStr(), {}).catch(() => {});
+        }
         // Hardcoded goal definitions are no longer seeded for new users.
         // Existing legacy state is handled by initGoals() when legacy checkbox data exists.
         await migrateAxisVocabulary();
