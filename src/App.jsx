@@ -48,21 +48,13 @@ import JarvisTab         from './components/JarvisTab.jsx';  // Phase 11
 import AuditsTab         from './components/AuditsTab.jsx';  // Phase 12
 import UpdateBanner      from './components/UpdateBanner.jsx';
 import AppShell          from './components/AppShell.jsx';
+import { createJarvisEntryContext } from './core/ai/jarvisContext.js';
 
 
 
 // ─────────────────────────────────────────────────────────────────────────────
 
-const TABS = [
-  // Primary
-  { id: 'daily',      label: 'Today'    },
-  { id: 'stats',      label: 'Stats'    },
-  { id: 'learn',      label: 'Learn'    },
-  { id: 'goals',      label: 'Goals'    },
-  // Secondary
-  { id: 'jarvis',     label: 'Jarvis'   },
-  { id: 'audits',     label: 'Audits'   },
-];
+
 
 // Total possible goal targets (4 goals × 4 targets each)
 const TOTAL_TARGETS = 16;
@@ -561,6 +553,16 @@ export default function App() {
     setShowNavDrawer(false);
   }
 
+  const handleOpenJarvis = useCallback((context = null) => {
+    const normalized = typeof context === 'string'
+      ? createJarvisEntryContext({ page: context })
+      : createJarvisEntryContext(context || { page: tab });
+    setJarvisContext(normalized);
+    setTab('jarvis');
+    setShowSettings(false);
+    setShowNavDrawer(false);
+  }, [tab]);
+
   // ── Phase 7: Occurrence command handlers ──────────────────────────────────
   const handleCompleteOccurrence = useCallback(async (id) => {
     if (completingOccurrences.current.has(id)) return;
@@ -695,7 +697,7 @@ export default function App() {
           onOccurrenceReason={handleOccurrenceReason}
           completionFeedback={completionFeedback}
           onGoToGoals={() => handleTabChange('goals')}
-          onOpenJarvis={() => handleTabChange('jarvis')}
+          onOpenJarvis={handleOpenJarvis}
         />
       </div>
       <div style={{ display: tab === 'stats' ? 'block' : 'none' }}>
@@ -708,7 +710,7 @@ export default function App() {
           allQuests={allQuests}
           allLogs={allLogs}
           axisConfigs={axisConfigs}
-          onOpenJarvis={() => handleTabChange('jarvis')}
+          onOpenJarvis={handleOpenJarvis}
         />
       </div>
       <div style={{ display: tab === 'goals' ? 'block' : 'none' }}>
@@ -717,7 +719,7 @@ export default function App() {
           dark={dark}
           allQuests={allQuests}
           allLogs={allLogs}
-          onOpenJarvis={() => handleTabChange('jarvis')}
+          onOpenJarvis={handleOpenJarvis}
         />
       </div>
       <div style={{ display: tab === 'learn' ? 'block' : 'none' }}>
@@ -730,14 +732,14 @@ export default function App() {
           onAddLearning={handleAddLearning}
           onAddBook={handleAddBook}
           onStartBook={handleStartBook}
-                onOpenJarvis={() => handleTabChange('jarvis')}
+                onOpenJarvis={handleOpenJarvis}
         />
       </div>
       <div style={{ display: tab === 'jarvis' ? 'block' : 'none' }}>
         <JarvisTab t={t} onQuestsChanged={refreshAfterJarvisAction} jarvisContext={jarvisContext} onClearContext={() => setJarvisContext(null)} />
       </div>
       <div style={{ display: tab === 'audits' ? 'block' : 'none' }}>
-        <AuditsTab t={t} onOpenJarvis={() => handleTabChange('jarvis')} />
+        <AuditsTab t={t} onOpenJarvis={handleOpenJarvis} />
       </div>
     </>
   );
@@ -809,7 +811,7 @@ export default function App() {
         <AppShell
           currentTab={tab}
           onTabChange={handleTabChange}
-          onOpenJarvis={() => handleTabChange('jarvis')}
+          onOpenJarvis={handleOpenJarvis}
           onOpenSettings={() => setShowSettings(true)}
           headerTitle={getHeaderTitle()}
           headerSubline={getHeaderSubline()}
