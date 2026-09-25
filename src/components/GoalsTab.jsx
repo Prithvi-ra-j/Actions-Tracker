@@ -5,7 +5,6 @@ import { Button, ContextualJarvisCTA } from './ui/Buttons.jsx';
 import { EmptyState, ErrorState, LoadingSkeleton } from './ui/States.jsx';
 import { Checkbox } from './ui/Inputs.jsx';
 import { Plus, MagicWand, PencilSimple, Pause, Play, CheckCircle, Trash, X } from '@phosphor-icons/react';
-import { EvidenceSheet } from './EvidenceSheet.jsx';
 
 const EMPTY_FORM = {
   label: '', domain: '', start: '', end: '', proof: '', whyItMatters: '', fear: '',
@@ -72,10 +71,10 @@ export default function GoalsTab({ onOpenJarvis }) {
     if (!selectedGoal || !evidenceText.trim()) return;
     setEvidenceSaving(true);
     try {
-      const { addGoalEvidence, getGoal } = await import('../database/goalsRepository.js');
+      const { addGoalEvidence, getGoalEvidence, getGoal } = await import('../database/goalsRepository.js');
       await addGoalEvidence(selectedGoal.id, evidenceText);
       const [facts, updated] = await Promise.all([
-        import('../database/goalsRepository.js').then(({ getGoalEvidence }) => getGoalEvidence(selectedGoal.id)),
+        getGoalEvidence(selectedGoal.id),
         getGoal(selectedGoal.id),
       ]);
       setGoalEvidence(facts);
@@ -325,7 +324,15 @@ export default function GoalsTab({ onOpenJarvis }) {
           {evidenceLoading ? <LoadingSkeleton rows={2} /> : goalEvidence.length === 0 ? (
             <EmptyState title="No recorded evidence yet." description="Add the first concrete observation or result for this goal." />
           ) : (
-            <EvidenceSheet isOpen={true} onClose={() => {}} title={`Recorded evidence for ${selectedGoal?.label || 'goal'}`} evidenceItems={goalEvidence.map(f => ({ id: f.id, content: f.meta?.text || 'Evidence', source: f.source?.type || 'user', date: new Date(f.occurredAt).toLocaleDateString() }))} />
+            <div className="goal-evidence-list">
+              {goalEvidence.map(fact => (
+                <article className="goal-evidence-item" key={fact.id}>
+                  <strong>{fact.meta?.text || 'Evidence'}</strong>
+                  <small>{fact.source?.type || 'user'} · {new Date(fact.occurredAt).toLocaleString()}</small>
+                  <code>{fact.id}</code>
+                </article>
+              ))}
+            </div>
           )}
         </div>
       </BottomSheet>
