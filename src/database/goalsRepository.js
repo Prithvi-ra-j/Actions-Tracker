@@ -120,9 +120,18 @@ export async function setGoalStatus(id, status) {
   if (!goal) throw new Error('[goalsRepository] Goal not found: ' + id);
   const now = new Date().toISOString();
   const fields = { status, updatedAt: now };
-  if (status === 'paused') fields.pausedAt = now;
-  if (status === 'active') fields.pausedAt = null;
-  if (status === 'completed') fields.completedAt = now;
+  if (status === 'paused') {
+    fields.pausedAt = now;
+    fields.completedAt = null;
+  }
+  if (status === 'active') {
+    fields.pausedAt = null;
+    fields.completedAt = null;
+  }
+  if (status === 'completed') {
+    fields.completedAt = now;
+    fields.pausedAt = null;
+  }
   const updated = { ...goal, ...fields };
   await dbPut(STORE, updated);
   return updated;
