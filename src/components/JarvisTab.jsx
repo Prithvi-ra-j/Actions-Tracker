@@ -54,7 +54,7 @@ function modeInstruction(mode) {
   return entry ? '[Assistant mode: ' + entry.label + '] ' + entry.hint + '. ' : '';
 }
 
-export default function JarvisTab({ t, onQuestsChanged, onboardingMode = false, onOnboardingComplete, jarvisContext, onClearContext }) {
+export default function JarvisTab({ t, isActive = true, onQuestsChanged, onboardingMode = false, onOnboardingComplete, jarvisContext, onClearContext }) {
   const [jarvisOnboardingRequired, setJarvisOnboardingRequired] = useState(null);
   const activeOnboardingMode = onboardingMode || jarvisOnboardingRequired === true;
   const conversationId = activeOnboardingMode ? ONBOARDING_CONVERSATION_ID : DEFAULT_CONVERSATION_ID;
@@ -78,6 +78,15 @@ export default function JarvisTab({ t, onQuestsChanged, onboardingMode = false, 
   const [apiConfigured, setApiConfigured] = useState(null);
   const messagesEndRef = useRef(null);
   const createdAtRef = useRef(null);
+
+  // The app keeps Jarvis mounted while switching tabs. Draft text must not
+  // leak from a previous visit into the next visible Jarvis session.
+  useEffect(() => {
+    if (isActive) return;
+    setInput('');
+    setCommandMenuOpen(false);
+    setCommandQuery('');
+  }, [isActive]);
 
   useEffect(() => {
     let cancelled = false;
@@ -647,14 +656,23 @@ export default function JarvisTab({ t, onQuestsChanged, onboardingMode = false, 
           +
         </button>
         <input
+          name="jarvis-prompt"
+          autoComplete="off"
+          autoCorrect="off"
+          autoCapitalize="sentences"
+          spellCheck={true}
+          enterKeyHint="send"
           style={{
             flex: 1,
-            paddingLeft: '6px',
+            minWidth: 0,
+            height: '42px',
+            padding: '0 6px',
             background: 'transparent',
             border: 'none',
             color: 'var(--tx)',
             outline: 'none',
             fontSize: '14px',
+            lineHeight: 1.35,
             fontFamily: 'inherit',
           }}
           placeholder="Tell Jarvis what you want"
