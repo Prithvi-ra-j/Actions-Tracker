@@ -6,7 +6,7 @@ export function AppHeader({ title, subline, rightElement }) {
       display: 'flex',
       alignItems: 'center',
       justifyContent: 'space-between',
-      padding: '0 16px',
+      padding: '0 var(--space-4)',
       height: '64px',
       backgroundColor: 'var(--bg)',
       position: 'sticky',
@@ -15,7 +15,7 @@ export function AppHeader({ title, subline, rightElement }) {
       paddingTop: 'env(safe-area-inset-top, 0px)'
     }}>
       <div style={{ display: 'flex', flexDirection: 'column' }}>
-        <h1 style={{ margin: 0, fontSize: '26px', fontWeight: 600, letterSpacing: '-0.02em' }}>
+        <h1 style={{ margin: 0, fontSize: '1.625rem', fontWeight: 600, letterSpacing: '-0.02em' }}>
           {title}
         </h1>
         {subline && (
@@ -38,7 +38,7 @@ export function SectionHeader({ title, actionElement }) {
       marginBottom: '16px',
       marginTop: '24px'
     }}>
-      <h2 style={{ margin: 0, fontSize: '18px', fontWeight: 600 }}>{title}</h2>
+      <h2 style={{ margin: 0, fontSize: '1.125rem', fontWeight: 600 }}>{title}</h2>
       {actionElement && <div>{actionElement}</div>}
     </div>
   );
