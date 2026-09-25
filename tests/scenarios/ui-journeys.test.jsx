@@ -61,6 +61,6 @@ describe('UI Journeys', () => {
     const dockedJarvisBtn = document.getElementById('jarvis-pill-btn');
     expect(dockedJarvisBtn).toBeTruthy();
     fireEvent.click(dockedJarvisBtn);
-    expect(await screen.findByPlaceholderText(/Ask Jarvis/i)).toBeTruthy();
+    expect(await screen.findByPlaceholderText(/Tell Jarvis what you want/i)).toBeTruthy();
   });
 });
