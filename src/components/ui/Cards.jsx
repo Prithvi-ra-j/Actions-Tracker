@@ -1,10 +1,14 @@
 import React from 'react';
 
-export function Card({ children, onClick, className = '', style = {} }) {
+export function Card({ children, onClick, className = '', style = {}, ariaLabel }) {
   const isClickable = !!onClick;
   return (
     <div
       onClick={onClick}
+      role={onClick ? 'button' : undefined}
+      tabIndex={onClick ? 0 : undefined}
+      aria-label={ariaLabel}
+      onKeyDown={(event) => { if (onClick && (event.key === 'Enter' || event.key === ' ')) { event.preventDefault(); onClick(event); } }}
       className={className}
       style={{
         backgroundColor: 'var(--s1)',
