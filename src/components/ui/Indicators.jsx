@@ -4,7 +4,11 @@ export function Chip({ label, icon, active, onClick, color = 'var(--s2)', active
   const isClickable = !!onClick;
   return (
     <div
+      role={isClickable ? 'button' : undefined}
+      tabIndex={isClickable ? 0 : undefined}
+      aria-pressed={isClickable ? active : undefined}
       onClick={onClick}
+      onKeyDown={(event) => { if (isClickable && (event.key === 'Enter' || event.key === ' ')) { event.preventDefault(); onClick(event); } }}
       style={{
         display: 'inline-flex',
         alignItems: 'center',
