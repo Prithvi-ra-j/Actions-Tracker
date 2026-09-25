@@ -120,6 +120,22 @@ export default function AuditsTab({ t, onOpenJarvis }) {
           ))}
         </div>
 
+        {activeTab === 'resolved' && (
+          <div>
+            {findings.filter(f => ignoredIds.has(f.id)).map(f => (
+              <div key={f.id} style={{ background: 'var(--s1)', borderRadius: '16px', padding: '14px 14px 12px 18px', marginBottom: '10px', boxShadow: 'inset 4px 0 0 var(--ac)' }}>
+                <h3 style={{ font: '600 15px var(--f)' }}>{f.type}</h3>
+                <p style={{ fontSize: '12.5px', color: 'var(--mu)' }}>{f.text}</p>
+                <button style={{ marginTop: '8px', border: 'none', background: 'transparent', color: 'var(--ac)', padding: 0, font: '500 12px var(--font-mono)' }} onClick={async () => {
+                  const { addFact } = await import('../database/factsRepository.js');
+                  await addFact({ type: 'audit_finding_resolution', objectId: f.id, value: 1, meta: { status: 'restored', findingType: f.type } });
+                  setIgnoredIds(prev => { const next = new Set(prev); next.delete(f.id); return next; });
+                }}>Restore finding</button>
+              </div>
+            ))}
+          </div>
+        )}
+
         {activeTab === 'unresolved' && (
           <>
             {findings.filter(f => !ignoredIds.has(f.id)).length === 0 && !loading && (
