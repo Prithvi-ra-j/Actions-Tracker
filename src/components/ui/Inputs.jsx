@@ -4,7 +4,17 @@ import { Check } from '@phosphor-icons/react';
 export function Checkbox({ checked, onChange, size = 24, disabled = false }) {
   return (
     <div
+      role="checkbox"
+      aria-checked={checked}
+      aria-disabled={disabled}
+      tabIndex={disabled ? -1 : 0}
       onClick={() => !disabled && onChange && onChange(!checked)}
+      onKeyDown={(event) => {
+        if (!disabled && (event.key === 'Enter' || event.key === ' ')) {
+          event.preventDefault();
+          onChange?.(!checked);
+        }
+      }}
       style={{
         width: size,
         height: size,
