@@ -58,7 +58,8 @@ describe('UI Journeys', () => {
     await markOnboardingComplete();
     render(<App />);
     await waitForApp();
-    fireEvent.click(await screen.findByText('Ask Jarvis'));
+    const jarvisButtons = await screen.findAllByRole('button', { name: /Ask Jarvis/i });
+    fireEvent.click(jarvisButtons[jarvisButtons.length - 1]);
     expect(await screen.findByPlaceholderText(/Ask Jarvis/i)).toBeTruthy();
   });
 });

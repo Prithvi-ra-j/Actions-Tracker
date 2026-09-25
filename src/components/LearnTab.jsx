@@ -1,9 +1,10 @@
 import React, { useState } from 'react';
 import { Card, EntityRow } from './ui/Cards';
-import { Button } from './ui/Buttons';
+import { Button, ContextualJarvisCTA } from './ui/Buttons';
+import { MagicWand } from '@phosphor-icons/react';
 import { BottomSheet } from './ui/Overlays';
 
-export default function LearnTab({ t, learnings = [], onAddLearning }) {
+export default function LearnTab({ t, learnings = [], onAddLearning, onOpenJarvis }) {
   const [activeTopics, setActiveTopics] = useState(learnings);
   const [sheet, setSheet] = useState(null);
   const [topic, setTopic] = useState('');
@@ -34,7 +35,10 @@ export default function LearnTab({ t, learnings = [], onAddLearning }) {
       <div className="hd" style={{ display: 'flex', alignItems: 'flex-end', padding: '26px 18px 12px' }}>
         <div>
           <h2 style={{ font: '600 26px/1.1 var(--f)', letterSpacing: '-.02em' }}>Learn</h2>
-          <p style={{ fontSize: '13px', color: 'var(--mu)' }}>{activeTopics.length} active topics</p>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+            <p style={{ fontSize: '13px', color: 'var(--mu)', margin: 0 }}>{activeTopics.length} active topics</p>
+            <ContextualJarvisCTA label="Ask Jarvis" contextIcon={<MagicWand size={16} />} onClick={() => onOpenJarvis?.({ page: 'learn', entityType: 'none' })} />
+          </div>
         </div>
       </div>
 

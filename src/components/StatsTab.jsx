@@ -10,7 +10,7 @@ import { EvidenceCard } from './ui/ActionPrimitives.jsx';
 import { EvidenceSheet } from './EvidenceSheet.jsx';
 
 export default function StatsTab({
-  t, stats, axisDetails, snapshot, allQuests, allLogs, axisConfigs
+  t, stats, axisDetails, snapshot, allQuests, allLogs, axisConfigs, onOpenJarvis
 }) {
   const [selectedAxis, setSelectedAxis] = useState(null);
   const [showEvidence, setShowEvidence] = useState(false);
@@ -141,7 +141,19 @@ export default function StatsTab({
                 label="Why?" 
                 contextIcon={<MagicWand size={18} weight="fill" />} 
                 onClick={() => {
-                  console.log('Open Jarvis for', selectedAxis);
+                  if (selectedAxis) {
+                    onOpenJarvis?.({
+                      page: 'stats',
+                      entityType: 'axis',
+                      entityId: selectedAxis,
+                      payload: {
+                        axis: selectedAxis,
+                        value: selectedData.stat,
+                        trend: selectedData.trend,
+                        contributions: selectedData.details?.components?.slice(0, 5) || []
+                      }
+                    });
+                  }
                   setSelectedAxis(null);
                 }}
               />
