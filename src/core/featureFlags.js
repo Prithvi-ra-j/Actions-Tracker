@@ -15,7 +15,8 @@ const DEFAULTS = {
 };
 
 function readBoolean(name, fallback) {
-  const raw = import.meta.env?.[`VITE_FLAG_${name.toUpperCase()}`];
+  const envKeys = { guideAudit: 'VITE_FLAG_GUIDE_AUDIT', contextualJarvis: 'VITE_FLAG_CONTEXTUAL_JARVIS', proposalActions: 'VITE_FLAG_PROPOSAL_ACTIONS', learningLifecycle: 'VITE_FLAG_LEARNING_LIFECYCLE' };
+  const raw = import.meta.env?.[envKeys[name]];
   if (raw == null || raw === '') return fallback;
   return String(raw).toLowerCase() === 'true';
 }
