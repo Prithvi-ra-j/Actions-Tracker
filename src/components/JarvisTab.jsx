@@ -557,6 +557,18 @@ export default function JarvisTab({ t, isActive = true, onQuestsChanged, onboard
                         status={msg.proposalStatus}
                         onApply={() => setSelectedProposalForImpact({ proposal: msg.proposal, impact: msg.proposal.impact })}
                         onEdit={() => setSelectedProposalForEdit(msg.proposal)}
+                        onDismiss={async () => {
+                          const updatedMessages = messages.map(item =>
+                            item === msg ? { ...item, proposalStatus: 'dismissed' } : item
+                          );
+                          setMessages(updatedMessages);
+                          await saveConversation({
+                            id: conversationId,
+                            type: 'Jarvis',
+                            messages: updatedMessages,
+                            createdAt: createdAtRef.current
+                          });
+                        }}
                       />
                     )}
                   </div>
