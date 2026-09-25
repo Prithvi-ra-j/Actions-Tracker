@@ -734,7 +734,7 @@ export default function App() {
         />
       </div>
       <div style={{ display: tab === 'jarvis' ? 'block' : 'none' }}>
-        <JarvisTab t={t} onQuestsChanged={refreshAfterJarvisAction} jarvisContext={jarvisContext} onClearContext={() => setJarvisContext(null)} />
+        <JarvisTab t={t} isActive={tab === 'jarvis'} onQuestsChanged={refreshAfterJarvisAction} jarvisContext={jarvisContext} onClearContext={() => setJarvisContext(null)} />
       </div>
       <div style={{ display: tab === 'audits' ? 'block' : 'none' }}>
         <AuditsTab t={t} onOpenJarvis={() => handleTabChange('jarvis')} />
