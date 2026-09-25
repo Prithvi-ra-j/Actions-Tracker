@@ -253,7 +253,9 @@ export default function GoalsTab({ onOpenJarvis }) {
                   </div>
                   <span className={`goal-status goal-status-${goal.status}`}>{goal.status}</span>
                 </div>
-                <div className="goal-progress"><span style={{ width: `${total ? (done / total) * 100 : 0}%` }} /></div>
+                <div className="goal-progress goal-progress-segments" aria-label={`${done} of ${total} milestones complete`}>
+                  {Array.from({ length: 10 }).map((_, index) => <span key={index} className={index < (total ? Math.round((done / total) * 10) : 0) ? 'is-filled' : ''} />)}
+                </div>
               </Card>
             );
           })}
@@ -282,7 +284,12 @@ export default function GoalsTab({ onOpenJarvis }) {
             </div>
 
             {!!selectedGoal.blockers?.length && <div><div className="goal-section-title">Blockers</div>{selectedGoal.blockers.map((b, i) => <div className="goal-note" key={i}>{b}</div>)}</div>}
-            {!!selectedGoal.supportingObjectIds?.length && <div><div className="goal-section-title">Supporting objects</div><div className="goal-note">{selectedGoal.supportingObjectIds.join(' · ')}</div></div>}
+            {!!selectedGoal.supportingObjectIds?.length && <div><div className="goal-section-title">Supporting objects</div><div className="goal-supporting-chips">
+{selectedGoal.supportingObjectIds.map(id => {
+  const object = supportingObjects.find(item => item.id === id);
+  return <span className="goal-supporting-chip" key={id}>{object?.label || object?.title || object?.name || id}<small>{object?.type || 'object'}</small></span>;
+})}
+</div></div>}
 
             <div className="goal-actions">
               <ContextualJarvisCTA label="Ask about this goal" contextIcon={<MagicWand size={18} weight="fill" />} onClick={() => { onOpenJarvis({ page: 'goals', entityType: 'goal', entityId: selectedGoal.id, payload: selectedGoal }); setSelectedGoal(null); }} />
