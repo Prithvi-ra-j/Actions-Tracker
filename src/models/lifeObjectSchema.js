@@ -50,6 +50,7 @@ export function generateLifeObjectId(type) {
  *   icon?:     string,
  *   start?:    string,    — where you're starting from (narrative)
  *   end?:      string,    — where you want to be (narrative)
+ *   timeframe?: string,   — intended duration or deadline
  *   targets?:  Array<{ text: string, metric: string }>,
  *   proof?:    string,    — how you'll know you made it
  *   fear?:     string,    — the obstacle to anticipate
@@ -67,6 +68,7 @@ export function createGoal(fields) {
     icon:    fields.icon   ?? '◇',
     start:   fields.start  ?? '',
     end:     fields.end    ?? '',
+    timeframe: fields.timeframe ?? '',
     targets: fields.targets ?? [],
     proof:   fields.proof  ?? '',
     whyItMatters: fields.whyItMatters ?? '',
