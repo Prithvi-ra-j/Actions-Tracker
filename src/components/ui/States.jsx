@@ -9,7 +9,7 @@ export function EmptyState({ title, description, actionLabel, onAction }) {
       alignItems: 'center',
       justifyContent: 'center',
       textAlign: 'center',
-      padding: '48px 24px',
+      padding: 'var(--space-12) var(--space-6)',
       color: 'var(--mu)'
     }}>
       <h3 style={{ fontSize: '18px', fontWeight: 600, color: 'var(--tx)', marginBottom: '8px', margin: 0 }}>
@@ -35,7 +35,7 @@ export function ErrorState({ message, onRetry }) {
       alignItems: 'center',
       justifyContent: 'center',
       textAlign: 'center',
-      padding: '24px',
+      padding: 'var(--space-6)',
       backgroundColor: 'var(--s1)',
       borderRadius: 'var(--r-container)',
       border: '1px solid var(--danger)'
