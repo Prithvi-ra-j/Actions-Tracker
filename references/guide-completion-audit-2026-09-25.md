@@ -102,6 +102,18 @@ The repository-side Step 0 baseline has now been implemented. Added:
 
 The feature flag registry is the single source for controlled rollout flags. The 360/390/432 and A52 requirements are recorded as explicit QA contracts rather than represented as completed runtime evidence.
 
+## Step 1 update
+
+Implemented on the audit branch:
+- semantic color, spacing, radius and typography token foundation in `src/index.css`;
+- JS token bridge aligned in `src/theme.js`;
+- Geist + Geist Mono loaded from the installed `geist` package in `src/main.jsx`;
+- safe-area, `100dvh`, text-size adjustment and reduced-motion foundations;
+- token development page updated to exercise the canonical token names;
+- checkbox keyboard semantics and shared loading spinner utility improved.
+
+Step 1 remains open only for the repository-wide one-off-style/icon audit and runtime visual verification.
+
 ## Recommended completion order
 
 1. Fix B2-B8 and add targeted tests.
