@@ -138,6 +138,11 @@ export default function JarvisTab({ t, onQuestsChanged, onboardingMode = false, 
     return () => { cancelled = true; };
   }, [conversationId, activeOnboardingMode, apiConfigured, jarvisOnboardingRequired]);
 
+  useEffect(() => {
+    if (!messagesEndRef.current) return;
+    messagesEndRef.current.scrollIntoView({ behavior: 'smooth', block: 'end' });
+  }, [messages, loading, error]);
+
   if (apiConfigured === null || (apiConfigured === true && jarvisOnboardingRequired === null)) {
     return (
       <div
@@ -579,7 +584,7 @@ export default function JarvisTab({ t, onQuestsChanged, onboardingMode = false, 
             margin: '0 14px 8px',
             padding: '12px 14px',
             flex: '0 0 auto',
-          borderRadius: 'var(--r-container)',
+            borderRadius: 'var(--r-container)',
           background: 'var(--s1)',
           boxShadow: 'inset 4px 0 0 var(--danger)',
           fontSize: '13px',
