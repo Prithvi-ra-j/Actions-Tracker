@@ -1,4 +1,5 @@
 import React from 'react';
+import { CircleNotch } from '@phosphor-icons/react';
 
 export function Button({ 
   children, 
@@ -58,7 +59,7 @@ export function Button({
       onPointerUp={handlePointerUp}
       onPointerLeave={handlePointerUp}
     >
-      {loading ? '...' : children}
+      {loading ? <CircleNotch size={18} className="spin" aria-label="Loading" /> : children}
     </button>
   );
 }
