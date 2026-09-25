@@ -7,7 +7,7 @@ import { Checkbox } from './ui/Inputs.jsx';
 import { Plus, MagicWand, PencilSimple, Pause, Play, CheckCircle, Trash, X } from '@phosphor-icons/react';
 
 const EMPTY_FORM = {
-  label: '', domain: '', start: '', end: '', proof: '', whyItMatters: '', fear: '',
+  label: '', domain: '', start: '', end: '', timeframe: '', proof: '', whyItMatters: '', fear: '',
   targets: [{ text: '', metric: '', completed: false }],
   blockers: [''],
   supportingObjectIds: [''],
@@ -16,7 +16,7 @@ const EMPTY_FORM = {
 function toForm(goal) {
   return {
     label: goal?.label || '', domain: goal?.domain || '', start: goal?.start || '',
-    end: goal?.end || '', proof: goal?.proof || '', whyItMatters: goal?.whyItMatters || goal?.fear || '', fear: goal?.fear || '',
+    end: goal?.end || '', timeframe: goal?.timeframe || '', proof: goal?.proof || '', whyItMatters: goal?.whyItMatters || goal?.fear || '', fear: goal?.fear || '',
     targets: goal?.targets?.length ? goal.targets.map(t => ({ ...t })) : [{ text: '', metric: '', completed: false }],
     blockers: goal?.blockers?.length ? [...goal.blockers] : [''],
     supportingObjectIds: goal?.supportingObjectIds?.length ? [...goal.supportingObjectIds] : [''],
@@ -39,6 +39,9 @@ export default function GoalsTab({ onOpenJarvis }) {
   const [evidenceLoading, setEvidenceLoading] = useState(false);
   const [evidenceSaving, setEvidenceSaving] = useState(false);
   const [supportingObjects, setSupportingObjects] = useState([]);
+  const [reviseTargetIndex, setReviseTargetIndex] = useState(null);
+  const [reviseTargetForm, setReviseTargetForm] = useState({ text: '', metric: '' });
+  const [reviseSaving, setReviseSaving] = useState(false);
 
   useEffect(() => { loadGoals(); loadSupportingObjects(); }, []);
 
@@ -108,6 +111,29 @@ export default function GoalsTab({ onOpenJarvis }) {
 
   function openEdit(goal) { setSelectedGoal(goal); setForm(toForm(goal)); setEditorOpen(true); }
 
+  function openReviseTarget(index) {
+    if (!selectedGoal?.targets?.[index]) return;
+    const target = selectedGoal.targets[index];
+    setReviseTargetIndex(index);
+    setReviseTargetForm({ text: target.text || '', metric: target.metric || '' });
+  }
+
+  async function saveRevisedTarget() {
+    if (!selectedGoal || reviseTargetIndex === null || !reviseTargetForm.text.trim()) return;
+    setReviseSaving(true);
+    try {
+      const { reviseGoalTarget } = await import('../database/goalsRepository.js');
+      const updated = await reviseGoalTarget(selectedGoal.id, reviseTargetIndex, { text: reviseTargetForm.text.trim(), metric: reviseTargetForm.metric.trim() });
+      setGoals(prev => prev.map(g => g.id === updated.id ? updated : g));
+      setSelectedGoal(updated);
+      setReviseTargetIndex(null);
+    } catch (err) {
+      console.error(err);
+      setError('The target could not be revised.');
+    } finally {
+      setReviseSaving(false);
+    }
+  }
   function toggleSupportingObject(id) {
     setForm(prev => ({
       ...prev,
@@ -133,6 +159,7 @@ export default function GoalsTab({ onOpenJarvis }) {
       const repo = await import('../database/goalsRepository.js');
       const data = {
         ...form,
+        timeframe: form.timeframe.trim(),
         label: form.label.trim(),
         targets: form.targets.filter(t => t.text.trim()).map(t => ({ ...t, text: t.text.trim(), metric: t.metric?.trim() || '' })),
         blockers: form.blockers.filter(Boolean).map(v => v.trim()),
@@ -191,6 +218,7 @@ export default function GoalsTab({ onOpenJarvis }) {
         <div>
           <div className="mono goals-kicker">Goals</div>
           <h2>Outcomes worth tracking</h2>
+          <div className="mono goals-active-count">{goals.filter(g => g.status === 'active').length} active</div>
         </div>
         <Button variant="primary" onClick={openCreate}><Plus size={18} /> New goal</Button>
       </div>
@@ -239,6 +267,7 @@ export default function GoalsTab({ onOpenJarvis }) {
               <div><span>Outcome</span><strong>{selectedGoal.label}</strong></div>
               <div><span>Why it matters</span><p>{selectedGoal.whyItMatters || selectedGoal.fear || 'Not specified.'}</p></div>
               <div><span>Starting point</span><p>{selectedGoal.start || 'Not specified.'}</p></div>
+              <div><span>Timeframe</span><p>{selectedGoal.timeframe || 'Not specified.'}</p></div>
               <div><span>Target state</span><p>{selectedGoal.end || 'Not specified.'}</p></div>
             </div>
 
@@ -258,10 +287,12 @@ export default function GoalsTab({ onOpenJarvis }) {
             <div className="goal-actions">
               <ContextualJarvisCTA label="Ask about this goal" contextIcon={<MagicWand size={18} weight="fill" />} onClick={() => { onOpenJarvis({ page: 'goals', entityType: 'goal', entityId: selectedGoal.id, payload: selectedGoal }); setSelectedGoal(null); }} />
               <Button variant="secondary" onClick={() => openEdit(selectedGoal)}><PencilSimple size={18} /> Edit</Button>
+              {!!selectedGoal.targets?.length && <Button variant="secondary" onClick={() => openReviseTarget(0)}><PencilSimple size={18} /> Revise target</Button>
               {selectedGoal.status === 'active' && <Button variant="secondary" onClick={() => changeStatus('paused')}><Pause size={18} /> Pause</Button>}
               {selectedGoal.status === 'paused' && <Button variant="secondary" onClick={() => changeStatus('active')}><Play size={18} /> Resume</Button>}
               {selectedGoal.status !== 'completed' && <Button variant="secondary" onClick={() => changeStatus('completed')}><CheckCircle size={18} /> Complete</Button>}
               <Button variant="secondary" onClick={openEvidence}>Evidence</Button>
+              <Button variant="secondary" onClick={() => { onOpenJarvis({ page: 'audits', entityType: 'goal', entityId: selectedGoal.id, payload: { goal: selectedGoal, action: 'audit_conflicts' } }); setSelectedGoal(null); }}>Audit conflicts</Button>
               <Button variant="destructive" onClick={() => setShowConfirmDelete(true)}><Trash size={18} /> Delete</Button>
             </div>
           </div>
@@ -274,6 +305,7 @@ export default function GoalsTab({ onOpenJarvis }) {
           {field('Domain', form.domain, v => setForm(p => ({ ...p, domain: v })), 'Body, knowledge, strategy...')}
           {field('Starting point', form.start, v => setForm(p => ({ ...p, start: v })))}
           {field('Target state', form.end, v => setForm(p => ({ ...p, end: v })))}
+          {field('Timeframe', form.timeframe, v => setForm(p => ({ ...p, timeframe: v })), 'e.g. 8 weeks')}
           {field('Why it matters', form.whyItMatters, v => setForm(p => ({ ...p, whyItMatters: v }))}
           {field('Proof of success', form.proof, v => setForm(p => ({ ...p, proof: v })))}
 
@@ -316,6 +348,14 @@ export default function GoalsTab({ onOpenJarvis }) {
 
       <ConfirmDialog isOpen={showConfirmDelete} onClose={() => setShowConfirmDelete(false)} onConfirm={handleDeleteGoal} title="Delete Goal" description="This permanently removes the goal and its milestones." />
 
+      <BottomSheet isOpen={reviseTargetIndex !== null} onClose={() => setReviseTargetIndex(null)} title="Revise target">
+        <div className="goal-editor">
+          <p className="goal-helper">Change the definition or threshold of this milestone without replacing the goal.</p>
+          {field('Target', reviseTargetForm.text, value => setReviseTargetForm(prev => ({ ...prev, text: value })), 'Milestone definition')}
+          {field('Metric / threshold', reviseTargetForm.metric, value => setReviseTargetForm(prev => ({ ...prev, metric: value })), 'What counts as complete?')}
+          <Button variant="primary" loading={reviseSaving} onClick={saveRevisedTarget} disabled={!reviseTargetForm.text.trim()}>Save revised target</Button>
+        </div>
+      </BottomSheet>
       <BottomSheet isOpen={showEvidence} onClose={() => setShowEvidence(false)} title="Goal evidence">
         <div className="goal-evidence-sheet">
           <p className="goal-helper">Evidence is stored as an immutable fact linked to this goal, so it remains traceable to the source event.</p>
