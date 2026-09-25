@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card, EntityRow } from './ui/Cards';
 import { Button, ContextualJarvisCTA } from './ui/Buttons';
 import { MagicWand } from '@phosphor-icons/react';
@@ -12,8 +12,30 @@ export default function LearnTab({ t, learnings = [], onAddLearning, onOpenJarvi
   const [axis, setAxis] = useState('Knowledge');
   const [evidence, setEvidence] = useState('');
   const [selected, setSelected] = useState(null);
+  const [resourceUrl, setResourceUrl] = useState('');
+  const [resourceTitle, setResourceTitle] = useState('');
+
+  useEffect(() => { setActiveTopics(learnings); }, [learnings]);
 
   const axes = ['Knowledge', 'Creativity', 'Strategy'];
+
+  const addResource = async () => {
+    if (!resourceUrl.trim() || !sheet?.topic?.id) return;
+    const { updateLearning } = await import('../database/learningRepository.js');
+    const resources = [...(sheet.topic.resources || []), { title: resourceTitle.trim() || resourceUrl.trim(), url: resourceUrl.trim(), addedAt: new Date().toISOString() }];
+    await updateLearning(sheet.topic.id, { resources });
+    const next = { ...sheet.topic, resources };
+    setSheet({ type: 'detail', topic: next });
+    setResourceUrl('');
+    setResourceTitle('');
+  };
+
+  const convertToQuest = async () => {
+    if (!sheet?.topic?.id) return;
+    const { addQuest } = await import('../database/questBoardRepository.js');
+    const id = await addQuest({ axis: (sheet.topic.tags?.[0] || 'Knowledge').toLowerCase(), title: sheet.topic.whyItMatters ? `${sheet.topic.concept}: ${sheet.topic.whyItMatters}` : `Demonstrate ${sheet.topic.concept}`, targetValue: 1, currentValue: 0, unit: 'applications', done: false, learningId: sheet.topic.id, source: 'learn' });
+    setSheet(prev => prev ? { ...prev, questId: id } : prev);
+  };
 
   const handleNext = () => {
     // Save learning
@@ -133,10 +155,20 @@ export default function LearnTab({ t, learnings = [], onAddLearning, onOpenJarvi
 
           <div style={{ font: '500 12.5px var(--f)', color: 'var(--mu)', margin: '16px 4px 8px' }}>Resources</div>
           <div className="grp" style={{ borderRadius: '16px', overflow: 'hidden', boxShadow: 'inset 0 0 0 1px var(--ln)', background: 'var(--s1)' }}>
-            <div style={{ display: 'flex', alignItems: 'center', minHeight: '52px', padding: '0 14px', font: '500 14.5px var(--f)' }}>
-              {sheet.topic.sourceId ? `Source linked: ${sheet.topic.sourceType || 'resource'}` : 'No resources linked — add one through Jarvis.'}
+            {(sheet.topic.resources || []).map((r, i) => (
+              <a key={i} href={r.url} target="_blank" rel="noreferrer" style={{ display: 'block', padding: '12px 14px', borderBottom: '1px solid var(--ln)', color: 'var(--tx)', textDecoration: 'none' }}>
+                <b style={{ display: 'block' }}>{r.title}</b><span style={{ fontSize: '12px', color: 'var(--mu)' }}>{r.url}</span>
+              </a>
+            ))}
+            <div style={{ padding: '12px 14px' }}>
+              <input value={resourceTitle} onChange={e => setResourceTitle(e.target.value)} placeholder="Resource title" aria-label="Resource title" style={{ width: '100%', minHeight: '44px', marginBottom: '8px', padding: '0 10px', background: 'var(--s2)', color: 'var(--tx)', border: '1px solid var(--ln)', borderRadius: '10px' }} />
+              <input value={resourceUrl} onChange={e => setResourceUrl(e.target.value)} placeholder="https://..." aria-label="Resource URL" style={{ width: '100%', minHeight: '44px', padding: '0 10px', background: 'var(--s2)', color: 'var(--tx)', border: '1px solid var(--ln)', borderRadius: '10px' }} />
+              <Button variant="secondary" disabled={!resourceUrl.trim()} style={{ marginTop: '8px' }} onClick={addResource}>Add resource</Button>
             </div>
           </div>
+          <Button variant="secondary" style={{ marginTop: '10px', width: '100%' }} onClick={convertToQuest} disabled={!!sheet.topic.questId}>
+            {sheet.topic.questId ? 'Quest created' : 'Convert to quest'}
+          </Button>
 
           <div style={{ font: '500 12.5px var(--f)', color: 'var(--mu)', margin: '16px 4px 8px' }}>Evidence of understanding</div>
           <div className="grp" style={{ borderRadius: '16px', overflow: 'hidden', boxShadow: 'inset 0 0 0 1px var(--ln)', background: 'var(--s1)' }}>
