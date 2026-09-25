@@ -9,7 +9,7 @@ export function Card({ children, onClick, className = '', style = {} }) {
       style={{
         backgroundColor: 'var(--s1)',
         borderRadius: 'var(--r-container)',
-        padding: '16px',
+        padding: 'var(--space-4)',
         border: '1px solid var(--hairline)',
         cursor: isClickable ? 'pointer' : 'default',
         transition: 'transform 0.15s, background-color 0.2s',
@@ -62,7 +62,7 @@ export function EntityRow({ title, label, rightElement, onClick, leftElement }) 
       style={{
         display: 'flex',
         alignItems: 'center',
-        minHeight: '56px',
+        minHeight: 'var(--control-height-lg)',
         padding: '0 16px',
         backgroundColor: 'var(--s1)',
         borderRadius: 'var(--r-control)',
