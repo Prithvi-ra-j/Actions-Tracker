@@ -270,12 +270,13 @@ export default function JarvisTab({ t, onQuestsChanged, onboardingMode = false, 
         <div className="kb" style={{ position: 'absolute', left: 0, right: 0, bottom: '80px', height: '250px', background: 'var(--bg)', display: 'flex', flexDirection: 'column', color: 'var(--tx)', zIndex: 15, borderTop: '1px solid var(--ln)', boxShadow: '0 -4px 12px rgba(0,0,0,0.2)', padding: '14px', overflowY: 'auto' }}>
           <h3 className="lb" style={{ marginTop: 0 }}>Commands</h3>
           <div className="grp">
-            {COMMANDS.filter(c => c.label.toLowerCase().includes(commandQuery.toLowerCase()) || c.id.includes(commandQuery.toLowerCase())).map(cmd => (
-              <button key={cmd.id} className="rw" style={{ cursor: 'pointer', width: '100%', background: 'transparent', border: 'none', color: 'inherit', textAlign: 'left', display: 'flex', alignItems: 'center' }} onClick={() => { setInput(cmd.prompt + ' '); setCommandMenuOpen(false); }}>
-                <div className="sq" style={{ borderRadius: '8px', boxShadow: 'inset 0 0 0 2px var(--mu)', display: 'grid', placeItems: 'center', marginRight: '12px' }}><cmd.icon size={18} aria-hidden="true" /></div>
+            {COMMANDS.filter(c => c.label.toLowerCase().includes(commandQuery.toLowerCase()) || c.id.includes(commandQuery.toLowerCase())).map(cmd => {
+              const Icon = cmd.icon;
+              return <button key={cmd.id} className="rw" style={{ cursor: 'pointer', width: '100%', background: 'transparent', border: 'none', color: 'inherit', textAlign: 'left', display: 'flex', alignItems: 'center' }} onClick={() => { setInput(cmd.prompt + ' '); setCommandMenuOpen(false); }}>
+                <div className="sq" style={{ borderRadius: '8px', boxShadow: 'inset 0 0 0 2px var(--mu)', display: 'grid', placeItems: 'center', marginRight: '12px' }}><Icon size={18} aria-hidden="true" /></div>
                 {cmd.label}
-              </button>
-            ))}
+              </button>;
+            })}
           </div>
         </div>
       )}
