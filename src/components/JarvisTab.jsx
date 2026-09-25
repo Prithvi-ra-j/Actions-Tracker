@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
+import { Sparkle, DiamondsFour, Circle, ArrowRight, Plus, ArrowsClockwise, Diamond, Target, Clock, Books, CheckCircle, Brain, Experiment, Crosshair, MagnifyingGlass, ClipboardText, ListChecks, X } from '@phosphor-icons/react';
 import { ACCENT } from '../constants.js';
 import { chatWithJarvis, generateInsight } from '../core/ai/jarvisEngine.js';
 import { executeAction, undoAction } from '../core/ai/actionExecutor.js';
@@ -20,28 +21,28 @@ const DEFAULT_CONVERSATION_ID = 'jarvis_default';
 const ONBOARDING_CONVERSATION_ID = 'jarvis_onboarding';
 
 const MODES = [
-  { id: 'ask', label: 'Ask', hint: 'Understand the system', icon: '✦' },
-  { id: 'plan', label: 'Plan', hint: 'Turn intent into actions', icon: '◈' },
-  { id: 'review', label: 'Review', hint: 'Inspect evidence and gaps', icon: '◌' },
-  { id: 'act', label: 'Act', hint: 'Propose a change', icon: '→' },
-  { id: 'capture', label: 'Capture', hint: 'Record learning or evidence', icon: '＋' },
-  { id: 'audit', label: 'Audit', hint: 'Find contradictions and bottlenecks', icon: '⌁' },
+  { id: 'ask', label: 'Ask', hint: 'Understand the system', icon: Sparkle },
+  { id: 'plan', label: 'Plan', hint: 'Turn intent into actions', icon: DiamondsFour },
+  { id: 'review', label: 'Review', hint: 'Inspect evidence and gaps', icon: Circle },
+  { id: 'act', label: 'Act', hint: 'Propose a change', icon: ArrowRight },
+  { id: 'capture', label: 'Capture', hint: 'Record learning or evidence', icon: Plus },
+  { id: 'audit', label: 'Audit', hint: 'Find contradictions and bottlenecks', icon: ClipboardText },
 ];
 
 const COMMANDS = [
-  { id: 'habit', label: 'Create habit', description: 'Add a recurring habit', icon: '↻', prompt: 'Create a habit' },
-  { id: 'quest', label: 'Create quest', description: 'Add a measurable quest or benchmark', icon: '◇', prompt: 'Create a quest' },
-  { id: 'goal', label: 'Create goal', description: 'Define or update a goal', icon: '◎', prompt: 'Create a goal' },
-  { id: 'routine', label: 'Adjust routine', description: 'Change the daily/weekly routine', icon: '◷', prompt: 'Adjust my routine' },
-  { id: 'plan', label: 'Build a plan', description: 'Turn a ready plan into app changes', icon: '▱', prompt: 'Build and apply this plan' },
-  { id: 'learn', label: 'Add learning', description: 'Capture a learning item or study plan', icon: '▤', prompt: 'Add learning' },
-  { id: 'evidence', label: 'Log evidence', description: 'Record an observation, result, or reflection', icon: '✓', prompt: 'Log this evidence' },
-  { id: 'memory', label: 'Save memory', description: 'Ask Jarvis to remember durable context', icon: '⌘', prompt: 'Save this as a memory' },
-  { id: 'experiment', label: 'Run experiment', description: 'Create or update a personal experiment', icon: '◇', prompt: 'Create an experiment' },
-  { id: 'target', label: 'Revise target', description: 'Change what success means', icon: '⊙', prompt: 'Revise my target' },
-  { id: 'review', label: 'Review my system', description: 'Find trends, gaps, and bottlenecks', icon: '◌', prompt: 'Review my system' },
-  { id: 'audit', label: 'Audit my system', description: 'Look for contradictions and risks', icon: '⌁', prompt: 'Audit my system' },
-  { id: 'onboarding', label: 'Continue onboarding', description: 'Let Jarvis interview me and configure my system', icon: '✦', prompt: 'Continue my onboarding' },
+  { id: 'habit', label: 'Create habit', description: 'Add a recurring habit', icon: ArrowsClockwise, prompt: 'Create a habit' },
+  { id: 'quest', label: 'Create quest', description: 'Add a measurable quest or benchmark', icon: Diamond, prompt: 'Create a quest' },
+  { id: 'goal', label: 'Create goal', description: 'Define or update a goal', icon: Target, prompt: 'Create a goal' },
+  { id: 'routine', label: 'Adjust routine', description: 'Change the daily/weekly routine', icon: Clock, prompt: 'Adjust my routine' },
+  { id: 'plan', label: 'Build a plan', description: 'Turn a ready plan into app changes', icon: ListChecks, prompt: 'Build and apply this plan' },
+  { id: 'learn', label: 'Add learning', description: 'Capture a learning item or study plan', icon: Books, prompt: 'Add learning' },
+  { id: 'evidence', label: 'Log evidence', description: 'Record an observation, result, or reflection', icon: CheckCircle, prompt: 'Log this evidence' },
+  { id: 'memory', label: 'Save memory', description: 'Ask Jarvis to remember durable context', icon: Brain, prompt: 'Save this as a memory' },
+  { id: 'experiment', label: 'Run experiment', description: 'Create or update a personal experiment', icon: Experiment, prompt: 'Create an experiment' },
+  { id: 'target', label: 'Revise target', description: 'Change what success means', icon: Crosshair, prompt: 'Revise my target' },
+  { id: 'review', label: 'Review my system', description: 'Find trends, gaps, and bottlenecks', icon: MagnifyingGlass, prompt: 'Review my system' },
+  { id: 'audit', label: 'Audit my system', description: 'Look for contradictions and risks', icon: ClipboardText, prompt: 'Audit my system' },
+  { id: 'onboarding', label: 'Continue onboarding', description: 'Let Jarvis interview me and configure my system', icon: Sparkle, prompt: 'Continue my onboarding' },
 ];
 
 const destructiveActions = new Set(['archive_habit']);
@@ -106,12 +107,16 @@ export default function JarvisTab({ t, onQuestsChanged, onboardingMode = false, 
     setLoadingPhase('Thinking...');
     setError(null);
     try {
-      const response = await chatWithJarvis({
-        conversationId,
-        message: msg,
-        context: jarvisContext,
-        modeInstruction: modeInstruction(mode)
-      });
+      const history = newMessages
+        .filter(item => item.role === 'user' || item.role === 'assistant')
+        .slice(-20)
+        .map(item => ({ role: item.role, content: item.content || '' }));
+      const response = await chatWithJarvis(
+        modeInstruction(mode) + msg,
+        history.slice(0, -1),
+        modificationContext,
+        jarvisContext
+      );
       const finalMessages = [...newMessages, { role: 'assistant', ...response }];
       setMessages(finalMessages);
       await saveConversation({
@@ -145,7 +150,7 @@ export default function JarvisTab({ t, onQuestsChanged, onboardingMode = false, 
         messages: updatedMessages,
         createdAt: createdAtRef.current
       });
-      if (proposal.type === 'create_quest' || proposal.type === 'edit_quest' || proposal.type === 'archive_quest') {
+      if (proposal.actionType === 'create_quest' || proposal.actionType === 'edit_quest' || proposal.actionType === 'archive_quest') {
         onQuestsChanged && onQuestsChanged();
       }
     } catch (err) {
@@ -240,7 +245,7 @@ export default function JarvisTab({ t, onQuestsChanged, onboardingMode = false, 
 
       {/* Composer */}
       <div className="cp" style={{ position: 'absolute', left: '12px', right: '12px', bottom: '14px', height: '60px', borderRadius: '16px', background: 'var(--s2)', boxShadow: 'inset 0 0 0 1px var(--ln)', display: 'flex', alignItems: 'center', gap: '6px', padding: '0 7px', color: 'var(--mu)', fontSize: '14px', zIndex: 11 }}>
-        <i style={{ fontStyle: 'normal', width: '46px', height: '46px', borderRadius: '12px', display: 'grid', placeItems: 'center', background: 'var(--s1)', color: 'var(--tx)', cursor: 'pointer' }} onClick={() => { setInput('/'); setCommandMenuOpen(true); }}>+</i>
+        <button aria-label="Open Jarvis commands" style={{ fontStyle: 'normal', width: '46px', height: '46px', borderRadius: '12px', display: 'grid', placeItems: 'center', background: 'var(--s1)', color: 'var(--tx)', cursor: 'pointer', border: 'none' }} onClick={() => { setInput('/'); setCommandMenuOpen(true); }}><Plus size={20} /></button>
         <input 
           style={{ flex: 1, paddingLeft: '6px', background: 'transparent', border: 'none', color: 'var(--tx)', outline: 'none', fontSize: '14px' }} 
           placeholder="Ask Jarvis" 
@@ -256,8 +261,8 @@ export default function JarvisTab({ t, onQuestsChanged, onboardingMode = false, 
           }}
           onKeyDown={e => e.key === 'Enter' && handleSend()}
         />
-        <i style={{ fontStyle: 'normal', width: '46px', height: '46px', borderRadius: '12px', display: 'grid', placeItems: 'center', background: 'var(--s1)', color: 'var(--tx)', cursor: 'pointer' }} onClick={() => setCommandMenuOpen(true)}>/</i>
-        <i className="go" style={{ fontStyle: 'normal', width: '46px', height: '46px', borderRadius: '12px', display: 'grid', placeItems: 'center', background: loading || !input.trim() ? 'var(--s1)' : 'var(--ac)', color: loading || !input.trim() ? 'var(--mu)' : 'var(--bg)', cursor: loading || !input.trim() ? 'default' : 'pointer', transition: 'background 0.2s' }} onClick={handleSend}>↑</i>
+        <button aria-label="Open slash commands" style={{ fontStyle: 'normal', width: '46px', height: '46px', borderRadius: '12px', display: 'grid', placeItems: 'center', background: 'var(--s1)', color: 'var(--tx)', cursor: 'pointer', border: 'none' }} onClick={() => setCommandMenuOpen(true)}>/</button>
+        <button aria-label="Send message" className="go" style={{ width: '46px', height: '46px', borderRadius: '12px', display: 'grid', placeItems: 'center', background: loading || !input.trim() ? 'var(--s1)' : 'var(--ac)', color: loading || !input.trim() ? 'var(--mu)' : 'var(--bg)', cursor: loading || !input.trim() ? 'default' : 'pointer', transition: 'background 0.2s', border: 'none' }} onClick={handleSend}><ArrowRight size={20} /></button>
       </div>
 
       {/* Slash Palette */}
@@ -266,10 +271,10 @@ export default function JarvisTab({ t, onQuestsChanged, onboardingMode = false, 
           <h3 className="lb" style={{ marginTop: 0 }}>Commands</h3>
           <div className="grp">
             {COMMANDS.filter(c => c.label.toLowerCase().includes(commandQuery.toLowerCase()) || c.id.includes(commandQuery.toLowerCase())).map(cmd => (
-              <div key={cmd.id} className="rw" style={{ cursor: 'pointer' }} onClick={() => { setInput(cmd.prompt + ' '); setCommandMenuOpen(false); }}>
-                <div className="sq" style={{ borderRadius: '8px', boxShadow: 'inset 0 0 0 2px var(--mu)', display: 'grid', placeItems: 'center', marginRight: '12px' }}>{cmd.icon}</div>
+              <button key={cmd.id} className="rw" style={{ cursor: 'pointer', width: '100%', background: 'transparent', border: 'none', color: 'inherit', textAlign: 'left', display: 'flex', alignItems: 'center' }} onClick={() => { setInput(cmd.prompt + ' '); setCommandMenuOpen(false); }}>
+                <div className="sq" style={{ borderRadius: '8px', boxShadow: 'inset 0 0 0 2px var(--mu)', display: 'grid', placeItems: 'center', marginRight: '12px' }}><cmd.icon size={18} aria-hidden="true" /></div>
                 {cmd.label}
-              </div>
+              </button>
             ))}
           </div>
         </div>
@@ -302,11 +307,14 @@ export default function JarvisTab({ t, onQuestsChanged, onboardingMode = false, 
       <BottomSheet isOpen={modeMenuOpen} onClose={() => setModeMenuOpen(false)}>
         <h3 className="t1">Select mode</h3>
         <div className="chs" style={{ marginTop: '16px' }}>
-          {MODES.map(m => (
-            <div key={m.id} className={'ch ' + (mode === m.id ? 'on' : '')} onClick={() => { setMode(m.id); setModeMenuOpen(false); }} style={{ cursor: 'pointer' }}>
-              {m.label}
-            </div>
-          ))}
+          {MODES.map(m => {
+            const Icon = m.icon;
+            return (
+              <button key={m.id} className={'ch ' + (mode === m.id ? 'on' : '')} onClick={() => { setMode(m.id); setModeMenuOpen(false); }} style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px', width: '100%', background: 'transparent', border: 'none', color: 'inherit', textAlign: 'left' }}>
+                <Icon size={18} aria-hidden="true" />{m.label}
+              </button>
+            );
+          })}
         </div>
       </BottomSheet>
     </div>
