@@ -58,10 +58,18 @@ export default function JarvisApiSetup({ onConfigured }) {
     }
   };
 
-  const handleContinue = () => {
-    if (status !== 'success') return;
-    onConfigured?.();
-  };
+  useEffect(() => {
+    if (status !== 'success') return undefined;
+
+    // Connection setup is the first-run gate. Once the provider is verified
+    // and saved, move directly into Jarvis onboarding instead of requiring a
+    // second button click.
+    const timer = window.setTimeout(() => {
+      onConfigured?.();
+    }, 650);
+
+    return () => window.clearTimeout(timer);
+  }, [status, onConfigured]);
 
   return (
     <main
@@ -251,7 +259,7 @@ export default function JarvisApiSetup({ onConfigured }) {
               lineHeight: 1.4,
             }}
           >
-            Connection verified{latencyMs != null ? ` · ${latencyMs} ms` : ''}.
+            Connection verified{latencyMs != null ? ` · ${latencyMs} ms` : ''}. Starting Jarvis…
           </div>
         )}
 
@@ -300,28 +308,6 @@ export default function JarvisApiSetup({ onConfigured }) {
           }}
         >
           {status === 'testing' ? 'Testing connection…' : 'Test connection'}
-        </button>
-
-        <button
-          type="button"
-          onClick={handleContinue}
-          disabled={status !== 'success'}
-          style={{
-            width: '100%',
-            minHeight: '50px',
-            marginTop: '10px',
-            border: 0,
-            borderRadius: '14px',
-            background: 'var(--ac)',
-            color: 'var(--on-ac)',
-            font: 'inherit',
-            fontSize: '14px',
-            fontWeight: 700,
-            cursor: status === 'success' ? 'pointer' : 'not-allowed',
-            opacity: status === 'success' ? 1 : 0.45,
-          }}
-        >
-          Continue to Jarvis
         </button>
 
         <p
