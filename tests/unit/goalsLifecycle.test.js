@@ -4,7 +4,9 @@ import { initDB } from '../../src/database/db.js';
 import { createGoal } from '../../src/models/lifeObjectSchema.js';
 import {
   addGoal,
+  addGoalEvidence,
   getGoal,
+  getGoalEvidence,
   reviseGoalTarget,
   setGoalStatus,
 } from '../../src/database/goalsRepository.js';
@@ -23,6 +25,7 @@ describe('goal lifecycle', () => {
     expect(goal.supportingObjectIds).toEqual(['habit_run']);
     expect(goal.pausedAt).toBeNull();
     expect(goal.completedAt).toBeNull();
+    expect(goal.evidenceFactIds).toEqual([]);
   });
 
   it('persists status transitions and clears stale timestamps when reopening', async () => {
@@ -78,3 +81,21 @@ describe('goal lifecycle', () => {
     });
   });
 });
+
+
+  it('records goal evidence as an immutable fact linked to the goal', async () => {
+    await initDB();
+    const goal = await addGoal({
+      domain: 'body',
+      label: 'Build running capacity',
+    });
+
+    const updated = await addGoalEvidence(goal.id, 'Completed a pain-free 30 minute base run.');
+    expect(updated.evidenceFactIds).toHaveLength(1);
+
+    const evidence = await getGoalEvidence(goal.id);
+    expect(evidence).toHaveLength(1);
+    expect(evidence[0].objectId).toBe(goal.id);
+    expect(evidence[0].type).toBe('goal_evidence');
+    expect(evidence[0].meta.text).toContain('pain-free');
+  });
