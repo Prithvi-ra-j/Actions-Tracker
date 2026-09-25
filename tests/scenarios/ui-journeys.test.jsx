@@ -77,7 +77,7 @@ describe('UI Journeys', () => {
     });
     render(<App />);
     fireEvent.click(await waitForApp());
-    expect(await screen.findByText('Stats')).toBeTruthy();
+    expect(await screen.findByRole('heading', { name: 'Stats' })).toBeTruthy();
   });
 
   it('can open normal Jarvis from the docked pill', async () => {
