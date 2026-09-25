@@ -158,64 +158,253 @@ export default function JarvisTab({ t, onQuestsChanged, onboardingMode = false, 
   };
 
   return (
-    <div className="ph" data-n="1" style={{ width: '100%', height: '100%', backgroundColor: 'var(--bg)', color: 'var(--tx)', fontFamily: 'var(--f)', display: 'flex', flexDirection: 'column', position: 'relative' }}>
-      
-      {/* Header */}
-      <div className="hd" style={{ display: 'flex', alignItems: 'flex-end', padding: '26px 18px 12px' }}>
-        <div>
-          <h2 style={{ font: '600 26px/1.1 var(--f)', letterSpacing: '-.02em' }}>Jarvis</h2>
-          <p style={{ fontSize: '13px', color: 'var(--mu)' }}>{loading ? loadingPhase : 'Ready'}</p>
-        </div>
-        {!onboardingMode && (
-          <span className="pill" style={{ marginLeft: 'auto', font: '500 11.5px "Geist Mono", monospace', color: 'var(--mu)', padding: '9px 12px', borderRadius: '12px', boxShadow: 'inset 0 0 0 1px var(--ln)', cursor: 'pointer' }} onClick={() => setModeMenuOpen(true)}>
-            {MODES.find(m => m.id === mode)?.label || 'Ask'}
-          </span>
+    <div style={{
+      width: '100%',
+      height: '100%',
+      backgroundColor: 'var(--bg)',
+      color: 'var(--tx)',
+      fontFamily: "'Geist', sans-serif",
+      display: 'flex',
+      flexDirection: 'column',
+      position: 'relative',
+    }}>
+
+      {/* ✦ Jarvis header — wordmark left, mode pill right */}
+      <div style={{
+        position: 'relative',
+        display: 'flex',
+        alignItems: 'center',
+        gap: '10px',
+        padding: 'calc(20px + env(safe-area-inset-top, 0px)) 18px 10px',
+        borderBottom: loading ? undefined : 'none',
+      }}>
+        {/* loading shimmer line */}
+        {loading && (
+          <div style={{
+            position: 'absolute',
+            left: '18px', right: '18px', bottom: 0, height: '2px',
+            background: 'linear-gradient(90deg, transparent, var(--ac), transparent) no-repeat',
+            backgroundSize: '40% 100%',
+            animation: 'jarvis-scan 1.4s linear infinite',
+          }} />
         )}
+        <b style={{ fontSize: '17px', fontWeight: 600, letterSpacing: '-0.01em' }}>
+          ✦ Jarvis
+        </b>
+
+        {/* Mode pill */}
+        {!onboardingMode && (
+          <button
+            onClick={() => setModeMenuOpen(true)}
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              height: '36px',
+              padding: '0 12px',
+              borderRadius: 'var(--r-control)',
+              fontSize: '13px',
+              fontWeight: 500,
+              color: 'var(--ac)',
+              background: 'color-mix(in srgb, var(--ac) 20%, transparent)',
+              border: 'none',
+              cursor: 'pointer',
+              gap: '4px',
+            }}
+          >
+            {MODES.find(m => m.id === mode)?.label || 'Ask'} ▾
+          </button>
+        )}
+
+        {/* Status pill right */}
+        <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: '6px', height: '32px', padding: '0 12px', borderRadius: 'var(--r-control)', background: 'var(--s2)', color: 'var(--tx)', fontFamily: "'Geist Mono', monospace", fontSize: '11.5px' }}>
+          <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: 'var(--ac)', display: 'inline-block' }} />
+          {loading ? loadingPhase || 'Working...' : 'Ready'}
+        </div>
       </div>
-      
-      {/* Messages */}
-      <div className="bd" style={{ padding: '0 14px', flex: 1, overflowY: 'auto', overflowX: 'hidden' }}>
+
+      {/* Jarvis scan keyframe */}
+      <style>{`@keyframes jarvis-scan{from{background-position:-40% 0}to{background-position:140% 0}}`}</style>
+
+      {/* Context chip (when context is attached) */}
+      {(jarvisContext || modificationContext) && (
+        <div style={{ padding: '6px 14px 0' }}>
+          <div style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: '8px',
+            height: '34px',
+            padding: '0 12px',
+            borderRadius: 'var(--r-chip)',
+            background: 'color-mix(in srgb, var(--ac) 15%, transparent)',
+            border: '1px solid color-mix(in srgb, var(--ac) 40%, transparent)',
+            fontSize: '12.5px',
+            fontWeight: 500,
+            color: 'var(--ac)',
+          }}>
+            <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: 'var(--ac)' }} />
+            {(() => {
+              const ctx = modificationContext || jarvisContext;
+              if (ctx.entityType === 'axis') return `Context: ${ctx.payload?.axis || 'Stats'}`;
+              if (ctx.entityType === 'habit') return 'Context: Habit';
+              if (ctx.entityType === 'goal') return `Context: ${ctx.payload || 'Goal'}`;
+              return 'Context attached';
+            })()}
+            <button
+              onClick={() => { if (onClearContext) onClearContext(); setModificationContext(null); }}
+              style={{ background: 'none', border: 'none', color: 'var(--ac)', cursor: 'pointer', fontSize: '12px', fontWeight: 600, padding: '0 0 0 4px' }}
+            >
+              ×
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Messages / feed */}
+      <div style={{ flex: 1, overflowY: 'auto', overflowX: 'hidden', padding: '0 14px' }}>
         {messages.length === 0 ? (
-          <div style={{ marginTop: '20px' }}>
-            <div className="fl" style={{ font: '500 13px var(--f)', margin: '14px 0 6px' }}>Search</div>
-            <div className="in" style={{ minHeight: '48px', display: 'flex', alignItems: 'center', padding: '0 14px', borderRadius: '12px', background: 'var(--s2)', font: '500 13px "Geist Mono", monospace', boxShadow: 'inset 0 0 0 1px var(--ln)', fontFamily: 'Geist', color: 'var(--mu)' }}>
-              Search conversations
-            </div>
-            
-            <div className="lb" style={{ font: '500 12.5px var(--f)', color: 'var(--mu)', margin: '16px 4px 8px' }}>History</div>
-            <div className="grp" style={{ borderRadius: '16px', overflow: 'hidden', boxShadow: 'inset 0 0 0 1px var(--ln)', background: 'var(--s1)' }}>
-              <div className="hr" style={{ padding: '12px 14px', borderBottom: '1px solid var(--ln)', cursor: 'pointer' }} onClick={() => setInput('Audit my routine')}>
-                <b style={{ display: 'block', font: '500 14.5px var(--f)' }}>Audit my routine</b>
-                <span className="k" style={{ font: '500 11.5px "Geist Mono", monospace', color: 'var(--mu)' }}>Audit</span>
-                <p style={{ fontSize: '12.5px', color: 'var(--mu)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>3 issues found.</p>
-              </div>
+          /* Empty state — 2-col masonry starter pins */
+          <div style={{ paddingTop: '32px', textAlign: 'center' }}>
+            <div style={{ fontSize: '30px', lineHeight: 1 }}>✦</div>
+            <h2 style={{ margin: '12px 0 8px', fontSize: '22px', fontWeight: 600, letterSpacing: '-0.02em' }}>
+              Tell Jarvis what you're working on
+            </h2>
+            <p style={{ fontSize: '14px', color: 'var(--mu)', marginBottom: '24px', lineHeight: 1.5 }}>
+              It turns your direction into a system you approve.
+            </p>
+            <div style={{
+              display: 'grid',
+              gridTemplateColumns: '1fr 1fr',
+              gap: '10px',
+              textAlign: 'left',
+              padding: '0 4px',
+            }}>
+              {[
+                { label: 'Start setup interview', color: 'var(--creativity)', prompt: 'Continue my onboarding' },
+                { label: 'Review my system',       color: 'var(--ac)',         prompt: 'Review my system'       },
+                { label: 'Create a goal',          color: 'var(--body)',       prompt: 'Create a goal'          },
+                { label: 'Log something I did',    color: 'var(--social)',     prompt: 'Log this evidence'      },
+              ].map((pin, i) => (
+                <button
+                  key={i}
+                  onClick={() => setInput(pin.prompt)}
+                  style={{
+                    background: 'var(--s1)',
+                    borderRadius: 'var(--r-container)',
+                    padding: '14px',
+                    boxShadow: 'inset 0 0 0 1px var(--hairline)',
+                    textAlign: 'left',
+                    border: 'none',
+                    cursor: 'pointer',
+                    minHeight: '104px',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    transition: 'transform 0.12s',
+                  }}
+                  onPointerDown={e => e.currentTarget.style.transform = 'scale(0.97)'}
+                  onPointerUp={e => e.currentTarget.style.transform = 'scale(1)'}
+                  onPointerLeave={e => e.currentTarget.style.transform = 'scale(1)'}
+                >
+                  <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: pin.color, display: 'inline-block', marginBottom: '22px' }} />
+                  <span style={{ fontSize: '15px', fontWeight: 600, lineHeight: 1.25, color: 'var(--tx)' }}>{pin.label}</span>
+                </button>
+              ))}
             </div>
           </div>
         ) : (
-          <div style={{ paddingBottom: '120px' }}>
+          <div style={{ paddingBottom: '140px' }}>
             {messages.map((msg, i) => (
-              <div key={i} style={{ marginBottom: '16px', display: 'flex', flexDirection: 'column', alignItems: msg.role === 'user' ? 'flex-end' : 'flex-start' }}>
+              <div key={i} style={{ marginBottom: '16px' }}>
                 {msg.role === 'user' ? (
-                  <div className="u" style={{ background: 'var(--s2)', padding: '10px 14px', borderRadius: '16px 16px 6px 16px', fontSize: '14.5px', width: 'fit-content', maxWidth: '82%', alignSelf: 'flex-end' }}>
-                    {msg.content}
+                  /* User bubble — right-aligned */
+                  <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+                    <div style={{
+                      background: 'var(--s2)',
+                      padding: '10px 14px',
+                      borderRadius: '16px 16px 4px 16px',
+                      fontSize: '14.5px',
+                      maxWidth: '82%',
+                      lineHeight: 1.5,
+                    }}>
+                      {msg.content}
+                    </div>
                   </div>
                 ) : (
-                  <div style={{ width: '100%', maxWidth: '82%' }}>
-                    {msg.content && <p className="r" style={{ paddingLeft: '12px', marginBottom: '10px', fontSize: '14.5px', borderLeft: '3px solid var(--tx)' }}>{msg.content}</p>}
-                    
+                  /* Assistant — unbubbled prose with trust rails */
+                  <div>
+                    {msg.content && (
+                      <p style={{
+                        paddingLeft: '12px',
+                        marginBottom: '10px',
+                        fontSize: '14.5px',
+                        lineHeight: 1.6,
+                        borderLeft: `3px solid var(--tx)`,
+                        color: 'var(--tx)',
+                      }}>
+                        {msg.content}
+                      </p>
+                    )}
+
+                    {/* Trust rail for inferred */}
+                    {msg.inferred && (
+                      <p style={{
+                        paddingLeft: '12px',
+                        marginBottom: '10px',
+                        fontSize: '14.5px',
+                        lineHeight: 1.6,
+                        borderLeft: '3px dashed var(--mu)',
+                        color: 'var(--tx)',
+                      }}>
+                        {msg.inferred}
+                      </p>
+                    )}
+
+                    {/* Trust rail for suggested */}
+                    {msg.suggested && (
+                      <p style={{
+                        paddingLeft: '12px',
+                        marginBottom: '10px',
+                        fontSize: '14.5px',
+                        lineHeight: 1.6,
+                        borderLeft: '3px dotted var(--ac)',
+                        color: 'var(--tx)',
+                      }}>
+                        {msg.suggested}
+                      </p>
+                    )}
+
+                    {/* Provenance row */}
+                    {msg.contextUsed && msg.contextUsed.length > 0 && (
+                      <div style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '6px',
+                        fontFamily: "'Geist Mono', monospace",
+                        fontSize: '11.5px',
+                        fontWeight: 500,
+                        color: 'var(--mu)',
+                        margin: '2px 0 14px',
+                      }}>
+                        {msg.contextUsed.slice(0, 3).map((_, ci) => (
+                          <span key={ci} style={{
+                            width: '14px', height: '14px', borderRadius: '50%',
+                            marginRight: '-9px',
+                            border: '2px solid var(--bg)',
+                            background: ['var(--knowledge)', 'var(--body)', 'var(--discipline)'][ci] || 'var(--mu)',
+                            display: 'inline-block',
+                          }} />
+                        ))}
+                        <span style={{ marginLeft: '12px' }}>Based on {msg.contextUsed.length} sources</span>
+                      </div>
+                    )}
+
+                    {/* Proposal card */}
                     {msg.proposal && (
-                      <ActionProposalCard 
+                      <ActionProposalCard
                         proposal={msg.proposal}
                         status={msg.proposalStatus}
                         onApply={() => setSelectedProposalForImpact({ proposal: msg.proposal, impact: msg.proposal.impact })}
                         onEdit={() => setSelectedProposalForEdit(msg.proposal)}
                       />
-                    )}
-                    
-                    {msg.contextUsed && (
-                      <div className="btn s" style={{ background: 'var(--s2)', color: 'var(--tx)', width: 'fit-content', minHeight: '36px', padding: '0 12px', fontSize: '12px', marginTop: '8px' }}>
-                        Based on {msg.contextUsed.length} sources
-                      </div>
                     )}
                   </div>
                 )}
@@ -226,24 +415,98 @@ export default function JarvisTab({ t, onQuestsChanged, onboardingMode = false, 
         )}
       </div>
 
-      {/* Context Attached */}
-      {(jarvisContext || modificationContext) && (
-        <div style={{ position: 'absolute', bottom: '86px', left: '14px', right: '14px', zIndex: 10 }}>
-          <div className="ctx" style={{ display: 'inline-flex', alignItems: 'center', gap: '10px', minHeight: '40px', padding: '0 12px', borderRadius: '10px', background: 'var(--s2)', font: '500 12.5px var(--f)', boxShadow: 'inset 0 0 0 1px var(--ln)' }}>
-            {(modificationContext || jarvisContext).entityType === 'axis' && `Context: ${(modificationContext || jarvisContext).payload?.axis || 'Stats'}`}
-            {(modificationContext || jarvisContext).entityType === 'habit' && `Context: Habit`}
-            {(modificationContext || jarvisContext).entityType !== 'axis' && (modificationContext || jarvisContext).entityType !== 'habit' && `Context attached`}
-            <span className="k" style={{ cursor: 'pointer', color: 'var(--ac)' }} onClick={() => { if(onClearContext) onClearContext(); setModificationContext(null); }}>Clear</span>
+      {/* Loading skeleton when thinking */}
+      {loading && (
+        <div style={{ padding: '0 14px 8px' }}>
+          <p style={{ fontSize: '14px', color: 'var(--mu)', margin: '0 0 8px' }}>
+            {loadingPhase || 'Thinking...'}
+          </p>
+          <div style={{
+            height: '80px',
+            borderRadius: 'var(--r-container)',
+            background: 'linear-gradient(90deg, var(--s1), var(--s2), var(--s1))',
+            backgroundSize: '200% 100%',
+            animation: 'jarvis-shimmer 1.4s linear infinite',
+          }} />
+          <style>{`@keyframes jarvis-shimmer{to{background-position:-200% 0}}`}</style>
+        </div>
+      )}
+
+      {/* Error banner */}
+      {error && (
+        <div style={{
+          margin: '0 14px 8px',
+          padding: '12px 14px',
+          borderRadius: 'var(--r-container)',
+          background: 'var(--s1)',
+          boxShadow: 'inset 4px 0 0 var(--danger)',
+          fontSize: '13px',
+          color: 'var(--tx)',
+        }}>
+          <strong>The change wasn't applied.</strong> Your existing data is unchanged.
+          <div style={{ display: 'flex', gap: '8px', marginTop: '10px' }}>
+            <button
+              onClick={() => setError(null)}
+              style={{ flex: 1, height: '40px', borderRadius: 'var(--r-control)', background: 'var(--ac)', color: 'var(--on-ac)', border: 'none', fontSize: '13px', fontWeight: 600, cursor: 'pointer' }}
+            >
+              Retry
+            </button>
+            <button
+              onClick={() => setError(null)}
+              style={{ flex: 1, height: '40px', borderRadius: 'var(--r-control)', background: 'var(--s2)', color: 'var(--tx)', border: 'none', fontSize: '13px', fontWeight: 500, cursor: 'pointer' }}
+            >
+              Dismiss
+            </button>
           </div>
         </div>
       )}
 
-      {/* Composer */}
-      <div className="cp" style={{ position: 'absolute', left: '12px', right: '12px', bottom: '14px', height: '60px', borderRadius: '16px', background: 'var(--s2)', boxShadow: 'inset 0 0 0 1px var(--ln)', display: 'flex', alignItems: 'center', gap: '6px', padding: '0 7px', color: 'var(--mu)', fontSize: '14px', zIndex: 11 }}>
-        <i style={{ fontStyle: 'normal', width: '46px', height: '46px', borderRadius: '12px', display: 'grid', placeItems: 'center', background: 'var(--s1)', color: 'var(--tx)', cursor: 'pointer' }} onClick={() => { setInput('/'); setCommandMenuOpen(true); }}>+</i>
-        <input 
-          style={{ flex: 1, paddingLeft: '6px', background: 'transparent', border: 'none', color: 'var(--tx)', outline: 'none', fontSize: '14px' }} 
-          placeholder="Ask Jarvis" 
+      {/* Composer — floating, 60px, 30px radius */}
+      <div style={{
+        position: 'absolute',
+        left: '12px', right: '12px', bottom: '14px',
+        height: '60px',
+        borderRadius: '30px',
+        background: 'var(--s2)',
+        boxShadow: 'inset 0 0 0 1px rgba(255,255,255,0.08)',
+        display: 'flex',
+        alignItems: 'center',
+        gap: '6px',
+        padding: '0 7px',
+        color: 'var(--mu)',
+        fontSize: '14px',
+        zIndex: 20,
+      }}>
+        <button
+          aria-label="Attach or add"
+          onClick={() => { setInput('/'); setCommandMenuOpen(true); }}
+          style={{
+            width: '46px', height: '46px',
+            borderRadius: '50%',
+            border: 'none',
+            background: 'var(--s1)',
+            color: 'var(--tx)',
+            fontSize: '20px',
+            cursor: 'pointer',
+            display: 'grid',
+            placeItems: 'center',
+            flexShrink: 0,
+          }}
+        >
+          +
+        </button>
+        <input
+          style={{
+            flex: 1,
+            paddingLeft: '6px',
+            background: 'transparent',
+            border: 'none',
+            color: 'var(--tx)',
+            outline: 'none',
+            fontSize: '14px',
+            fontFamily: 'inherit',
+          }}
+          placeholder="Tell Jarvis what you want"
           value={input}
           onChange={e => {
             setInput(e.target.value);
@@ -256,27 +519,132 @@ export default function JarvisTab({ t, onQuestsChanged, onboardingMode = false, 
           }}
           onKeyDown={e => e.key === 'Enter' && handleSend()}
         />
-        <i style={{ fontStyle: 'normal', width: '46px', height: '46px', borderRadius: '12px', display: 'grid', placeItems: 'center', background: 'var(--s1)', color: 'var(--tx)', cursor: 'pointer' }} onClick={() => setCommandMenuOpen(true)}>/</i>
-        <i className="go" style={{ fontStyle: 'normal', width: '46px', height: '46px', borderRadius: '12px', display: 'grid', placeItems: 'center', background: loading || !input.trim() ? 'var(--s1)' : 'var(--ac)', color: loading || !input.trim() ? 'var(--mu)' : 'var(--bg)', cursor: loading || !input.trim() ? 'default' : 'pointer', transition: 'background 0.2s' }} onClick={handleSend}>↑</i>
+        <button
+          aria-label="Slash commands"
+          onClick={() => setCommandMenuOpen(v => !v)}
+          style={{
+            width: '46px', height: '46px',
+            borderRadius: '50%',
+            border: 'none',
+            background: 'var(--s1)',
+            color: 'var(--tx)',
+            fontSize: '18px',
+            fontWeight: 600,
+            cursor: 'pointer',
+            display: 'grid',
+            placeItems: 'center',
+            flexShrink: 0,
+          }}
+        >
+          /
+        </button>
+        <button
+          aria-label="Send"
+          onClick={handleSend}
+          disabled={loading || !input.trim()}
+          style={{
+            width: '46px', height: '46px',
+            borderRadius: '50%',
+            border: 'none',
+            background: loading || !input.trim() ? 'var(--s1)' : 'var(--tx)',
+            color: loading || !input.trim() ? 'var(--mu)' : 'var(--bg)',
+            fontSize: '20px',
+            cursor: loading || !input.trim() ? 'default' : 'pointer',
+            display: 'grid',
+            placeItems: 'center',
+            flexShrink: 0,
+            transition: 'background 0.2s',
+          }}
+        >
+          ↑
+        </button>
       </div>
 
-      {/* Slash Palette */}
+      {/* Slash Palette — bottom sheet style */}
       {commandMenuOpen && (
-        <div className="kb" style={{ position: 'absolute', left: 0, right: 0, bottom: '80px', height: '250px', background: 'var(--bg)', display: 'flex', flexDirection: 'column', color: 'var(--tx)', zIndex: 15, borderTop: '1px solid var(--ln)', boxShadow: '0 -4px 12px rgba(0,0,0,0.2)', padding: '14px', overflowY: 'auto' }}>
-          <h3 className="lb" style={{ marginTop: 0 }}>Commands</h3>
-          <div className="grp">
-            {COMMANDS.filter(c => c.label.toLowerCase().includes(commandQuery.toLowerCase()) || c.id.includes(commandQuery.toLowerCase())).map(cmd => (
-              <div key={cmd.id} className="rw" style={{ cursor: 'pointer' }} onClick={() => { setInput(cmd.prompt + ' '); setCommandMenuOpen(false); }}>
-                <div className="sq" style={{ borderRadius: '8px', boxShadow: 'inset 0 0 0 2px var(--mu)', display: 'grid', placeItems: 'center', marginRight: '12px' }}>{cmd.icon}</div>
-                {cmd.label}
-              </div>
+        <div style={{
+          position: 'absolute',
+          left: '8px', right: '8px', bottom: '84px',
+          background: 'var(--s1)',
+          borderRadius: '24px',
+          padding: '8px 14px 14px',
+          boxShadow: '0 -10px 40px rgba(0,0,0,0.6), inset 0 0 0 1px rgba(255,255,255,0.08)',
+          zIndex: 21,
+          maxHeight: '280px',
+          overflowY: 'auto',
+        }}>
+          <div style={{ width: '36px', height: '4px', borderRadius: '2px', background: 'rgba(255,255,255,0.15)', margin: '0 auto 8px' }} />
+
+          {/* Recent chips */}
+          <div style={{ fontFamily: "'Geist Mono', monospace", fontSize: '12px', color: 'var(--mu)', marginBottom: '6px' }}>Recent</div>
+          <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', marginBottom: '10px' }}>
+            {['Review', 'Habit', 'Evidence'].map(r => (
+              <button
+                key={r}
+                onClick={() => { setInput(r + ' '); setCommandMenuOpen(false); }}
+                style={{
+                  padding: '7px 11px',
+                  borderRadius: 'var(--r-chip)',
+                  background: 'color-mix(in srgb, var(--ac) 22%, transparent)',
+                  color: 'var(--ac)',
+                  border: 'none',
+                  fontSize: '12px',
+                  fontWeight: 500,
+                  cursor: 'pointer',
+                }}
+              >
+                {r}
+              </button>
             ))}
           </div>
+
+          {/* Command groups */}
+          {[
+            { group: 'Think',  cmds: COMMANDS.filter(c => ['ask', 'review', 'audit'].includes(c.id)) },
+            { group: 'Change', cmds: COMMANDS.filter(c => ['habit', 'quest', 'goal', 'routine', 'target'].includes(c.id)) },
+            { group: 'Record', cmds: COMMANDS.filter(c => ['evidence', 'memory', 'learn'].includes(c.id)) },
+          ].map(({ group, cmds }) => (
+            <div key={group}>
+              <div style={{ fontFamily: "'Geist Mono', monospace", fontSize: '12px', color: 'var(--mu)', margin: '8px 0 4px' }}>{group}</div>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '6px' }}>
+                {cmds
+                  .filter(c => !commandQuery || c.label.toLowerCase().includes(commandQuery.toLowerCase()))
+                  .map(cmd => (
+                    <button
+                      key={cmd.id}
+                      onClick={() => { setInput(cmd.prompt + ' '); setCommandMenuOpen(false); }}
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '10px',
+                        minHeight: '46px',
+                        padding: '0 10px',
+                        borderRadius: 'var(--r-control)',
+                        background: 'var(--s2)',
+                        border: 'none',
+                        color: 'var(--tx)',
+                        fontSize: '14px',
+                        fontWeight: 500,
+                        cursor: 'pointer',
+                        textAlign: 'left',
+                        transition: 'transform 0.12s',
+                      }}
+                      onPointerDown={e => e.currentTarget.style.transform = 'scale(0.97)'}
+                      onPointerUp={e => e.currentTarget.style.transform = 'scale(1)'}
+                      onPointerLeave={e => e.currentTarget.style.transform = 'scale(1)'}
+                    >
+                      <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: 'var(--ac)', flexShrink: 0 }} />
+                      {cmd.label}
+                    </button>
+                  ))}
+              </div>
+            </div>
+          ))}
         </div>
       )}
 
-      {/* Overlays */}
-      <ImpactDetailSheet 
+      {/* Impact + Edit proposal overlays */}
+      <ImpactDetailSheet
         proposal={selectedProposalForImpact?.proposal}
         impact={selectedProposalForImpact?.impact}
         onApply={() => {
@@ -291,7 +659,7 @@ export default function JarvisTab({ t, onQuestsChanged, onboardingMode = false, 
         }}
         onDismiss={() => setSelectedProposalForImpact(null)}
       />
-      
+
       <EditProposalSheet
         proposal={selectedProposalForEdit}
         onSave={() => setSelectedProposalForEdit(null)}
@@ -299,13 +667,39 @@ export default function JarvisTab({ t, onQuestsChanged, onboardingMode = false, 
         onDismiss={() => setSelectedProposalForEdit(null)}
       />
 
-      <BottomSheet isOpen={modeMenuOpen} onClose={() => setModeMenuOpen(false)}>
-        <h3 className="t1">Select mode</h3>
-        <div className="chs" style={{ marginTop: '16px' }}>
+      {/* Mode selection sheet */}
+      <BottomSheet isOpen={modeMenuOpen} onClose={() => setModeMenuOpen(false)} title="Choose mode">
+        <div style={{
+          display: 'grid',
+          gridTemplateColumns: 'repeat(3, 1fr)',
+          gap: '8px',
+          marginTop: '12px',
+        }}>
           {MODES.map(m => (
-            <div key={m.id} className={'ch ' + (mode === m.id ? 'on' : '')} onClick={() => { setMode(m.id); setModeMenuOpen(false); }} style={{ cursor: 'pointer' }}>
+            <button
+              key={m.id}
+              onClick={() => { setMode(m.id); setModeMenuOpen(false); }}
+              style={{
+                textAlign: 'center',
+                padding: '14px 4px',
+                borderRadius: 'var(--r-control)',
+                background: 'var(--s2)',
+                border: 'none',
+                cursor: 'pointer',
+                boxShadow: mode === m.id ? '0 0 0 2px var(--ac)' : 'none',
+                fontSize: '13.5px',
+                fontWeight: 500,
+                color: 'var(--tx)',
+                transition: 'transform 0.12s',
+              }}
+              onPointerDown={e => e.currentTarget.style.transform = 'scale(0.97)'}
+              onPointerUp={e => e.currentTarget.style.transform = 'scale(1)'}
+              onPointerLeave={e => e.currentTarget.style.transform = 'scale(1)'}
+            >
+              <span style={{ display: 'block', fontSize: '18px', marginBottom: '4px' }}>{m.icon}</span>
               {m.label}
-            </div>
+              <span style={{ display: 'block', fontFamily: "'Geist Mono', monospace", fontSize: '11px', color: 'var(--mu)', marginTop: '2px' }}>{m.hint}</span>
+            </button>
           ))}
         </div>
       </BottomSheet>

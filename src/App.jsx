@@ -758,8 +758,11 @@ export default function App() {
     if (tab === 'daily') return localDateStr();
     if (tab === 'stats') return 'Last 30 days';
     if (tab === 'goals') return `${lifeGoals.length} active`;
+    if (tab === 'learn') return `${learnings.length} active topics`;
+    if (tab === 'audits') return '';
     return '';
   };
+
   // ── Main render ────────────────────────────────────────────────────────────
   if (needsOnboarding) {
     return (

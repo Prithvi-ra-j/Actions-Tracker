@@ -1,22 +1,154 @@
 import React, { useState, useEffect } from 'react';
-import { Card } from './ui/Cards';
-import { BottomSheet } from './ui/Overlays';
+import { BottomSheet } from './ui/Overlays.jsx';
+import { Button } from './ui/Buttons.jsx';
+import { EmptyState } from './ui/States.jsx';
+import { SegmentedBar } from './ui/Indicators.jsx';
 import { EvidenceSheet } from './EvidenceSheet.jsx';
+import { Sparkle } from '@phosphor-icons/react';
+
+// Severity stripe colors per design guide
+const SEVERITY_COLORS = {
+  high:   'var(--danger)',
+  medium: 'var(--discipline)',
+  low:    'var(--mu)',
+};
+
+function FindingCard({ finding, onClick }) {
+  const severity = finding.severity?.toLowerCase() || 'medium';
+  const stripeColor = SEVERITY_COLORS[severity] || 'var(--mu)';
+
+  return (
+    <div
+      onClick={onClick}
+      style={{
+        background: 'var(--s1)',
+        borderRadius: 'var(--r-container)',
+        padding: '14px 14px 12px 18px',
+        marginBottom: '10px',
+        boxShadow: `inset 4px 0 0 ${stripeColor}`,
+        cursor: 'pointer',
+        transition: 'transform 0.12s',
+      }}
+      onPointerDown={e => e.currentTarget.style.transform = 'scale(0.99)'}
+      onPointerUp={e => e.currentTarget.style.transform = 'scale(1)'}
+      onPointerLeave={e => e.currentTarget.style.transform = 'scale(1)'}
+    >
+      <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '8px' }}>
+        <h3 style={{ margin: 0, fontSize: '15px', fontWeight: 600, color: 'var(--tx)', flex: 1 }}>
+          {finding.type}
+        </h3>
+        <span style={{
+          fontFamily: "'Geist Mono', monospace",
+          fontSize: '11.5px',
+          color: stripeColor,
+          fontWeight: 500,
+          flexShrink: 0,
+          textTransform: 'capitalize',
+        }}>
+          {severity.charAt(0).toUpperCase() + severity.slice(1)}
+        </span>
+      </div>
+      <p style={{ margin: '4px 0 0', fontSize: '12.5px', color: 'var(--mu)', lineHeight: 1.5 }}>
+        {finding.text}
+      </p>
+    </div>
+  );
+}
+
+function FindingSheet({ finding, onClose, onOpenJarvis }) {
+  const severity = finding.severity?.toLowerCase() || 'medium';
+  const stripeColor = SEVERITY_COLORS[severity] || 'var(--mu)';
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+      {/* Top severity bar */}
+      <div style={{
+        height: '4px',
+        background: stripeColor,
+        borderRadius: '2px',
+        marginTop: '-4px',
+      }} />
+
+      <span style={{
+        fontFamily: "'Geist Mono', monospace",
+        fontSize: '11.5px',
+        color: stripeColor,
+        fontWeight: 500,
+      }}>
+        {severity.charAt(0).toUpperCase() + severity.slice(1)} severity
+      </span>
+
+      <h3 style={{ margin: 0, fontSize: '20px', fontWeight: 600, letterSpacing: '-0.02em' }}>
+        {finding.type}
+      </h3>
+
+      <div>
+        <div style={{
+          fontFamily: "'Geist Mono', monospace",
+          fontSize: '11.5px',
+          color: 'var(--mu)',
+          marginBottom: '8px',
+        }}>
+          Finding
+        </div>
+        <p style={{ margin: 0, fontSize: '14px', color: 'var(--tx)', lineHeight: 1.5 }}>
+          {finding.text}
+        </p>
+      </div>
+
+      {/* Possible correction card */}
+      <div style={{
+        background: 'var(--s2)',
+        borderRadius: 'var(--r-control)',
+        padding: '12px 14px',
+      }}>
+        <div style={{
+          fontFamily: "'Geist Mono', monospace",
+          fontSize: '11.5px',
+          color: 'var(--mu)',
+          marginBottom: '6px',
+        }}>
+          Possible correction
+        </div>
+        <p style={{ margin: 0, fontSize: '14px', color: 'var(--tx)', lineHeight: 1.5 }}>
+          Review the related goal and adjust the target timeline, or send to Jarvis to design a plan.
+        </p>
+      </div>
+
+      <div style={{ display: 'flex', gap: '10px' }}>
+        <Button
+          variant="primary"
+          style={{ flex: 1, fontSize: '14px' }}
+          onClick={onClose}
+        >
+          Review fix
+        </Button>
+        <Button
+          variant="secondary"
+          style={{ flex: 1, fontSize: '14px' }}
+          onClick={() => { onClose(); onOpenJarvis?.(); }}
+        >
+          <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+            <Sparkle size={16} />
+            Send to Jarvis
+          </span>
+        </Button>
+      </div>
+    </div>
+  );
+}
 
 export default function AuditsTab({ t, onOpenJarvis }) {
   const [audits, setAudits] = useState([]);
   const [loading, setLoading] = useState(true);
   const [generating, setGenerating] = useState(false);
   const [error, setError] = useState(null);
-  
-  const [activeTab, setActiveTab] = useState('unresolved');
-  const [sheet, setSheet] = useState(null);
-  const [toast, setToast] = useState(null);
+  const [activeFilter, setActiveFilter] = useState('unresolved');
+  const [selectedFinding, setSelectedFinding] = useState(null);
   const [showEvidence, setShowEvidence] = useState(false);
+  const [toast, setToast] = useState(null);
 
-  useEffect(() => {
-    loadAudits();
-  }, []);
+  useEffect(() => { loadAudits(); }, []);
 
   async function loadAudits() {
     try {
@@ -26,7 +158,7 @@ export default function AuditsTab({ t, onOpenJarvis }) {
       setAudits(all.reverse());
     } catch (err) {
       console.error(err);
-      setError("Failed to load audits.");
+      setError('Failed to load audits.');
     } finally {
       setLoading(false);
     }
@@ -34,160 +166,183 @@ export default function AuditsTab({ t, onOpenJarvis }) {
 
   async function handleRunAudit() {
     setGenerating(true);
-    setSheet({ type: 'progress' });
     try {
       const { runMonthlyAudit } = await import('../core/ai/auditEngine.js');
       await runMonthlyAudit();
       await loadAudits();
-      setSheet(null);
     } catch (err) {
       setError(err.message);
-      setSheet(null);
     } finally {
       setGenerating(false);
     }
   }
 
+  // Build findings list from latest audit
   const latestAudit = audits[0] || {};
   const findings = [];
-  
-  if (latestAudit) {
-    (latestAudit.contradictions || []).forEach((c, i) => findings.push({ id: `c_${i}`, type: 'Contradiction', text: c }));
-    (latestAudit.risks || []).forEach((r, i) => findings.push({ id: `r_${i}`, type: 'Risk', text: r }));
-    (latestAudit.recommendations || []).forEach((r, i) => findings.push({ id: `rec_${i}`, type: 'Recommendation', text: r }));
-  }
+  (latestAudit.contradictions || []).forEach((c, i) =>
+    findings.push({ id: `c_${i}`, type: 'Contradiction', text: c, severity: 'high' }));
+  (latestAudit.risks || []).forEach((r, i) =>
+    findings.push({ id: `r_${i}`, type: 'Risk', text: r, severity: 'medium' }));
+  (latestAudit.recommendations || []).forEach((r, i) =>
+    findings.push({ id: `rec_${i}`, type: 'Recommendation', text: r, severity: 'low' }));
 
-  const showIgnoreSheet = (finding) => {
-    setSheet({ type: 'ignore', finding });
-  };
-
-  const handleIgnore = () => {
-    setSheet(null);
-    setToast('Finding ignored.');
-    setTimeout(() => setToast(null), 3000);
-  };
+  const filters = ['unresolved', 'resolved', 'domain'];
 
   return (
-    <div className="ph" data-t="Audits" style={{ width: '100%', height: '100%', backgroundColor: 'var(--bg)', color: 'var(--tx)', fontFamily: 'var(--f)', display: 'flex', flexDirection: 'column' }}>
-      <div className="hd" style={{ display: 'flex', alignItems: 'flex-end', padding: '26px 18px 12px' }}>
-        <div>
-          <h2 style={{ font: '600 26px/1.1 var(--f)', letterSpacing: '-.02em' }}>Audits</h2>
-          <p style={{ fontSize: '13px', color: 'var(--mu)' }}>{findings.length} open, 0 resolved</p>
-        </div>
-        <span 
-          className="pill" 
-          style={{ marginLeft: 'auto', font: '500 11.5px "Geist Mono", monospace', color: 'var(--mu)', padding: '9px 12px', borderRadius: '12px', boxShadow: 'inset 0 0 0 1px var(--ln)', cursor: 'pointer' }}
-          onClick={handleRunAudit}
-        >
-          {generating ? 'Running...' : 'Run Audit'}
-        </span>
-      </div>
-      
-      <div className="bd" style={{ padding: '0 14px', flex: 1, overflowY: 'auto' }}>
-        {error && (
-          <div style={{ marginBottom: '14px', padding: '12px', background: 'rgba(229, 72, 77, 0.1)', color: '#e5484d', borderRadius: '12px', fontSize: '13px' }}>
-            {error}
-          </div>
-        )}
+    <div style={{ padding: '0 14px 24px' }}>
 
-        <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', margin: '4px 0 14px' }}>
-          {['unresolved', 'resolved', 'domain'].map(tab => (
-            <div 
-              key={tab}
-              onClick={() => setActiveTab(tab)}
-              style={{ 
-                minHeight: '44px', padding: '0 14px', display: 'grid', placeItems: 'center', 
-                borderRadius: '10px', background: activeTab === tab ? 'color-mix(in srgb, var(--ac) 18%, var(--s1))' : 'var(--s1)', 
-                boxShadow: activeTab === tab ? 'inset 0 0 0 1.5px var(--ac)' : 'inset 0 0 0 1px var(--ln)', 
-                font: '500 13.5px var(--f)', cursor: 'pointer', textTransform: 'capitalize'
+      {/* Filter chips */}
+      <div style={{
+        display: 'flex',
+        gap: '8px',
+        flexWrap: 'wrap',
+        margin: '4px 0 14px',
+      }}>
+        {filters.map(f => (
+          <button
+            key={f}
+            onClick={() => setActiveFilter(f)}
+            style={{
+              minHeight: '44px',
+              padding: '0 14px',
+              display: 'grid',
+              placeItems: 'center',
+              borderRadius: 'var(--r-chip)',
+              background: activeFilter === f
+                ? 'color-mix(in srgb, var(--ac) 18%, var(--s1))'
+                : 'var(--s1)',
+              boxShadow: activeFilter === f
+                ? 'inset 0 0 0 1.5px var(--ac)'
+                : 'inset 0 0 0 1px var(--hairline)',
+              fontSize: '13.5px',
+              fontWeight: 500,
+              cursor: 'pointer',
+              border: 'none',
+              color: activeFilter === f ? 'var(--ac)' : 'var(--tx)',
+              textTransform: 'capitalize',
+              transition: 'all 0.2s',
+            }}
+          >
+            {f}
+          </button>
+        ))}
+      </div>
+
+      {/* Error banner */}
+      {error && (
+        <div style={{
+          marginBottom: '14px',
+          padding: '12px 14px',
+          background: 'color-mix(in srgb, var(--danger) 15%, transparent)',
+          color: 'var(--danger)',
+          borderRadius: 'var(--r-control)',
+          fontSize: '13px',
+        }}>
+          {error}
+        </div>
+      )}
+
+      {/* Findings list */}
+      {activeFilter === 'unresolved' && (
+        <>
+          {loading ? (
+            <div style={{ color: 'var(--mu)', fontSize: '14px', padding: '24px 0', textAlign: 'center' }}>
+              Loading audits...
+            </div>
+          ) : findings.length === 0 ? (
+            <EmptyState
+              title="No findings."
+              description="Run an audit to scan your system for contradictions and risks."
+              actionLabel={generating ? 'Running...' : 'Run Audit'}
+              onAction={handleRunAudit}
+            />
+          ) : (
+            <>
+              <div style={{
+                fontFamily: "'Geist Mono', monospace",
+                fontSize: '11.5px',
+                color: 'var(--mu)',
+                marginBottom: '12px',
               }}>
-              {tab}
-            </div>
-          ))}
-        </div>
+                {findings.length} issues found
+              </div>
+              {findings.map(f => (
+                <FindingCard
+                  key={f.id}
+                  finding={f}
+                  onClick={() => setSelectedFinding(f)}
+                />
+              ))}
+            </>
+          )}
+        </>
+      )}
 
-        {activeTab === 'unresolved' && (
-          <>
-            {findings.length === 0 && !loading && (
-              <div style={{ padding: '2rem', textAlign: 'center', color: 'var(--mu)' }}>
-                No findings. Run an audit to generate one.
-              </div>
-            )}
-            
-            {findings.map(f => (
-              <div key={f.id} style={{ background: 'var(--s1)', borderRadius: '16px', padding: '14px 14px 12px 18px', marginBottom: '10px', boxShadow: 'inset 4px 0 0 var(--mu)' }} onClick={() => showIgnoreSheet(f)}>
-                <h3 style={{ font: '600 15px var(--f)' }}>{f.type}</h3>
-                <p style={{ fontSize: '12.5px', color: 'var(--mu)', marginTop: '2px' }}>{f.text}</p>
-                <div style={{ display: 'flex', marginTop: '8px' }}>
-                  <span style={{ font: '500 11.5px "Geist Mono", monospace', color: 'var(--mu)' }}>Unresolved</span>
-                  <span style={{ font: '500 11.5px "Geist Mono", monospace', marginLeft: 'auto', color: 'var(--tx)' }}>Ignore ›</span>
-                </div>
-              </div>
-            ))}
-          </>
+      {activeFilter === 'resolved' && (
+        <div style={{ color: 'var(--mu)', fontSize: '14px', padding: '24px 0', textAlign: 'center' }}>
+          No resolved findings yet.
+        </div>
+      )}
+
+      {activeFilter === 'domain' && (
+        <div style={{ color: 'var(--mu)', fontSize: '14px', padding: '24px 0', textAlign: 'center' }}>
+          Domain filter coming soon.
+        </div>
+      )}
+
+      {/* Finding Detail Sheet */}
+      <BottomSheet
+        isOpen={!!selectedFinding}
+        onClose={() => setSelectedFinding(null)}
+      >
+        {selectedFinding && (
+          <FindingSheet
+            finding={selectedFinding}
+            onClose={() => setSelectedFinding(null)}
+            onOpenJarvis={onOpenJarvis}
+          />
         )}
-      </div>
+      </BottomSheet>
 
+      {/* Toast */}
       {toast && (
-        <div style={{ position: 'absolute', left: '14px', right: '14px', bottom: '78px', zIndex: 4, display: 'flex', alignItems: 'center', minHeight: '52px', padding: '0 6px 0 14px', borderRadius: '12px', background: 'var(--s2)', boxShadow: 'inset 0 0 0 1px var(--ln)', fontSize: '13.5px' }}>
+        <div style={{
+          position: 'fixed',
+          bottom: 'calc(80px + env(safe-area-inset-bottom, 0px))',
+          left: '14px',
+          right: '14px',
+          zIndex: 200,
+          display: 'flex',
+          alignItems: 'center',
+          minHeight: '52px',
+          padding: '0 8px 0 16px',
+          borderRadius: 'var(--r-container)',
+          background: 'var(--tx)',
+          color: 'var(--bg)',
+          fontSize: '13.5px',
+          fontWeight: 500,
+        }}>
           {toast}
-          <button style={{ marginLeft: 'auto', minHeight: '40px', background: 'var(--s1)', color: 'var(--tx)', padding: '0 14px', borderRadius: '8px', border: 'none', font: '600 13px var(--f)', cursor: 'pointer' }} onClick={() => setToast(null)}>Undo</button>
+          <button
+            style={{
+              marginLeft: 'auto',
+              minHeight: '40px',
+              background: 'transparent',
+              color: 'var(--bg)',
+              padding: '0 14px',
+              borderRadius: '8px',
+              border: 'none',
+              fontSize: '13px',
+              fontWeight: 600,
+              cursor: 'pointer',
+            }}
+            onClick={() => setToast(null)}
+          >
+            Undo
+          </button>
         </div>
       )}
-
-      {sheet?.type === 'progress' && (
-        <BottomSheet isOpen={true} onClose={() => {}}>
-          <h3 style={{ font: '600 22px/1.15 var(--f)', letterSpacing: '-.02em', margin: '4px 0 2px' }}>Auditing your system</h3>
-          <p style={{ fontSize: '13px', color: 'var(--mu)' }}>This reads your data and changes nothing.</p>
-          <div style={{ display: 'flex', gap: '3px', margin: '14px 0' }}>
-            <i style={{ flex: 1, height: '8px', background: 'var(--ac)' }}></i>
-            <i style={{ flex: 1, height: '8px', background: 'var(--ln)' }}></i>
-            <i style={{ flex: 1, height: '8px', background: 'var(--ln)' }}></i>
-          </div>
-          <div className="grp" style={{ borderRadius: '16px', overflow: 'hidden', boxShadow: 'inset 0 0 0 1px var(--ln)', background: 'var(--s1)' }}>
-            <div style={{ display: 'flex', alignItems: 'center', minHeight: '52px', padding: '0 14px', borderBottom: '1px solid var(--ln)', font: '500 14.5px var(--f)' }}>
-              <div style={{ width: '24px', height: '24px', borderRadius: '8px', background: 'var(--ac)', color: 'var(--on)', display: 'grid', placeItems: 'center', marginRight: '12px' }}>✓</div>
-              Goals
-            </div>
-            <div style={{ display: 'flex', alignItems: 'center', minHeight: '52px', padding: '0 14px', borderBottom: '1px solid var(--ln)', font: '500 14.5px var(--f)' }}>
-              <div style={{ width: '24px', height: '24px', borderRadius: '8px', background: 'var(--ac)', color: 'var(--on)', display: 'grid', placeItems: 'center', marginRight: '12px' }}>✓</div>
-              Routine and capacity
-            </div>
-            <div style={{ display: 'flex', alignItems: 'center', minHeight: '52px', padding: '0 14px', font: '500 14.5px var(--f)' }}>
-              <div style={{ width: '24px', height: '24px', borderRadius: '8px', boxShadow: 'inset 0 0 0 2px var(--mu)', display: 'grid', placeItems: 'center', marginRight: '12px' }}></div>
-              Habits<span style={{ marginLeft: 'auto', font: '500 12px "Geist Mono", monospace', color: 'var(--ac)' }}>Running</span>
-            </div>
-          </div>
-        </BottomSheet>
-      )}
-
-      {sheet?.type === 'ignore' && (
-        <BottomSheet isOpen={true} onClose={() => setSheet(null)}>
-          <h3 style={{ font: '600 22px/1.15 var(--f)', letterSpacing: '-.02em', margin: '4px 0 2px' }}>Ignore this finding?</h3>
-          <p style={{ fontSize: '13px', color: 'var(--mu)' }}>{sheet.finding.type}</p>
-          
-          <div style={{ font: '500 12.5px var(--f)', color: 'var(--mu)', margin: '16px 4px 8px' }}>Reason</div>
-          <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', margin: '4px 0 14px' }}>
-            <div style={{ minHeight: '44px', padding: '0 14px', display: 'grid', placeItems: 'center', borderRadius: '10px', background: 'color-mix(in srgb, var(--ac) 18%, var(--s1))', boxShadow: 'inset 0 0 0 1.5px var(--ac)', font: '500 13.5px var(--f)' }}>Not a problem</div>
-            <div style={{ minHeight: '44px', padding: '0 14px', display: 'grid', placeItems: 'center', borderRadius: '10px', background: 'var(--s1)', boxShadow: 'inset 0 0 0 1px var(--ln)', font: '500 13.5px var(--f)' }}>Already handled</div>
-            <div style={{ minHeight: '44px', padding: '0 14px', display: 'grid', placeItems: 'center', borderRadius: '10px', background: 'var(--s1)', boxShadow: 'inset 0 0 0 1px var(--ln)', font: '500 13.5px var(--f)' }}>Remind me later</div>
-          </div>
-          
-          <p style={{ fontSize: '13px', color: 'var(--mu)' }}>Ignored findings move to Resolved and can be restored.</p>
-          
-          <div style={{ display: 'flex', gap: '8px', marginTop: '14px' }}>
-            <button style={{ flex: 1, minHeight: '48px', borderRadius: '12px', background: 'var(--ac)', color: 'var(--on)', font: '600 14px var(--f)', border: 'none', cursor: 'pointer' }} onClick={handleIgnore}>Ignore</button>
-            <button style={{ flex: 1, minHeight: '48px', borderRadius: '12px', background: 'var(--s2)', color: 'var(--tx)', font: '600 14px var(--f)', border: 'none', cursor: 'pointer' }} onClick={() => setShowEvidence(true)}>Based on...</button>
-          </div>
-        </BottomSheet>
-      )}
-
-      <EvidenceSheet
-        isOpen={showEvidence}
-        onClose={() => setShowEvidence(false)}
-        title={`Evidence for ${sheet?.finding?.type}`}
-        evidenceItems={[{ content: sheet?.finding?.text, date: 'Recent' }]}
-      />
     </div>
   );
 }
