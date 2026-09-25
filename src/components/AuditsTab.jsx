@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { Card } from './ui/Cards';
 import { BottomSheet } from './ui/Overlays';
 import { EvidenceSheet } from './EvidenceSheet.jsx';
+import { ContextualJarvisCTA } from './ui/Buttons.jsx';
+import { MagicWand } from '@phosphor-icons/react';
 
 export default function AuditsTab({ t, onOpenJarvis }) {
   const [audits, setAudits] = useState([]);
@@ -74,13 +76,16 @@ export default function AuditsTab({ t, onOpenJarvis }) {
           <h2 style={{ font: '600 26px/1.1 var(--f)', letterSpacing: '-.02em' }}>Audits</h2>
           <p style={{ fontSize: '13px', color: 'var(--mu)' }}>{findings.length} open, 0 resolved</p>
         </div>
-        <span 
+        <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <ContextualJarvisCTA label="Ask Jarvis" contextIcon={<MagicWand size={16} />} onClick={() => onOpenJarvis?.({ page: 'audits', entityType: 'audit', entityId: latestAudit?.id || null })} />
+          <span 
           className="pill" 
           style={{ marginLeft: 'auto', font: '500 11.5px "Geist Mono", monospace', color: 'var(--mu)', padding: '9px 12px', borderRadius: '12px', boxShadow: 'inset 0 0 0 1px var(--ln)', cursor: 'pointer' }}
           onClick={handleRunAudit}
         >
           {generating ? 'Running...' : 'Run Audit'}
-        </span>
+          </span>
+        </div>
       </div>
       
       <div className="bd" style={{ padding: '0 14px', flex: 1, overflowY: 'auto' }}>
