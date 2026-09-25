@@ -35,8 +35,60 @@ export default function GoalsTab({ onOpenJarvis }) {
   const [saving, setSaving] = useState(false);
   const [showConfirmDelete, setShowConfirmDelete] = useState(false);
   const [showEvidence, setShowEvidence] = useState(false);
+  const [goalEvidence, setGoalEvidence] = useState([]);
+  const [evidenceText, setEvidenceText] = useState('');
+  const [evidenceLoading, setEvidenceLoading] = useState(false);
+  const [evidenceSaving, setEvidenceSaving] = useState(false);
+  const [supportingObjects, setSupportingObjects] = useState([]);
 
-  useEffect(() => { loadGoals(); }, []);
+  useEffect(() => { loadGoals(); loadSupportingObjects(); }, []);
+
+  async function loadSupportingObjects() {
+    try {
+      const { getAllLifeObjects } = await import('../database/lifeObjectsRepository.js');
+      setSupportingObjects(await getAllLifeObjects());
+    } catch (err) {
+      console.error(err);
+      setError('Supporting objects could not be loaded.');
+    }
+  }
+
+  async function openEvidence() {
+    if (!selectedGoal) return;
+    setShowEvidence(true);
+    setEvidenceLoading(true);
+    try {
+      const { getGoalEvidence } = await import('../database/goalsRepository.js');
+      setGoalEvidence(await getGoalEvidence(selectedGoal.id));
+    } catch (err) {
+      console.error(err);
+      setError('Goal evidence could not be loaded.');
+    } finally {
+      setEvidenceLoading(false);
+    }
+  }
+
+  async function saveEvidence() {
+    if (!selectedGoal || !evidenceText.trim()) return;
+    setEvidenceSaving(true);
+    try {
+      const { addGoalEvidence, getGoal } = await import('../database/goalsRepository.js');
+      await addGoalEvidence(selectedGoal.id, evidenceText);
+      const [facts, updated] = await Promise.all([
+        import('../database/goalsRepository.js').then(({ getGoalEvidence }) => getGoalEvidence(selectedGoal.id)),
+        getGoal(selectedGoal.id),
+      ]);
+      setGoalEvidence(facts);
+      setSelectedGoal(updated);
+      setGoals(prev => prev.map(g => g.id === updated.id ? updated : g));
+      setEvidenceText('');
+    } catch (err) {
+      console.error(err);
+      setError('The evidence could not be saved.');
+    } finally {
+      setEvidenceSaving(false);
+    }
+  }
 
   async function loadGoals() {
     setLoading(true); setError('');
@@ -56,6 +108,15 @@ export default function GoalsTab({ onOpenJarvis }) {
   }
 
   function openEdit(goal) { setSelectedGoal(goal); setForm(toForm(goal)); setEditorOpen(true); }
+
+  function toggleSupportingObject(id) {
+    setForm(prev => ({
+      ...prev,
+      supportingObjectIds: prev.supportingObjectIds.includes(id)
+        ? prev.supportingObjectIds.filter(value => value !== id)
+        : [...prev.supportingObjectIds.filter(Boolean), id],
+    }));
+  }
 
   function updateList(key, index, value) {
     setForm(prev => ({ ...prev, [key]: prev[key].map((item, i) => i === index ? (typeof item === 'object' ? { ...item, ...value } : value) : item) }));
@@ -201,7 +262,7 @@ export default function GoalsTab({ onOpenJarvis }) {
               {selectedGoal.status === 'active' && <Button variant="secondary" onClick={() => changeStatus('paused')}><Pause size={18} /> Pause</Button>}
               {selectedGoal.status === 'paused' && <Button variant="secondary" onClick={() => changeStatus('active')}><Play size={18} /> Resume</Button>}
               {selectedGoal.status !== 'completed' && <Button variant="secondary" onClick={() => changeStatus('completed')}><CheckCircle size={18} /> Complete</Button>}
-              <Button variant="secondary" onClick={() => setShowEvidence(true)}>Based on...</Button>
+              <Button variant="secondary" onClick={openEvidence}>Evidence</Button>
               <Button variant="destructive" onClick={() => setShowConfirmDelete(true)}><Trash size={18} /> Delete</Button>
             </div>
           </div>
@@ -233,8 +294,21 @@ export default function GoalsTab({ onOpenJarvis }) {
             <Button variant="secondary" onClick={() => addListItem('blockers', '')}><Plus size={16} /> Add blocker</Button>
           </div>
 
-          <div className="goal-editor-section"><strong>Supporting object IDs</strong>
-            {form.supportingObjectIds.map((id, i) => <div className="goal-editor-row" key={i}><input value={id} onChange={e => updateList('supportingObjectIds', i, e.target.value)} placeholder="Goal-linked object ID" /><button type="button" onClick={() => removeListItem('supportingObjectIds', i)} aria-label="Remove supporting object"><X size={16} aria-hidden="true" /></button></div>)}
+          <div className="goal-editor-section">
+            <strong>Supporting objects</strong>
+            <p className="goal-helper">Link real habits, tasks, routines, or other life objects that support this outcome.</p>
+            {supportingObjects.filter(object => object.id !== selectedGoal?.id).length === 0 ? (
+              <div className="goal-note">No other life objects are available yet.</div>
+            ) : (
+              <div className="goal-object-picker">
+                {supportingObjects.filter(object => object.id !== selectedGoal?.id).map(object => (
+                  <label className="goal-object-option" key={object.id}>
+                    <Checkbox checked={form.supportingObjectIds.includes(object.id)} onChange={() => toggleSupportingObject(object.id)} />
+                    <span><strong>{object.label || object.title || object.name || object.id}</strong><small>{object.type} · {object.status}</small></span>
+                  </label>
+                ))}
+              </div>
+            )}
           </div>
 
           <Button variant="primary" loading={saving} onClick={saveGoal} style={{ width: '100%' }}>Save goal</Button>
@@ -242,7 +316,19 @@ export default function GoalsTab({ onOpenJarvis }) {
       </BottomSheet>
 
       <ConfirmDialog isOpen={showConfirmDelete} onClose={() => setShowConfirmDelete(false)} onConfirm={handleDeleteGoal} title="Delete Goal" description="This permanently removes the goal and its milestones." />
-      <EvidenceSheet isOpen={showEvidence} onClose={() => setShowEvidence(false)} title={`Evidence for ${selectedGoal?.label || 'goal'}`} evidenceItems={selectedGoal?.proof ? [{ content: selectedGoal.proof, date: 'Recorded with goal' }] : []} />
+
+      <BottomSheet isOpen={showEvidence} onClose={() => setShowEvidence(false)} title="Goal evidence">
+        <div className="goal-evidence-sheet">
+          <p className="goal-helper">Evidence is stored as an immutable fact linked to this goal, so it remains traceable to the source event.</p>
+          <textarea value={evidenceText} onChange={e => setEvidenceText(e.target.value)} placeholder="What happened that supports progress on this goal?" rows={4} />
+          <Button variant="primary" loading={evidenceSaving} onClick={saveEvidence} disabled={!evidenceText.trim()}>Record evidence</Button>
+          {evidenceLoading ? <LoadingSkeleton rows={2} /> : goalEvidence.length === 0 ? (
+            <EmptyState title="No recorded evidence yet." description="Add the first concrete observation or result for this goal." />
+          ) : (
+            <EvidenceSheet isOpen={true} onClose={() => {}} title={`Recorded evidence for ${selectedGoal?.label || 'goal'}`} evidenceItems={goalEvidence.map(f => ({ id: f.id, content: f.meta?.text || 'Evidence', source: f.source?.type || 'user', date: new Date(f.occurredAt).toLocaleDateString() }))} />
+          )}
+        </div>
+      </BottomSheet>
     </div>
   );
 }
