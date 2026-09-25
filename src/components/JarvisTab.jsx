@@ -12,6 +12,8 @@ import { getAllAxisConfigs } from '../database/axisConfigRepository.js';
 import { getAllQuests } from '../database/questBoardRepository.js';
 import { computeAllStats, computeAxisDetails } from '../helpers/statsEngine.js';
 import { recordAppError } from '../core/errorLogger.js';
+import { hasJarvisApiKey } from '../core/ai/jarvisConfig.js';
+import JarvisApiSetup from './jarvis/JarvisApiSetup.jsx';
 import { BottomSheet } from './ui/Overlays.jsx';
 import { ActionProposalCard, ImpactDetailSheet, EditProposalSheet } from './ui/ProposalUI.jsx';
 import './JarvisTab.css';
@@ -70,11 +72,30 @@ export default function JarvisTab({ t, onQuestsChanged, onboardingMode = false, 
   const [conversationReady, setConversationReady] = useState(false);
   const [reviewLoading, setReviewLoading] = useState(false);
   const [proactiveInsight, setProactiveInsight] = useState(null);
+  const [apiConfigured, setApiConfigured] = useState(null);
   const messagesEndRef = useRef(null);
   const createdAtRef = useRef(null);
 
   useEffect(() => {
     let cancelled = false;
+    (async () => {
+      try {
+        const configured = await hasJarvisApiKey();
+        if (cancelled) return;
+        setApiConfigured(configured);
+      } catch (err) {
+        recordAppError(err, { source: 'jarvis_ui', operation: 'check_api_configuration' });
+        if (!cancelled) setApiConfigured(false);
+      }
+    })();
+
+    return () => { cancelled = true; };
+  }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+    if (apiConfigured !== true) return undefined;
+
     (async () => {
       try {
         const conversation = await getOrCreateConversation(conversationId, 'Jarvis');
@@ -94,7 +115,32 @@ export default function JarvisTab({ t, onQuestsChanged, onboardingMode = false, 
     })();
 
     return () => { cancelled = true; };
-  }, [conversationId, onboardingMode]);
+  }, [conversationId, onboardingMode, apiConfigured]);
+
+  if (apiConfigured === null) {
+    return (
+      <div
+        aria-label="Loading Jarvis"
+        style={{
+          width: '100%',
+          height: '100%',
+          minHeight: '100dvh',
+          display: 'grid',
+          placeItems: 'center',
+          background: 'var(--bg)',
+          color: 'var(--mu)',
+          fontFamily: "'Geist', sans-serif",
+          fontSize: '13px',
+        }}
+      >
+        Loading Jarvis…
+      </div>
+    );
+  }
+
+  if (!apiConfigured) {
+    return <JarvisApiSetup onConfigured={() => setApiConfigured(true)} />;
+  }
 
   const handleSend = async () => {
     if (!input.trim() || loading) return;
