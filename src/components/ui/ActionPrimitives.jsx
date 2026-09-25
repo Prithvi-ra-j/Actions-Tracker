@@ -4,13 +4,13 @@ import { Button } from './Buttons.jsx';
 import { Check, PencilSimple, X } from '@phosphor-icons/react';
 
 export function ImpactChips({ impacts = [] }) {
-  // impacts: [{ label: '~ Routine', color: 'var(--mu)' }, { label: 'Body up', color: 'var(--body)' }]
+  // impacts: [{ label: '~ Routine', color: 'var(--color-text-muted)' }, { label: 'Body up', color: 'var(--body)' }]
   return (
     <div style={{ display: 'flex', gap: 'var(--space-2)', flexWrap: 'wrap', margin: 'var(--space-2) 0' }}>
       {impacts.map((imp, i) => (
         <span key={i} className="mono" style={{ 
           fontSize: '11.5px', 
-          color: imp.color || 'var(--tx)',
+          color: imp.color || 'var(--color-text)',
           backgroundColor: `color-mix(in srgb, ${imp.color || 'var(--mu)'} 15%, transparent)`,
           padding: 'var(--space-1) var(--space-2)',
           borderRadius: 'var(--radius-chip)'
@@ -25,13 +25,13 @@ export function ImpactChips({ impacts = [] }) {
 export function ActionProposalCard({ title, description, impacts = [], onApply, onEdit, onDismiss }) {
   // In a real implementation this would use framer-motion or a custom swipe gesture for swipe-to-apply
   return (
-    <Card style={{ border: '1px solid var(--ac)', padding: 0, overflow: 'hidden' }}>
+    <Card style={{ border: '1px solid var(--color-accent)', padding: 0, overflow: 'hidden' }}>
       <div style={{ padding: 'var(--space-4)' }}>
         <h4 style={{ margin: '0 0 4px 0', fontSize: '15px', fontWeight: 600 }}>{title}</h4>
         <p style={{ margin: '0 0 12px 0', fontSize: '14px', color: 'var(--mu)' }}>{description}</p>
         <ImpactChips impacts={impacts} />
       </div>
-      <div style={{ display: 'flex', borderTop: '1px solid var(--hairline)' }}>
+      <div style={{ display: 'flex', borderTop: '1px solid var(--color-hairline)' }}>
         <button aria-label="Dismiss proposal" onClick={onDismiss} style={{ flex: 1, padding: '12px', background: 'transparent', border: 'none', color: 'var(--tx)', borderRight: '1px solid var(--hairline)', cursor: 'pointer' }}><X size={16} aria-hidden="true" /> Dismiss</button>
         <button onClick={onEdit} style={{ flex: 1, padding: '12px', background: 'transparent', border: 'none', color: 'var(--tx)', borderRight: '1px solid var(--hairline)', cursor: 'pointer' }}><PencilSimple size={16} aria-hidden="true" /> Edit</button>
         <button onClick={onApply} style={{ flex: 2, padding: '12px', background: 'color-mix(in srgb, var(--ac) 15%, transparent)', border: 'none', color: 'var(--ac)', fontWeight: 600, cursor: 'pointer' }}><Check size={16} aria-hidden="true" /> Apply</button>
@@ -47,8 +47,8 @@ export function Receipt({ title, subtitle, onUndo }) {
       alignItems: 'center',
       justifyContent: 'space-between',
       padding: 'var(--space-3) var(--space-4)',
-      backgroundColor: 'var(--s1)',
-      borderRadius: 'var(--r-control)',
+      backgroundColor: 'var(--color-surface-1)',
+      borderRadius: 'var(--radius-control)',
       border: '1px solid var(--hairline)'
     }}>
       <div>
