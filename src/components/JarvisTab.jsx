@@ -152,13 +152,19 @@ export default function JarvisTab({ t, onQuestsChanged, onboardingMode = false, 
     setLoadingPhase('Thinking...');
     setError(null);
     try {
-      const response = await chatWithJarvis({
-        conversationId,
-        message: msg,
-        context: jarvisContext,
-        modeInstruction: modeInstruction(mode)
-      });
-      const finalMessages = [...newMessages, { role: 'assistant', ...response }];
+      const response = await chatWithJarvis(
+        msg,
+        messages,
+        modificationContext
+      );
+      const finalMessages = [
+        ...newMessages,
+        {
+          role: 'assistant',
+          ...response,
+          proposalStatus: response.proposal ? 'pending' : undefined,
+        },
+      ];
       setMessages(finalMessages);
       await saveConversation({
         id: conversationId,
@@ -166,9 +172,6 @@ export default function JarvisTab({ t, onQuestsChanged, onboardingMode = false, 
         messages: finalMessages,
         createdAt: createdAtRef.current
       });
-      if (onboardingMode && response.action === 'complete_onboarding') {
-        onOnboardingComplete && onOnboardingComplete();
-      }
     } catch (err) {
       recordAppError(err, { source: 'jarvis_ui', operation: 'send_message' });
       setError('Jarvis encountered an error processing your request.');
@@ -191,8 +194,12 @@ export default function JarvisTab({ t, onQuestsChanged, onboardingMode = false, 
         messages: updatedMessages,
         createdAt: createdAtRef.current
       });
-      if (proposal.type === 'create_quest' || proposal.type === 'edit_quest' || proposal.type === 'archive_quest') {
+      if (proposal.actionType === 'add_quest' || proposal.actionType === 'modify_quest' || proposal.actionType === 'archive_quest') {
         onQuestsChanged && onQuestsChanged();
+      }
+
+      if (onboardingMode && proposal.actionType === 'complete_onboarding') {
+        onOnboardingComplete && onOnboardingComplete();
       }
     } catch (err) {
       recordAppError(err, { source: 'jarvis_ui', operation: 'execute_proposal' });
