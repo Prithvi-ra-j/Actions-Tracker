@@ -1,4 +1,5 @@
 import React from 'react';
+import { Check } from '@phosphor-icons/react';
 
 export function Checkbox({ checked, onChange, size = 24, disabled = false }) {
   return (
