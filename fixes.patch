@@ -1,0 +1,228 @@
+diff --git a/.github/workflows/android-build.yml b/.github/workflows/android-build.yml
+index fa95bc6..97f9049 100644
+--- a/.github/workflows/android-build.yml
++++ b/.github/workflows/android-build.yml
+@@ -27,13 +27,15 @@ jobs:
+           cache: npm
+ 
+       - name: Install dependencies
+-        run: npm install --legacy-peer-deps
++        run: npm ci
+ 
+       - name: Determine Android version
+         id: version
+         shell: bash
++        env:
++          INPUT_VERSION: ${{ inputs.version }}
+         run: |
+-          VERSION="${{ inputs.version }}"
++          VERSION="$INPUT_VERSION"
+ 
+           if [[ ! "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+             echo "Version must look like 1.5.1.1"
+@@ -59,6 +61,9 @@ jobs:
+         run: |
+           sed -i "s/export const APP_VERSION *= *'[^']*'/export const APP_VERSION = '${{ steps.version.outputs.name }}'/" src/version.js
+ 
++      - name: Run tests
++        run: npm test
++
+       - name: Build web app
+         run: npm run build
+ 
+@@ -96,7 +101,7 @@ jobs:
+                   "Encode the actual .keystore/.jks binary file as Base64."
+               )
+ 
+-          normalized = re.sub(r"\\s+", "", encoded)
++          normalized = re.sub(r"\s+", "", encoded)
+ 
+           try:
+               decoded = base64.b64decode(normalized, validate=True)
+diff --git a/.github/workflows/android-release.yml b/.github/workflows/android-release.yml
+index 22c2b6f..63e46c8 100644
+--- a/.github/workflows/android-release.yml
++++ b/.github/workflows/android-release.yml
+@@ -34,14 +34,17 @@ jobs:
+       - name: Install dependencies
+         # Health Connect 0.7 declares a Capacitor 5 peer while this app uses
+         # Capacitor 6; use the tested compatibility override (matches android-build.yml).
+-        run: npm install --legacy-peer-deps
++        run: npm ci
+ 
+       - name: Determine Android version
+         id: version
+         shell: bash
++        env:
++          EVENT_NAME: ${{ github.event_name }}
++          INPUT_VERSION: ${{ inputs.version }}
+         run: |
+-          if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
+-            VERSION="${{ inputs.version }}"
++          if [[ "$EVENT_NAME" == "workflow_dispatch" ]]; then
++            VERSION="$INPUT_VERSION"
+           else
+             VERSION="${GITHUB_REF_NAME#v}"
+           fi
+@@ -73,6 +76,9 @@ jobs:
+           echo "Stamped version.js:"
+           grep APP_VERSION src/version.js
+ 
++      - name: Run tests
++        run: npm test
++
+       - name: Build web app
+         run: npm run build
+ 
+diff --git a/.gitignore b/.gitignore
+index 4d5240b..bc33768 100644
+--- a/.gitignore
++++ b/.gitignore
+@@ -34,10 +34,14 @@ skills/
+ .vite/
+ 
+ db__pass.txt
+-implementation_plan_go thorugh ti once thorughly using claude
+ 
+ 
+ # Android signing — never commit keystores
+ *.keystore
+ *.jks
+ github_secrets.md
++*.b64
++keystore_b64.txt
++*.pem
++*.p12
++*.pfx
+diff --git a/README.md b/README.md
+index 9295a84..61e7938 100644
+--- a/README.md
++++ b/README.md
+@@ -1,6 +1,6 @@
+ # Actions-Tracker PWA
+ 
+-Actions-Tracker is a structurally serious, local-first Personal Operating System built as a Progressive Web App (PWA) and wrapped for Android via Capacitor. It serves as an offline, private, single-device truth layer for your life data.
++Actions-Tracker is a structurally serious, local-first Personal Operating System built as a web app (Vite + React) and wrapped for Android via Capacitor. It serves as an offline, private, single-device truth layer for your life data.
+ 
+ ## Architecture & Model
+ The system uses an RPG-like axis model to track progression:
+@@ -12,14 +12,14 @@ The system uses an RPG-like axis model to track progression:
+ - **Discipline**: Habit consistency, routine, and self-control.
+ 
+ ## Core Features
+-- **Local-First & Offline**: All data is stored in IndexedDB on the device. There is no cloud backend, no account to create, and no central server that can be breached. Data is fully yours.
++- **Local-First & Offline**: All data is stored in IndexedDB on the device, and no account is required. Optional features do use the network: the Jarvis AI connector sends a compact context summary to the LLM endpoint you configure (Groq by default), and NutriLift sync reads records from Supabase after you sign in.
+ - **Jarvis Engine**: A local AI connector that provides pattern detection, daily feedback, and anomaly detection based on your raw daily telemetry.
+ - **Daily Check-Ins**: Fast, frictionless entry for daily non-negotiable habits.
+ - **RPG Progression**: Activities log points ("Evidence") against your stats, automatically leveling up your stats and providing a gamified loop.
+ - **Automatic Backup**: Backups are periodically exported as a JSON file to the device's file system for safekeeping against data corruption or app uninstalls.
+ 
+ ## Technical Stack
+-- **Frontend**: React (Vite) - *Note: Vite proxy uses port 3000 for Supabase connections.*
++- **Frontend**: React (Vite). Supabase is configured via `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY`.
+ - **Database**: IndexedDB (Native Browser / WebView)
+ - **Container**: Capacitor v6 for native Android features (File System, Notifications, Status Bar, Secure Storage)
+ 
+@@ -46,3 +46,6 @@ npm run cap:android
+ ## Data Safety
+ Since Actions-Tracker stores all your data on your phone, you are responsible for it. 
+ The app runs a background task to safely back up your IndexedDB data to a JSON file in your local Documents folder on Android. You can import this JSON file back into the app if you ever need to restore it.
++
++## Signing keys
++Never commit keystores or their base64 encodings. Store them only as GitHub Actions secrets (see `ANDROID_RELEASE.md`).
+diff --git a/android/app/src/main/AndroidManifest.xml b/android/app/src/main/AndroidManifest.xml
+index 0234b8e..ba02ada 100644
+--- a/android/app/src/main/AndroidManifest.xml
++++ b/android/app/src/main/AndroidManifest.xml
+@@ -2,7 +2,7 @@
+ <manifest xmlns:android="http://schemas.android.com/apk/res/android">
+ 
+     <application
+-        android:allowBackup="true"
++        android:allowBackup="false"
+         android:icon="@mipmap/ic_launcher"
+         android:label="@string/app_name"
+         android:roundIcon="@mipmap/ic_launcher_round"
+diff --git a/src/core/ai/llmClient.js b/src/core/ai/llmClient.js
+index 01f4908..3fbeda4 100644
+--- a/src/core/ai/llmClient.js
++++ b/src/core/ai/llmClient.js
+@@ -17,7 +17,7 @@ export async function queryLLM(messages, options = {}) {
+   // Groq retired gemma2-9b-it on 2025-10-08. Keep existing installations
+   // working by transparently moving that legacy default to a current
+   // production model. User-selected models are otherwise left untouched.
+-  if (/api\\.groq\\.com/i.test(baseUrl) && model === 'gemma2-9b-it') {
++  if (/api\.groq\.com/i.test(baseUrl) && model === 'gemma2-9b-it') {
+     model = 'openai/gpt-oss-20b';
+     await setSetting('aiModel', model).catch(() => {});
+   }
+diff --git a/src/database/backupService.js b/src/database/backupService.js
+index 9942cab..9f6457d 100644
+--- a/src/database/backupService.js
++++ b/src/database/backupService.js
+@@ -43,6 +43,25 @@ async function writeLatestBackup(backupData) {
+   });
+ }
+ 
++const MAX_DATED_BACKUPS = 14;
++
++/** Keeps only the newest MAX_DATED_BACKUPS dated backups. Never throws. */
++async function pruneOldBackups() {
++  try {
++    const listing = await Filesystem.readdir({ path: '', directory: Directory.Documents });
++    const dated = (listing.files || [])
++      .map(file => file.name)
++      .filter(name => /^ActionsTracker_Backup_\d{4}-\d{2}-\d{2}\.json$/.test(name))
++      .sort()
++      .reverse();
++    for (const name of dated.slice(MAX_DATED_BACKUPS)) {
++      await Filesystem.deleteFile({ path: name, directory: Directory.Documents }).catch(() => {});
++    }
++  } catch {
++    // Pruning is best-effort.
++  }
++}
++
+ /**
+  * Runs the automatic backup.
+  *
+@@ -56,6 +75,12 @@ export async function runAutoBackup({ force = false } = {}) {
+     const lastBackupDate = await getSetting('lastAutoBackupDate');
+     const backupData = await exportDatabase();
+ 
++    // Never let an empty database overwrite the recovery point.
++    if (await isDatabaseEmpty()) {
++      console.warn('[BackupService] Database is empty; skipping backup to protect existing snapshots.');
++      return;
++    }
++
+     // Always refresh the latest snapshot so the recovery point contains the
+     // most recent onboarding/system state, not yesterday's state.
+     await writeLatestBackup(backupData);
+@@ -70,6 +95,7 @@ export async function runAutoBackup({ force = false } = {}) {
+       });
+       await setSetting('lastAutoBackupDate', todayStr);
+       console.log(`[BackupService] Created backup: ${fileName}${force ? ' (forced)' : ''}`);
++      await pruneOldBackups();
+     }
+   } catch (error) {
+     console.error('[BackupService] Auto-backup failed:', error);
+diff --git a/src/database/db.js b/src/database/db.js
+index 7c40ff1..09c3907 100644
+--- a/src/database/db.js
++++ b/src/database/db.js
+@@ -385,10 +385,12 @@ const ALL_STORES = [
+ export async function exportDatabase() {
+   const data = {};
+   for (const store of ALL_STORES) {
++    // Fail loudly: a silently-empty store would produce a degraded backup that
++    // could overwrite the last good recovery point.
+     try {
+       data[store] = await dbGetAll(store);
+-    } catch {
+-      data[store] = [];
++    } catch (error) {
++      throw new Error(`[Export] Failed to read store "${store}": ${error?.message ?? error}`);
+     }
+   }
+   return JSON.stringify({
