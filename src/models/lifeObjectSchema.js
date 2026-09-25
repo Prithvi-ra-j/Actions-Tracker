@@ -73,6 +73,7 @@ export function createGoal(fields) {
     fear:    fields.fear   ?? '',
     blockers: fields.blockers ?? [],
     supportingObjectIds: fields.supportingObjectIds ?? [],
+    evidenceFactIds: fields.evidenceFactIds ?? [],
     pausedAt: fields.pausedAt ?? null,
     completedAt: fields.completedAt ?? null,
     schemaVersion: 1,
