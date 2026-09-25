@@ -16,6 +16,7 @@ import { checkAndWriteWeeklySnapshot, getLatestSnapshot } from './database/statS
 import { runAnomalyDetection, saveTelemetryEvent } from './database/telemetryRepository.js';
 import { runAutoBackup, restoreLatestBackupIfDatabaseEmpty } from './database/backupService.js';
 import { isOnboardingComplete } from './database/selfModelRepository.js';
+import { hasJarvisApiKey } from './core/ai/jarvisConfig.js';
 import { registerConnector } from './core/sync/syncManager.js';
 import { HealthConnectConnector } from './core/sync/connectors/HealthConnectConnector.js';
 import { NutriLiftConnector } from './core/sync/connectors/NutriLiftConnector.js';
@@ -275,15 +276,12 @@ export default function App() {
         await syncQuestProgress(allLogs);
         const syncedQuests = await getAllQuests();
 
-        // Use selfModelRepository to check onboarding completion (v2).
-        // Fall back to the old log-count check for users who completed v1 onboarding.
+        // Use selfModelRepository as the authoritative onboarding state.
         const onboardingDone = await isOnboardingComplete();
-        const hasOldBaseline = allLogs.filter(l => l.type !== 'daily_checkbox').length > 0;
-        if (!onboardingDone && !hasOldBaseline) {
-          setNeedsOnboarding(true);
-        } else if (!onboardingDone && hasOldBaseline) {
-          setHasLegacyData(true);
-        }
+        // Onboarding is now the single source of truth for first-run access.
+        // Legacy logs must never bypass the onboarding gate.
+        setNeedsOnboarding(!onboardingDone);
+        setHasLegacyData(!onboardingDone && allLogs.some(l => l.type !== 'daily_checkbox'));
 
         setAllLogs(allLogs);
         setAxisConfigs(axisConfigs);
@@ -364,19 +362,25 @@ export default function App() {
         const snap = await getLatestSnapshot();
         setLatestSnapshot(snap);
 
-        // Run anomaly detection quietly in the background
-        await runAnomalyDetection(today);
+        const apiConfigured = await hasJarvisApiKey();
 
-        // Phase 13: Boot background analysis scheduler
-        bootstrapAnalysisScheduler();
+        // Do not run analysis, anomaly detection, or AI scheduler until the
+        // user has completed onboarding and explicitly configured an API key.
+        if (onboardingDone && apiConfigured) {
+          await runAnomalyDetection(today);
+          bootstrapAnalysisScheduler();
+        }
 
         // Check GitHub Releases for a newer APK (non-fatal, session-cached)
         checkForUpdate().then(info => { if (info) setUpdateInfo(info); }).catch(() => {});
 
-        // Phase 3B: Shadow comparison on boot
-        setTimeout(() => {
-          import('./core/scoring/scoreParityCheck.js').then(m => m.runParityCheck());
-        }, 15000);
+        // Phase 3B: Shadow comparison on boot. It is diagnostic work and is
+        // deferred until onboarding/API setup is complete.
+        if (onboardingDone && apiConfigured) {
+          setTimeout(() => {
+            import('./core/scoring/scoreParityCheck.js').then(m => m.runParityCheck());
+          }, 15000);
+        }
 
         // ── Phase 7: Load today's occurrences, books, and learnings ───────────
         try {
