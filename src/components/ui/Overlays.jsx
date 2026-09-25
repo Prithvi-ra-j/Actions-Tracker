@@ -5,9 +5,27 @@ export function BottomSheet({ isOpen, onClose, title, children }) {
   const previousFocusRef = useRef(null);
   
   useEffect(() => {
-    if (isOpen) {
-      previousFocusRef.current = document.activeElement;
-    } else if (previousFocusRef.current) {
+    if (!isOpen) return;
+    previousFocusRef.current = document.activeElement;
+    const onKeyDown = (event) => {
+      if (event.key === 'Escape') { event.preventDefault(); onClose?.(); return; }
+      if (event.key !== 'Tab') return;
+      const dialog = document.querySelector('[role="dialog"]');
+      if (!dialog) return;
+      const focusables = [...dialog.querySelectorAll('button, [href], input, textarea, select, [tabindex]:not([tabindex="-1"])')].filter(el => !el.disabled);
+      if (!focusables.length) return;
+      const first = focusables[0], last = focusables[focusables.length - 1];
+      if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last.focus(); }
+      else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first.focus(); }
+    };
+    document.addEventListener('keydown', onKeyDown);
+    const firstFocusable = document.querySelector('[role="dialog"] button, [role="dialog"] input, [role="dialog"] textarea, [role="dialog"] select');
+    firstFocusable?.focus();
+    return () => document.removeEventListener('keydown', onKeyDown);
+  }, [isOpen, onClose]);
+
+  useEffect(() => {
+    if (!isOpen && previousFocusRef.current) {
       previousFocusRef.current.focus();
     }
   }, [isOpen]);
