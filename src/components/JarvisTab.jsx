@@ -43,7 +43,6 @@ const COMMANDS = [
   { id: 'target', label: 'Revise target', description: 'Change what success means', icon: '⊙', prompt: 'Revise my target' },
   { id: 'review', label: 'Review my system', description: 'Find trends, gaps, and bottlenecks', icon: '◌', prompt: 'Review my system' },
   { id: 'audit', label: 'Audit my system', description: 'Look for contradictions and risks', icon: '⌁', prompt: 'Audit my system' },
-  { id: 'onboarding', label: 'Continue onboarding', description: 'Let Jarvis interview me and configure my system', icon: '✦', prompt: 'Continue my onboarding' },
 ];
 
 const destructiveActions = new Set(['archive_habit']);
