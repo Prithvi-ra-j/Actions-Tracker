@@ -132,7 +132,8 @@ export default function JarvisTab({ t, isActive = true, onQuestsChanged, onboard
             const response = await chatWithJarvis(
               'Start the onboarding interview now. Ask the user only the first focused question. Do not ask them to type a command or press send, and do not create or propose any changes yet.',
               [],
-              null
+              null,
+              { onboarding: activeOnboardingMode }
             );
 
             if (cancelled) return;
@@ -221,7 +222,8 @@ export default function JarvisTab({ t, isActive = true, onQuestsChanged, onboard
       const response = await chatWithJarvis(
         msg,
         messages,
-        modificationContext
+        modificationContext,
+        { onboarding: activeOnboardingMode }
       );
       const finalMessages = [
         ...newMessages,
@@ -243,7 +245,10 @@ export default function JarvisTab({ t, isActive = true, onQuestsChanged, onboard
       });
     } catch (err) {
       recordAppError(err, { source: 'jarvis_ui', operation: 'send_message' });
-      setError('Jarvis encountered an error processing your request.');
+      const detail = err?.message ? String(err.message).slice(0, 320) : 'Unknown AI connection error.';
+      setError(activeOnboardingMode
+        ? `Jarvis encountered an error processing your onboarding answer: ${detail}`
+        : `Jarvis encountered an error processing your request: ${detail}`);
     } finally {
       setLoading(false);
       setLoadingPhase('');
