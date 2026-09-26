@@ -139,7 +139,10 @@ export default function JarvisTab({ t, isActive = true, onQuestsChanged, onboard
 
             const initialMessages = [{
               role: 'assistant',
-              ...response,
+              content: response.message || '',
+              proposal: response.proposal,
+              claims: response.claims,
+              contextUsed: response.contextUsed,
             }];
 
             setMessages(initialMessages);
@@ -224,7 +227,10 @@ export default function JarvisTab({ t, isActive = true, onQuestsChanged, onboard
         ...newMessages,
         {
           role: 'assistant',
-          ...response,
+          content: response.message || '',
+          proposal: response.proposal,
+          claims: response.claims,
+          contextUsed: response.contextUsed,
           proposalStatus: response.proposal ? 'pending' : undefined,
         },
       ];
@@ -493,7 +499,9 @@ export default function JarvisTab({ t, isActive = true, onQuestsChanged, onboard
           </div>
         ) : (
           <div style={{ paddingBottom: '28px', maxWidth: '760px', margin: '0 auto' }}>
-            {messages.map((msg, i) => (
+            {messages.map((msg, i) => {
+              const assistantContent = msg.content ?? msg.message ?? '';
+              return (
               <div key={i} style={{ marginBottom: '16px' }}>
                 {msg.role === 'user' ? (
                   /* User bubble — right-aligned */
@@ -512,7 +520,7 @@ export default function JarvisTab({ t, isActive = true, onQuestsChanged, onboard
                 ) : (
                   /* Assistant — unbubbled prose with trust rails */
                   <div>
-                    {msg.content && (
+                    {assistantContent && (
                       <p style={{
                         paddingLeft: '12px',
                         marginBottom: '10px',
@@ -521,7 +529,7 @@ export default function JarvisTab({ t, isActive = true, onQuestsChanged, onboard
                         borderLeft: `3px solid var(--tx)`,
                         color: 'var(--tx)',
                       }}>
-                        {msg.content}
+                        {assistantContent}
                       </p>
                     )}
 
@@ -602,7 +610,8 @@ export default function JarvisTab({ t, isActive = true, onQuestsChanged, onboard
                   </div>
                 )}
               </div>
-            ))}
+              );
+            })}
             <div ref={messagesEndRef} />
           </div>
         )}
