@@ -17,6 +17,7 @@ import { getRoutineConfig, updateRoutineConfig } from '../../database/routineRep
 import { generateOccurrencesForDate } from '../occurrenceEngine.js';
 import { localDateStr } from '../../helpers/dateHelpers.js';
 import { ActionProposalSchema } from './actionSchemas.js';
+import { addLog, deleteLog } from '../../database/logsRepository.js';
 
 function requireId(payload, actionType) {
   if (!payload.id || typeof payload.id !== 'string') {
@@ -329,25 +330,37 @@ export async function executeAction(proposal) {
         });
       }
 
-      // Discipline is cross-cutting and is configured only as a baseline until
-      // Jarvis later designs actual commitments.
-      const discipline = payloadBaseline.discipline || {};
-      await updateAxisConfig('discipline', {
-        baselineRatePerWeek: Number.isFinite(discipline.keptShare)
-          ? discipline.keptShare * 7
-          : Number.isFinite(discipline.ratePerWeek) ? discipline.ratePerWeek : 0,
-        expectedPerWeek: null,
-        paused: false,
-        hasConsistencyTerm: false,
-        scoringMode: 'awaiting_jarvis_design',
-        source: 'jarvis_onboarding',
-      });
+      // Seed the canonical onboarding baseline used by the scoring engine.
+      // These logs are baseline evidence only: statsEngine excludes them from
+      // activity counts but blends them into the starting score and fades that
+      // influence as real activity accumulates.
+      const onboardingLogIds = [];
+      const baselineAxes = [...new Set([...focusAxes, 'discipline'])];
+      for (const axis of baselineAxes) {
+        const baseline = payloadBaseline[axis] || {};
+        const rawValue = Number(baseline.value ?? baseline.score);
+        if (!Number.isFinite(rawValue)) continue;
+        const value = Math.max(0, Math.min(99, rawValue));
+        const id = await addLog({
+          axis,
+          type: 'onboarding_assessment',
+          value,
+          date: localDateStr(),
+          meta: {
+            source: 'jarvis_onboarding',
+            confidence: Number.isFinite(baseline.confidence) ? baseline.confidence : null,
+            evidence: baseline.evidence || null,
+          },
+        });
+        onboardingLogIds.push(id);
+      }
 
       result = {
         ...result,
         id: 'onboarding',
         completedAt: now,
         setupState: 'jarvis_design_pending',
+        onboardingLogIds,
       };
       break;
     }
@@ -445,6 +458,9 @@ export async function undoAction(actionFactId) {
     if (before?.selfModel) await updateSelfModel(before.selfModel);
     for (const config of before?.axisConfigs || []) {
       await updateAxisConfig(config.axis, config);
+    }
+    for (const logId of result?.onboardingLogIds || []) {
+      await deleteLog(logId);
     }
   } else if (actionType === 'log_evidence') {
     const evidenceFactId = result?.evidenceFactId || result?.id;
