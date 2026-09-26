@@ -230,6 +230,12 @@ export function getDB() {
   return _db;
 }
 
+export function closeDB() {
+  if (!_db) return;
+  _db.close();
+  _db = null;
+}
+
 // ─── Low-level IDB helpers ─────────────────────────────────────────────────────
 // Repository modules use these instead of duplicating transaction boilerplate.
 

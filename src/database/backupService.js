@@ -71,8 +71,10 @@ export async function runAutoBackup({ force = false } = {}) {
       await setSetting('lastAutoBackupDate', todayStr);
       console.log(`[BackupService] Created backup: ${fileName}${force ? ' (forced)' : ''}`);
     }
+    return { success: true, date: todayStr };
   } catch (error) {
     console.error('[BackupService] Auto-backup failed:', error);
+    return { success: false, error };
   }
 }
 

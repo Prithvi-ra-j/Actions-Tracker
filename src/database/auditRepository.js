@@ -63,6 +63,7 @@ export async function addAudit(fields) {
     patterns:             fields.patterns         ?? [],
     risks:                fields.risks            ?? [],
     recommendations:      fields.recommendations  ?? [],
+    findingStates:        fields.findingStates     ?? {},
     nextPeriodFocus:      fields.nextPeriodFocus  ?? [],
     supportingEvidenceIds: fields.supportingEvidenceIds ?? [],
     analysisVersion:      fields.analysisVersion,
@@ -84,6 +85,14 @@ export async function addAudit(fields) {
  */
 export async function getAudit(id) {
   return dbGet(STORE, id);
+}
+
+export async function updateAudit(id, fields) {
+  const existing = await getAudit(id);
+  if (!existing) throw new Error(`[auditRepository] Audit not found: ${id}`);
+  const updated = { ...existing, ...fields, id, updatedAt: now() };
+  await dbPut(STORE, updated);
+  return updated;
 }
 
 /**

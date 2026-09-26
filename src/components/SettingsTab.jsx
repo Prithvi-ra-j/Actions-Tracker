@@ -1,18 +1,23 @@
-import React, { useState, useEffect } from 'react';
-import { BottomSheet } from './ui/Overlays.jsx';
+import React, { useState, useEffect, useRef } from 'react';
+import { BottomSheet, ConfirmDialog } from './ui/Overlays.jsx';
 import { Button } from './ui/Buttons.jsx';
 
-export default function SettingsTab({ t, onClose }) {
+export default function SettingsTab({ t, onClose, reminders: reminderConfigs = [], onSaveReminders }) {
   const [activeSection, setActiveSection] = useState(null);
 
   // Data state
-  const [backupDate, setBackupDate] = useState('Automatic, today 6:12 am');
+  const [backupDate, setBackupDate] = useState('Checking backup status...');
   const [storageUsed, setStorageUsed] = useState('0');
+  const [restoreFile, setRestoreFile] = useState(null);
+  const [restoreStatus, setRestoreStatus] = useState(null);
+  const [restoring, setRestoring] = useState(false);
+  const restoreInputRef = useRef(null);
 
   // Memory state
   const [saveMemories, setSaveMemories] = useState(true);
   const [sendContext, setSendContext] = useState(true);
   const [memories, setMemories] = useState([]);
+  const [preferenceError, setPreferenceError] = useState('');
 
   // Notifications state
   const [proactive, setProactive] = useState(true);
@@ -20,26 +25,44 @@ export default function SettingsTab({ t, onClose }) {
 
   // AI state
   const [verifying, setVerifying] = useState(false);
+  const [savingAISettings, setSavingAISettings] = useState(false);
+  const [apiKeyDraft, setApiKeyDraft] = useState('');
+  const [aiSaveError, setAiSaveError] = useState('');
   const [verifyResult, setVerifyResult] = useState(null);
   const [aiSettings, setAiSettings] = useState({
-    baseUrl: 'api.openai.com',
-    model: 'gpt-4o',
-    hasKey: true
+    baseUrl: '',
+    model: '',
+    hasKey: false,
   });
 
   useEffect(() => {
     import('../database/memoryRepository.js').then(m => {
       m.getSemanticMemories().then(setMemories);
     });
+
+    import('../database/settingsRepository.js').then(async ({ getSetting }) => {
+      const lastBackupDate = await getSetting('lastAutoBackupDate');
+      setBackupDate(lastBackupDate ? `Automatic, ${lastBackupDate}` : 'No automatic backup yet');
+    });
+
+    import('../database/settingsRepository.js').then(async ({ getSetting }) => {
+      const [saveMemoriesSetting, sendContextSetting, proactiveSetting, remindersSetting] = await Promise.all([
+        getSetting('jarvisSaveMemories'),
+        getSetting('jarvisSendPageContext'),
+        getSetting('jarvisProactiveSuggestions'),
+        getSetting('jarvisReviewReminders'),
+      ]);
+      if (saveMemoriesSetting !== null) setSaveMemories(saveMemoriesSetting === 'true');
+      if (sendContextSetting !== null) setSendContext(sendContextSetting === 'true');
+      if (proactiveSetting !== null) setProactive(proactiveSetting === 'true');
+      if (remindersSetting !== null) setReminders(remindersSetting === 'true');
+    });
+    setReminders(!!reminderConfigs.find(reminder => reminder.id === 3)?.enabled);
     
     // Load AI settings
-    import('../database/settingsRepository.js').then(async (repo) => {
-      const baseUrl = (await repo.getSetting('aiBaseUrl')) || 'https://api.openai.com/v1';
-      const model = (await repo.getSetting('aiModel')) || 'gpt-4o';
-      import('../native/secureStorage.js').then(async (sec) => {
-        const key = await sec.getSecureValue('aiApiKey');
-        setAiSettings({ baseUrl, model, hasKey: !!key });
-      });
+    import('../core/ai/jarvisConfig.js').then(async ({ getJarvisConfig }) => {
+      const config = await getJarvisConfig();
+      setAiSettings({ baseUrl: config.baseUrl, model: config.model, hasKey: config.hasApiKey });
     });
 
     // Load storage estimate
@@ -61,6 +84,37 @@ export default function SettingsTab({ t, onClose }) {
     setMemories([]);
   };
 
+  const savePreference = async (key, value, setValue) => {
+    const previousValue = value;
+    setValue(!previousValue);
+    setPreferenceError('');
+    try {
+      const { setSetting } = await import('../database/settingsRepository.js');
+      await setSetting(key, String(!previousValue));
+      if (key === 'jarvisProactiveSuggestions' && !previousValue) {
+        const { bootstrapAnalysisScheduler } = await import('../core/ai/analysisScheduler.js');
+        bootstrapAnalysisScheduler();
+      }
+    } catch (error) {
+      setValue(previousValue);
+      setPreferenceError('Preference could not be saved. Try again.');
+    }
+  };
+
+  const handleReviewReminderToggle = async () => {
+    const nextEnabled = !reminders;
+    const updatedReminders = reminderConfigs.map(reminder => (
+      reminder.id === 3 ? { ...reminder, enabled: nextEnabled } : reminder
+    ));
+    setReminders(nextEnabled);
+    try {
+      await onSaveReminders?.(updatedReminders);
+    } catch (error) {
+      setReminders(!nextEnabled);
+      setPreferenceError('Reminder preference could not be saved. Try again.');
+    }
+  };
+
   const handleBackup = async () => {
     const { exportDatabase } = await import('../database/db.js');
     const json = await exportDatabase();
@@ -71,7 +125,38 @@ export default function SettingsTab({ t, onClose }) {
     a.download = `actions-tracker-backup-${new Date().toISOString().slice(0, 10)}.json`;
     a.click();
     URL.revokeObjectURL(url);
-    setBackupDate(`Just now`);
+  };
+
+  const handleRunBackup = async () => {
+    const { runAutoBackup } = await import('../database/backupService.js');
+    const result = await runAutoBackup({ force: true });
+    if (result.success) {
+      setBackupDate(`Automatic, ${result.date}`);
+      setRestoreStatus({ success: true, message: 'Device backup completed.' });
+    } else {
+      setRestoreStatus({ success: false, message: `Backup failed: ${result.error?.message || 'device storage unavailable'}` });
+    }
+  };
+
+  const handleRestore = async () => {
+    if (!restoreFile) return;
+    setRestoring(true);
+    setRestoreStatus(null);
+    try {
+      const { importDatabase } = await import('../database/db.js');
+      const result = await importDatabase(await restoreFile.text());
+      const recordCount = Object.values(result.counts).reduce((sum, count) => sum + count, 0);
+      setRestoreStatus({ success: true, message: `Restore complete. ${recordCount} records imported.` });
+      setRestoreFile(null);
+      window.location.reload();
+    } catch (error) {
+      setRestoreStatus({
+        success: false,
+        message: `${error.message}. Your existing data was not replaced.`,
+      });
+    } finally {
+      setRestoring(false);
+    }
   };
 
   const handleCopyDiagnostics = async () => {
@@ -96,6 +181,36 @@ export default function SettingsTab({ t, onClose }) {
       setVerifyResult({ success: false, message: `Connection failed: ${e.message.slice(0, 60)}...` });
     } finally {
       setVerifying(false);
+    }
+  };
+
+  const handleSaveAISettings = async () => {
+    setSavingAISettings(true);
+    setAiSaveError('');
+    setVerifyResult(null);
+    try {
+      const { getJarvisConfig, saveJarvisConfig } = await import('../core/ai/jarvisConfig.js');
+      const { setSetting } = await import('../database/settingsRepository.js');
+      const baseUrl = aiSettings.baseUrl.trim();
+      const model = aiSettings.model.trim();
+      if (!baseUrl || !model) throw new Error('Base URL and model are required.');
+
+      if (apiKeyDraft.trim()) {
+        await saveJarvisConfig({ apiKey: apiKeyDraft.trim(), baseUrl, model });
+        setApiKeyDraft('');
+      } else {
+        await Promise.all([
+          setSetting('aiBaseUrl', baseUrl),
+          setSetting('aiModel', model),
+        ]);
+      }
+
+      const config = await getJarvisConfig();
+      setAiSettings({ baseUrl: config.baseUrl, model: config.model, hasKey: config.hasApiKey });
+    } catch (error) {
+      setAiSaveError(error.message || 'Could not save AI settings.');
+    } finally {
+      setSavingAISettings(false);
     }
   };
 
@@ -138,7 +253,9 @@ export default function SettingsTab({ t, onClose }) {
       <div style={groupStyle}>
         <div style={rowStyle(false)} onClick={() => setActiveSection('ai')}>
           AI & Provider
-          <span style={rowRightStyle}>{aiSettings.hasKey ? 'Verified ›' : 'Needs setup ›'}</span>
+          <span style={rowRightStyle}>
+            {verifyResult?.success ? 'Verified ›' : aiSettings.hasKey ? 'Configured ›' : 'Needs setup ›'}
+          </span>
         </div>
         <div style={rowStyle(false)} onClick={() => setActiveSection('data')}>
           Data
@@ -168,19 +285,24 @@ export default function SettingsTab({ t, onClose }) {
     <div style={{ padding: '0 14px', flex: 1, overflowY: 'auto' }}>
       <div style={headerLabelStyle}>Provider settings</div>
       <div style={groupStyle}>
-        <div style={rowStyle(false)}>
+        <label style={{ display: 'grid', gap: '6px', padding: '12px 14px', color: 'var(--mu)', fontSize: '13px' }}>
           Base URL
-          <span style={{...rowRightStyle, maxWidth: '150px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{aiSettings.baseUrl}</span>
-        </div>
-        <div style={rowStyle(false)}>
-          API Key
-          <span style={rowRightStyle}>{aiSettings.hasKey ? 'sk-••••••••••••' : 'Not set'}</span>
-        </div>
-        <div style={rowStyle(true)}>
+          <input aria-label="AI base URL" value={aiSettings.baseUrl} onChange={event => setAiSettings(prev => ({ ...prev, baseUrl: event.target.value }))} />
+        </label>
+        <label style={{ display: 'grid', gap: '6px', padding: '12px 14px', color: 'var(--mu)', fontSize: '13px' }}>
+          API key {aiSettings.hasKey ? '(saved; leave blank to keep)' : '(not set)'}
+          <input aria-label="Replacement API key" type="password" autoComplete="new-password" value={apiKeyDraft} onChange={event => setApiKeyDraft(event.target.value)} placeholder={aiSettings.hasKey ? 'Stored securely' : 'Enter API key'} />
+        </label>
+        <label style={{ display: 'grid', gap: '6px', padding: '12px 14px', color: 'var(--mu)', fontSize: '13px' }}>
           Model
-          <span style={rowRightStyle}>{aiSettings.model}</span>
-        </div>
+          <input aria-label="AI model" value={aiSettings.model} onChange={event => setAiSettings(prev => ({ ...prev, model: event.target.value }))} />
+        </label>
       </div>
+
+      {aiSaveError && <p role="alert" style={{ color: 'var(--danger)', fontSize: '13px' }}>{aiSaveError}</p>}
+      <Button variant="secondary" style={{ width: '100%', marginBottom: '10px' }} onClick={handleSaveAISettings} disabled={savingAISettings}>
+        {savingAISettings ? 'Saving...' : 'Save AI settings'}
+      </Button>
 
       <Button variant="primary" style={{ width: '100%' }} onClick={handleVerifyAI} disabled={verifying}>
         {verifying ? 'Verifying...' : 'Verify connection'}
@@ -217,19 +339,48 @@ export default function SettingsTab({ t, onClose }) {
           Status
           <span style={rowRightStyle}>{backupDate}</span>
         </div>
-        <div style={rowStyle(true)} onClick={handleBackup}>
+        <button type="button" style={{ ...rowStyle(true), width: '100%', border: 0, background: 'transparent', color: 'var(--tx)', textAlign: 'left' }} onClick={handleRunBackup}>
           Back up now
-        </div>
+        </button>
       </div>
 
       <div style={headerLabelStyle}>Move data</div>
       <div style={groupStyle}>
-        <div style={rowStyle(false)} onClick={handleBackup}>
+        <button type="button" style={{ ...rowStyle(false), width: '100%', border: 0, background: 'transparent', color: 'var(--tx)', textAlign: 'left' }} onClick={handleBackup}>
           Export data
-        </div>
-        <div style={rowStyle(true)}>
+        </button>
+        <button
+          type="button"
+          style={{ ...rowStyle(true), width: '100%', background: 'transparent', border: 0, color: 'var(--tx)', textAlign: 'left' }}
+          onClick={() => restoreInputRef.current?.click()}
+        >
           Restore from backup
-        </div>
+        </button>
+        <input
+          ref={restoreInputRef}
+          type="file"
+          accept="application/json,.json"
+          aria-label="Choose backup file"
+          style={{ display: 'none' }}
+          onChange={event => {
+            const file = event.target.files?.[0] || null;
+            event.target.value = '';
+            setRestoreStatus(null);
+            setRestoreFile(file);
+          }}
+        />
+        {restoreStatus && (
+          <p role={restoreStatus.success ? 'status' : 'alert'} style={{ margin: '10px 0', color: restoreStatus.success ? 'var(--strategy)' : 'var(--danger)', fontSize: '13px' }}>
+            {restoreStatus.message}
+          </p>
+        )}
+        <ConfirmDialog
+          isOpen={!!restoreFile}
+          onClose={() => setRestoreFile(null)}
+          onConfirm={handleRestore}
+          title="Replace app data?"
+          description={`Restore ${restoreFile?.name || 'this backup'}? This replaces the current local data.`}
+        />
       </div>
 
       <div style={headerLabelStyle}>Storage</div>
@@ -248,17 +399,14 @@ export default function SettingsTab({ t, onClose }) {
       <div style={groupStyle}>
         <div style={rowStyle(false)}>
           Let Jarvis save memories
-          <div style={{ marginLeft: 'auto', width: '44px', height: '26px', borderRadius: '13px', background: saveMemories ? 'var(--ac)' : 'var(--s2)', position: 'relative', boxShadow: 'inset 0 0 0 1px var(--hairline)', cursor: 'pointer' }} onClick={() => setSaveMemories(!saveMemories)}>
-            <div style={{ position: 'absolute', top: '3px', left: saveMemories ? '21px' : '3px', width: '20px', height: '20px', borderRadius: '50%', background: saveMemories ? '#1a0d04' : 'var(--mu)', transition: 'left 0.2s' }}></div>
-          </div>
+          <button type="button" role="switch" aria-checked={saveMemories} aria-label="Let Jarvis save memories" onClick={() => savePreference('jarvisSaveMemories', saveMemories, setSaveMemories)} style={{ marginLeft: 'auto', minWidth: '44px', minHeight: '32px', border: 0, borderRadius: 'var(--r-control)', background: saveMemories ? 'var(--ac)' : 'var(--s2)', color: saveMemories ? 'var(--on-ac)' : 'var(--tx)', cursor: 'pointer' }}>{saveMemories ? 'On' : 'Off'}</button>
         </div>
         <div style={rowStyle(true)}>
-          Send only needed context
-          <div style={{ marginLeft: 'auto', width: '44px', height: '26px', borderRadius: '13px', background: sendContext ? 'var(--ac)' : 'var(--s2)', position: 'relative', boxShadow: 'inset 0 0 0 1px var(--hairline)', cursor: 'pointer' }} onClick={() => setSendContext(!sendContext)}>
-            <div style={{ position: 'absolute', top: '3px', left: sendContext ? '21px' : '3px', width: '20px', height: '20px', borderRadius: '50%', background: sendContext ? '#1a0d04' : 'var(--mu)', transition: 'left 0.2s' }}></div>
-          </div>
+          Attach selected page context
+          <button type="button" role="switch" aria-checked={sendContext} aria-label="Attach selected page context" onClick={() => savePreference('jarvisSendPageContext', sendContext, setSendContext)} style={{ marginLeft: 'auto', minWidth: '44px', minHeight: '32px', border: 0, borderRadius: 'var(--r-control)', background: sendContext ? 'var(--ac)' : 'var(--s2)', color: sendContext ? 'var(--on-ac)' : 'var(--tx)', cursor: 'pointer' }}>{sendContext ? 'On' : 'Off'}</button>
         </div>
       </div>
+      {preferenceError && <p role="alert" style={{ color: 'var(--danger)', fontSize: '13px' }}>{preferenceError}</p>}
 
       <div style={headerLabelStyle}>Saved memories</div>
       <div style={groupStyle}>
@@ -314,15 +462,11 @@ export default function SettingsTab({ t, onClose }) {
       <div style={groupStyle}>
         <div style={rowStyle(false)}>
           Proactive suggestions
-          <div style={{ marginLeft: 'auto', width: '44px', height: '26px', borderRadius: '13px', background: proactive ? 'var(--ac)' : 'var(--s2)', position: 'relative', boxShadow: 'inset 0 0 0 1px var(--hairline)', cursor: 'pointer' }} onClick={() => setProactive(!proactive)}>
-            <div style={{ position: 'absolute', top: '3px', left: proactive ? '21px' : '3px', width: '20px', height: '20px', borderRadius: '50%', background: proactive ? '#1a0d04' : 'var(--mu)', transition: 'left 0.2s' }}></div>
-          </div>
+          <button type="button" role="switch" aria-checked={proactive} aria-label="Proactive suggestions" onClick={() => savePreference('jarvisProactiveSuggestions', proactive, setProactive)} style={{ marginLeft: 'auto', minWidth: '44px', minHeight: '32px', border: 0, borderRadius: 'var(--r-control)', background: proactive ? 'var(--ac)' : 'var(--s2)', color: proactive ? 'var(--on-ac)' : 'var(--tx)', cursor: 'pointer' }}>{proactive ? 'On' : 'Off'}</button>
         </div>
         <div style={rowStyle(false)}>
           Review reminders
-          <div style={{ marginLeft: 'auto', width: '44px', height: '26px', borderRadius: '13px', background: reminders ? 'var(--ac)' : 'var(--s2)', position: 'relative', boxShadow: 'inset 0 0 0 1px var(--hairline)', cursor: 'pointer' }} onClick={() => setReminders(!reminders)}>
-            <div style={{ position: 'absolute', top: '3px', left: reminders ? '21px' : '3px', width: '20px', height: '20px', borderRadius: '50%', background: reminders ? '#1a0d04' : 'var(--mu)', transition: 'left 0.2s' }}></div>
-          </div>
+          <button type="button" role="switch" aria-checked={reminders} aria-label="Review reminders" onClick={handleReviewReminderToggle} style={{ marginLeft: 'auto', minWidth: '44px', minHeight: '32px', border: 0, borderRadius: 'var(--r-control)', background: reminders ? 'var(--ac)' : 'var(--s2)', color: reminders ? 'var(--on-ac)' : 'var(--tx)', cursor: 'pointer' }}>{reminders ? 'On' : 'Off'}</button>
         </div>
         <div style={rowStyle(true)}>
           Quiet hours

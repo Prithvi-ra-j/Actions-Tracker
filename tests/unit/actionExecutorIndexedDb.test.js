@@ -6,6 +6,8 @@ import { getHabit } from '../../src/database/habitRepository.js';
 import { getOccurrencesForHabit } from '../../src/database/habitOccurrenceRepository.js';
 import { getRoutineConfig } from '../../src/database/routineRepository.js';
 import { getAllFacts } from '../../src/database/factsRepository.js';
+import { getSetting, setSetting } from '../../src/database/settingsRepository.js';
+import { getSemanticMemories } from '../../src/database/memoryRepository.js';
 
 const impact = {
   affectedDomains: ['creativity'],
@@ -59,6 +61,22 @@ describe('actionExecutor IndexedDB integration', () => {
       reasoning: 'stale target test',
       confidence: 1,
     })).rejects.toThrow('no longer exists');
+  });
+
+  it('enforces the saved-memory privacy preference before writing', async () => {
+    await initDB();
+    await setSetting('jarvisSaveMemories', 'false');
+    const proposal = {
+      actionType: 'propose_memory',
+      payload: { content: 'A private preference', type: 'semantic' },
+      impact,
+      reasoning: 'privacy preference test',
+      confidence: 1,
+    };
+
+    await expect(executeAction(proposal)).rejects.toThrow('Memory saving is disabled');
+    expect((await getSemanticMemories()).some(memory => memory.content === 'A private preference')).toBe(false);
+    await setSetting('jarvisSaveMemories', 'true');
   });
 
   it('does not execute the same approved proposal twice and can undo a habit mutation', async () => {

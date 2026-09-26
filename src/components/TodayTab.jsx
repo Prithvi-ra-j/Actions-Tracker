@@ -107,16 +107,15 @@ function QuestRow({ occ, onComplete, onTap }) {
           </div>
         )}
       </div>
-      {/* XP — per register: omit if no domain source; show placeholder per mockup */}
+      {/* XP is omitted until a real progression source exists. */}
       <span style={{
         fontFamily: "'Geist Mono', monospace",
         fontSize: '12px',
         fontWeight: 500,
-        color: isDone ? 'var(--mu)' : 'var(--ac)',
+        color: 'var(--mu)',
         flexShrink: 0,
-        textDecoration: isDone ? 'line-through' : 'none',
       }}>
-        +{occ.xp || 10} xp
+        {isDone ? 'Done' : ''}
       </span>
     </div>
   );
@@ -164,6 +163,7 @@ export default function TodayTab({
   onCompleteOccurrence,
   onExcuseOccurrence,
   onOccurrenceReason,
+  onAddEvidence,
   allQuests,
   onGoToGoals,
   onOpenJarvis,
@@ -171,6 +171,10 @@ export default function TodayTab({
   const [selectedHabit, setSelectedHabit] = useState(null);
   const [composerOpen, setComposerOpen] = useState(false);
   const [evidenceText, setEvidenceText] = useState('');
+  const [evidenceAxis, setEvidenceAxis] = useState('body');
+  const [evidenceType, setEvidenceType] = useState('observation');
+  const [savingEvidence, setSavingEvidence] = useState(false);
+  const [evidenceError, setEvidenceError] = useState('');
 
   const mainQuest = allQuests?.find(q => q.status === 'active' && q.priority === 'main')
     || allQuests?.find(q => q.status === 'active');
@@ -256,8 +260,7 @@ export default function TodayTab({
         <MainQuestCard quest={mainQuest} />
 
         {/* Bottom CTAs */}
-        {occurrences.length > 0 && (
-          <div style={{
+        <div style={{
             display: 'flex',
             gap: '10px',
             marginTop: '20px',
@@ -288,8 +291,7 @@ export default function TodayTab({
               <PencilSimple size={16} />
               Log evidence
             </button>
-          </div>
-        )}
+        </div>
       </section>
 
       {/* Habit Detail Sheet */}
@@ -350,7 +352,12 @@ export default function TodayTab({
             <button
               onClick={() => {
                 setSelectedHabit(null);
-                onOpenJarvis?.();
+                onOpenJarvis?.({
+                  page: 'today',
+                  entityType: 'habit',
+                  entityId: selectedHabit.id,
+                  payload: { habitTitle: selectedHabit.habitTitle, axis: selectedHabit.axis },
+                });
               }}
               style={{
                 display: 'flex',
@@ -402,17 +409,59 @@ export default function TodayTab({
             onFocus={e => e.target.style.borderColor = 'var(--ac)'}
             onBlur={e => e.target.style.borderColor = 'var(--hairline)'}
           />
+          <label style={{ display: 'grid', gap: '6px', color: 'var(--mu)', fontSize: '13px' }}>
+            Type
+            <select
+              aria-label="Evidence type"
+              value={evidenceType}
+              onChange={e => setEvidenceType(e.target.value)}
+              style={{ minHeight: '44px', padding: '0 12px', borderRadius: 'var(--r-control)', background: 'var(--s2)', color: 'var(--tx)', border: '1px solid var(--hairline)', font: 'inherit' }}
+            >
+              {['observation', 'result', 'reflection', 'achievement', 'failure'].map(type => (
+                <option key={type} value={type}>{type[0].toUpperCase() + type.slice(1)}</option>
+              ))}
+            </select>
+          </label>
+          <label style={{ display: 'grid', gap: '6px', color: 'var(--mu)', fontSize: '13px' }}>
+            Axis
+            <select
+              aria-label="Evidence axis"
+              value={evidenceAxis}
+              onChange={e => setEvidenceAxis(e.target.value)}
+              style={{ minHeight: '44px', padding: '0 12px', borderRadius: 'var(--r-control)', background: 'var(--s2)', color: 'var(--tx)', border: '1px solid var(--hairline)', font: 'inherit' }}
+            >
+              {['body', 'discipline', 'knowledge', 'social', 'creativity', 'strategy'].map(axis => (
+                <option key={axis} value={axis}>{axis[0].toUpperCase() + axis.slice(1)}</option>
+              ))}
+            </select>
+          </label>
+          {evidenceError && <p role="alert" style={{ margin: 0, color: 'var(--danger)', fontSize: '13px' }}>{evidenceError}</p>}
           <div style={{ display: 'flex', gap: '10px' }}>
             <Button
               variant="primary"
               style={{ flex: 1 }}
-              onClick={() => {
-                // Evidence saving would go through domain service
+              disabled={savingEvidence || !evidenceText.trim()}
+              onClick={async () => {
+                if (!evidenceText.trim() || !onAddEvidence) return;
+                setSavingEvidence(true);
+                setEvidenceError('');
+                try {
+                  await onAddEvidence({
+                    content: evidenceText.trim(),
+                    axis: evidenceAxis,
+                    evidenceType,
+                  });
+                } catch (err) {
+                  setEvidenceError('Evidence could not be saved. Your entry is still here; try again.');
+                  setSavingEvidence(false);
+                  return;
+                }
                 setEvidenceText('');
                 setComposerOpen(false);
+                setSavingEvidence(false);
               }}
             >
-              Save
+              {savingEvidence ? 'Saving...' : 'Save evidence'}
             </Button>
             <Button variant="secondary" onClick={() => setComposerOpen(false)}>
               Cancel

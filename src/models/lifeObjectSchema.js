@@ -198,6 +198,7 @@ export function createLearning(fields) {
     type:                LIFE_OBJECT_TYPES_V8.LEARNING,
     status:              LIFE_OBJECT_STATUSES.ACTIVE,
     concept:             fields.concept,
+    loopStep:            fields.loopStep           ?? 'Learn',
     sourceId:            fields.sourceId            ?? null,
     sourceType:          fields.sourceType           ?? 'other',
     explanation:         fields.explanation,

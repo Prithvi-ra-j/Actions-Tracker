@@ -7,7 +7,7 @@ import { getGraceState } from './core/occurrenceEngine.js';
 import { initDB }                from './database/db.js';
 import { migrateFromLocalStorage, migrateAxisVocabulary } from './database/migration.js';
 import { initAxisConfigs, getAllAxisConfigs } from './database/axisConfigRepository.js';
-import { getAllLogs, addLog, deleteDailyCheckboxLog } from './database/logsRepository.js';
+import { getAllLogs, addLog, deleteLog, deleteDailyCheckboxLog } from './database/logsRepository.js';
 import { initQuestBoard, getAllQuests, syncQuestProgress } from './database/questBoardRepository.js';
 import { initGoals, getAllGoals, updateGoal }    from './database/goalsRepository.js';
 import { getAllMilestoneChecks, setMilestoneCheck } from './database/milestonesRepository.js';
@@ -295,6 +295,14 @@ export default function App() {
         setMilestoneChecks(milestones);
         setAllQuests(syncedQuests);
 
+        if (!userDataExists) {
+          const startupReminders = savedReminders?.length ? savedReminders : reminders;
+          void scheduleAllReminders(startupReminders, todayRecord);
+          checkForUpdate().then(info => { if (info) setUpdateInfo(info); }).catch(() => {});
+          setDbReady(true);
+          return;
+        }
+
         const todayStr = localDateStr();
         const enrichedOccs = await loadEnrichedOccurrences(daysAgoDate(todayStr, 2), todayStr, todayStr);
         setTodayOccurrences(enrichedOccs);
@@ -374,7 +382,9 @@ export default function App() {
         // user has completed onboarding and explicitly configured an API key.
         if (userDataExists && apiConfigured) {
           await runAnomalyDetection(today);
-          bootstrapAnalysisScheduler();
+          if ((await getSetting('jarvisProactiveSuggestions')) !== 'false') {
+            bootstrapAnalysisScheduler();
+          }
         }
 
         // Check GitHub Releases for a newer APK (non-fatal, session-cached)
@@ -488,6 +498,17 @@ export default function App() {
     }
   }, [today, recomputeStats]);
 
+  const handleAddEvidence = useCallback(async ({ content, axis, evidenceType }) => {
+    await addLog({
+      axis,
+      type: 'manual_evidence',
+      value: 1,
+      date: localDateStr(),
+      meta: { content, evidenceType, source: 'manual' },
+    });
+    void recomputeStats();
+  }, [recomputeStats]);
+
   // ── Handlers ──────────────────────────────────────────────────────────────
   const triggerHaptic = () => {
     try {
@@ -571,6 +592,14 @@ export default function App() {
     setShowNavDrawer(false);
   }
 
+  function handleOpenJarvis(context = { page: tab }) {
+    const normalizedContext = typeof context === 'string'
+      ? { page: context }
+      : context || { page: tab };
+    setJarvisContext(normalizedContext);
+    handleTabChange('jarvis');
+  }
+
   // ── Phase 7: Occurrence command handlers ──────────────────────────────────
   const handleCompleteOccurrence = useCallback(async (id) => {
     if (completingOccurrences.current.has(id)) return;
@@ -624,8 +653,36 @@ export default function App() {
       }
     } catch (err) {
       console.error('[App] handleAddLearning failed:', err);
+      throw err;
     }
   }, []);
+
+  const handleLogLearningPractice = useCallback(async ({ learningId, content, axis }) => {
+    const { getLearning, getAllLearnings, updateLearning } = await import('./database/learningRepository.js');
+    const learning = await getLearning(learningId);
+    if (!learning) throw new Error('This learning topic no longer exists.');
+
+    const logId = await addLog({
+      axis,
+      type: 'learning_practice',
+      value: 1,
+      date: localDateStr(),
+      meta: { learningId, content, source: 'manual' },
+    });
+    try {
+      await updateLearning(learningId, {
+        loopStep: 'Apply',
+        lastPracticedAt: new Date().toISOString(),
+      });
+    } catch (error) {
+      await deleteLog(logId).catch(() => {});
+      throw error;
+    }
+
+    const freshLearnings = await getAllLearnings().catch(() => null);
+    if (freshLearnings) setLearnings(freshLearnings);
+    void recomputeStats();
+  }, [recomputeStats]);
 
   const handleAddBook = useCallback(async (fields) => {
     try {
@@ -699,13 +756,14 @@ export default function App() {
         <TodayTab
           t={t}
           todayOccurrences={todayOccurrences}
+          onAddEvidence={handleAddEvidence}
           allQuests={allQuests}
           onCompleteOccurrence={handleCompleteOccurrence}
           onExcuseOccurrence={handleExcuseOccurrence}
           onOccurrenceReason={handleOccurrenceReason}
           completionFeedback={completionFeedback}
           onGoToGoals={() => handleTabChange('goals')}
-          onOpenJarvis={() => handleTabChange('jarvis')}
+          onOpenJarvis={context => handleOpenJarvis(context || { page: 'today' })}
         />
       </div>
       <div style={{ display: tab === 'stats' ? 'block' : 'none' }}>
@@ -718,7 +776,7 @@ export default function App() {
           allQuests={allQuests}
           allLogs={allLogs}
           axisConfigs={axisConfigs}
-          onOpenJarvis={() => handleTabChange('jarvis')}
+          onOpenJarvis={context => handleOpenJarvis(context || { page: 'stats' })}
         />
       </div>
       <div style={{ display: tab === 'goals' ? 'block' : 'none' }}>
@@ -727,7 +785,7 @@ export default function App() {
           dark={dark}
           allQuests={allQuests}
           allLogs={allLogs}
-          onOpenJarvis={() => handleTabChange('jarvis')}
+          onOpenJarvis={context => handleOpenJarvis(context || { page: 'goals' })}
         />
       </div>
       <div style={{ display: tab === 'learn' ? 'block' : 'none' }}>
@@ -738,9 +796,10 @@ export default function App() {
           onUpdatePages={handleUpdatePages}
           onFinishBook={handleFinishBook}
           onAddLearning={handleAddLearning}
+          onLogLearningPractice={handleLogLearningPractice}
           onAddBook={handleAddBook}
           onStartBook={handleStartBook}
-                onOpenJarvis={() => handleTabChange('jarvis')}
+                onOpenJarvis={context => handleOpenJarvis(context || { page: 'learn' })}
         />
       </div>
       <div style={{
@@ -758,7 +817,7 @@ export default function App() {
         />
       </div>
       <div style={{ display: tab === 'audits' ? 'block' : 'none' }}>
-        <AuditsTab t={t} onOpenJarvis={() => handleTabChange('jarvis')} />
+        <AuditsTab t={t} onOpenJarvis={context => handleOpenJarvis(context || { page: 'audits' })} />
       </div>
     </>
   );
@@ -833,7 +892,7 @@ export default function App() {
         <AppShell
           currentTab={tab}
           onTabChange={handleTabChange}
-          onOpenJarvis={() => handleTabChange('jarvis')}
+          onOpenJarvis={handleOpenJarvis}
           onOpenSettings={() => setShowSettings(true)}
           headerTitle={getHeaderTitle()}
           headerSubline={getHeaderSubline()}

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { BottomSheet, ConfirmDialog } from './ui/Overlays.jsx';
-import { Button } from './ui/Buttons.jsx';
+import { Button, IconButton } from './ui/Buttons.jsx';
 import { EmptyState } from './ui/States.jsx';
 import { SegmentedBar } from './ui/Indicators.jsx';
 import { EntityRow } from './ui/Cards.jsx';
@@ -18,12 +18,11 @@ const AXIS_COLORS = {
   strategy:   'var(--strategy)',
 };
 
-function GoalCard({ goal, index, onClick }) {
+function GoalCard({ goal, onClick }) {
   const totalTargets = goal.targets?.length || 0;
   const doneTargets = goal.targets?.filter(t => t.completed)?.length || 0;
   const progress = totalTargets > 0 ? Math.round((doneTargets / totalTargets) * 10) : 0;
   const axisColor = AXIS_COLORS[goal.domain?.toLowerCase()] || 'var(--mu)';
-  const questType = index === 0 ? 'Main quest' : 'Side quest';
   const axisLabel = goal.domain
     ? goal.domain.charAt(0).toUpperCase() + goal.domain.slice(1)
     : 'General';
@@ -57,7 +56,7 @@ function GoalCard({ goal, index, onClick }) {
           width: '6px', height: '6px', borderRadius: '50%',
           background: axisColor, display: 'inline-block', flexShrink: 0,
         }} />
-        {questType}, {axisLabel}
+        Goal, {axisLabel}
       </div>
 
       {/* Title */}
@@ -96,6 +95,11 @@ export default function GoalsTab({ t, onOpenJarvis }) {
   const [isEditing, setIsEditing] = useState(false);
   const [showConfirmDelete, setShowConfirmDelete] = useState(false);
   const [showEvidence, setShowEvidence] = useState(false);
+  const [showCreate, setShowCreate] = useState(false);
+  const [savingGoal, setSavingGoal] = useState(false);
+  const [createError, setCreateError] = useState('');
+  const [editError, setEditError] = useState('');
+  const [goalDraft, setGoalDraft] = useState({ label: '', domain: 'body', start: '', end: '', proof: '', targets: '' });
 
   useEffect(() => {
     loadGoals();
@@ -151,6 +155,79 @@ export default function GoalsTab({ t, onOpenJarvis }) {
     }
   }
 
+  async function handleCreateGoal() {
+    if (!goalDraft.label.trim()) {
+      setCreateError('Enter an outcome before saving.');
+      return;
+    }
+    setSavingGoal(true);
+    setCreateError('');
+    try {
+      const { addGoal } = await import('../database/goalsRepository.js');
+      const created = await addGoal({
+        label: goalDraft.label.trim(),
+        domain: goalDraft.domain,
+        start: goalDraft.start.trim(),
+        end: goalDraft.end.trim(),
+        proof: goalDraft.proof.trim(),
+        targets: goalDraft.targets.split('\n').map(text => text.trim()).filter(Boolean)
+          .map(text => ({ text, metric: '', completed: false })),
+      });
+      setGoals(prev => [...prev, created]);
+      setGoalDraft({ label: '', domain: 'body', start: '', end: '', proof: '', targets: '' });
+      setShowCreate(false);
+    } catch (err) {
+      console.error('[GoalsTab] Failed to create goal:', err);
+      setCreateError('Goal could not be saved. Your entry is still here; try again.');
+    } finally {
+      setSavingGoal(false);
+    }
+  }
+
+  async function handleSaveGoal() {
+    if (!selectedGoal || !goalDraft.label.trim()) {
+      setEditError('Enter an outcome before saving.');
+      return;
+    }
+    setSavingGoal(true);
+    setEditError('');
+    try {
+      const { updateGoal } = await import('../database/goalsRepository.js');
+      const updated = await updateGoal(selectedGoal.id, {
+        label: goalDraft.label.trim(),
+        domain: goalDraft.domain,
+        start: goalDraft.start.trim(),
+        end: goalDraft.end.trim(),
+        proof: goalDraft.proof.trim(),
+        targets: goalDraft.targets.split('\n').map(text => text.trim()).filter(Boolean)
+          .map(text => {
+            const existing = selectedGoal.targets?.find(target => target.text === text);
+            return { text, metric: existing?.metric || '', completed: !!existing?.completed };
+          }),
+      });
+      setGoals(prev => prev.map(goal => goal.id === updated.id ? updated : goal));
+      setSelectedGoal(updated);
+      setIsEditing(false);
+    } catch (err) {
+      console.error('[GoalsTab] Failed to update goal:', err);
+      setEditError('Goal could not be saved. Your changes are still here; try again.');
+    } finally {
+      setSavingGoal(false);
+    }
+  }
+
+  async function handlePauseGoal() {
+    if (!selectedGoal) return;
+    try {
+      const { updateGoal } = await import('../database/goalsRepository.js');
+      const updated = await updateGoal(selectedGoal.id, { status: 'paused' });
+      setGoals(prev => prev.map(goal => goal.id === updated.id ? updated : goal));
+      setSelectedGoal(null);
+    } catch (err) {
+      console.error('[GoalsTab] Failed to pause goal:', err);
+    }
+  }
+
   const activeGoals = goals.filter(g => !g.completed && !g.paused);
 
   return (
@@ -163,7 +240,7 @@ export default function GoalsTab({ t, onOpenJarvis }) {
         marginBottom: '12px',
       }}>
         <button
-          onClick={() => { /* Open create sheet — future step */ }}
+          onClick={() => { setCreateError(''); setShowCreate(true); }}
           style={{
             display: 'flex',
             alignItems: 'center',
@@ -198,15 +275,55 @@ export default function GoalsTab({ t, onOpenJarvis }) {
       ) : (
         <div>
           {activeGoals.map((goal, idx) => (
-            <GoalCard
+              <GoalCard
               key={goal.id}
               goal={goal}
-              index={idx}
               onClick={() => setSelectedGoal(goal)}
             />
           ))}
         </div>
       )}
+
+      <BottomSheet
+        isOpen={showCreate}
+        onClose={() => setShowCreate(false)}
+        title="New goal"
+      >
+        <div style={{ display: 'grid', gap: '12px' }}>
+          <label style={{ display: 'grid', gap: '6px', color: 'var(--mu)', fontSize: '13px' }}>
+            Outcome
+            <input aria-label="Goal outcome" value={goalDraft.label} onChange={e => setGoalDraft(prev => ({ ...prev, label: e.target.value }))} />
+          </label>
+          <label style={{ display: 'grid', gap: '6px', color: 'var(--mu)', fontSize: '13px' }}>
+            Axis
+            <select aria-label="Goal axis" value={goalDraft.domain} onChange={e => setGoalDraft(prev => ({ ...prev, domain: e.target.value }))}>
+              {['body', 'discipline', 'knowledge', 'social', 'creativity', 'strategy'].map(axis => (
+                <option key={axis} value={axis}>{axis[0].toUpperCase() + axis.slice(1)}</option>
+              ))}
+            </select>
+          </label>
+          <label style={{ display: 'grid', gap: '6px', color: 'var(--mu)', fontSize: '13px' }}>
+            Starting point
+            <input aria-label="Goal starting point" value={goalDraft.start} onChange={e => setGoalDraft(prev => ({ ...prev, start: e.target.value }))} />
+          </label>
+          <label style={{ display: 'grid', gap: '6px', color: 'var(--mu)', fontSize: '13px' }}>
+            Desired outcome
+            <input aria-label="Goal desired outcome" value={goalDraft.end} onChange={e => setGoalDraft(prev => ({ ...prev, end: e.target.value }))} />
+          </label>
+          <label style={{ display: 'grid', gap: '6px', color: 'var(--mu)', fontSize: '13px' }}>
+            How will you know?
+            <input aria-label="Goal proof" value={goalDraft.proof} onChange={e => setGoalDraft(prev => ({ ...prev, proof: e.target.value }))} />
+          </label>
+          <label style={{ display: 'grid', gap: '6px', color: 'var(--mu)', fontSize: '13px' }}>
+            Milestones, one per line
+            <textarea aria-label="Goal milestones" value={goalDraft.targets} onChange={e => setGoalDraft(prev => ({ ...prev, targets: e.target.value }))} rows={3} />
+          </label>
+          {createError && <p role="alert" style={{ margin: 0, color: 'var(--danger)', fontSize: '13px' }}>{createError}</p>}
+          <Button variant="primary" disabled={savingGoal} onClick={handleCreateGoal}>
+            {savingGoal ? 'Saving...' : 'Create goal'}
+          </Button>
+        </div>
+      </BottomSheet>
 
       {/* Goal Detail Sheet */}
       <BottomSheet
@@ -219,6 +336,7 @@ export default function GoalsTab({ t, onOpenJarvis }) {
 
             {/* Outcome */}
             <div>
+
               <div style={{
                 fontFamily: "'Geist Mono', monospace",
                 fontSize: '11.5px',
@@ -308,13 +426,29 @@ export default function GoalsTab({ t, onOpenJarvis }) {
                   Ask about this goal
                 </span>
               </Button>
-              <Button
-                variant="secondary"
-                onClick={() => setIsEditing(true)}
-              >
-                <PencilSimple size={18} />
-              </Button>
+              <IconButton
+                label="Edit goal"
+                icon={<PencilSimple size={18} />}
+                onClick={() => {
+                  setEditError('');
+                  setGoalDraft({
+                    label: selectedGoal.label || '',
+                    domain: selectedGoal.domain || 'body',
+                    start: selectedGoal.start || '',
+                    end: selectedGoal.end || '',
+                    proof: selectedGoal.proof || '',
+                    targets: (selectedGoal.targets || []).map(target => target.text).join('\n'),
+                  });
+                  setIsEditing(true);
+                }}
+              />
             </div>
+
+            {selectedGoal.status !== 'paused' && (
+              <Button variant="secondary" style={{ width: '100%' }} onClick={handlePauseGoal}>
+                Pause goal
+              </Button>
+            )}
 
             <Button
               variant="secondary"
@@ -333,10 +467,40 @@ export default function GoalsTab({ t, onOpenJarvis }) {
         onClose={() => setIsEditing(false)}
         title="Edit Goal"
       >
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-          <div style={{ color: 'var(--mu)', fontSize: '14px', lineHeight: 1.5 }}>
-            To revise targets or outcome in depth, ask Jarvis.
-          </div>
+        <div style={{ display: 'grid', gap: '12px' }}>
+          <label style={{ display: 'grid', gap: '6px', color: 'var(--mu)', fontSize: '13px' }}>
+            Outcome
+            <input aria-label="Edit goal outcome" value={goalDraft.label} onChange={e => setGoalDraft(prev => ({ ...prev, label: e.target.value }))} />
+          </label>
+          <label style={{ display: 'grid', gap: '6px', color: 'var(--mu)', fontSize: '13px' }}>
+            Axis
+            <select aria-label="Edit goal axis" value={goalDraft.domain} onChange={e => setGoalDraft(prev => ({ ...prev, domain: e.target.value }))}>
+              {['body', 'discipline', 'knowledge', 'social', 'creativity', 'strategy'].map(axis => (
+                <option key={axis} value={axis}>{axis[0].toUpperCase() + axis.slice(1)}</option>
+              ))}
+            </select>
+          </label>
+          <label style={{ display: 'grid', gap: '6px', color: 'var(--mu)', fontSize: '13px' }}>
+            Starting point
+            <input aria-label="Edit goal starting point" value={goalDraft.start} onChange={e => setGoalDraft(prev => ({ ...prev, start: e.target.value }))} />
+          </label>
+          <label style={{ display: 'grid', gap: '6px', color: 'var(--mu)', fontSize: '13px' }}>
+            Desired outcome
+            <input aria-label="Edit goal desired outcome" value={goalDraft.end} onChange={e => setGoalDraft(prev => ({ ...prev, end: e.target.value }))} />
+          </label>
+          <label style={{ display: 'grid', gap: '6px', color: 'var(--mu)', fontSize: '13px' }}>
+            How will you know?
+            <input aria-label="Edit goal proof" value={goalDraft.proof} onChange={e => setGoalDraft(prev => ({ ...prev, proof: e.target.value }))} />
+          </label>
+          <label style={{ display: 'grid', gap: '6px', color: 'var(--mu)', fontSize: '13px' }}>
+            Milestones, one per line
+            <textarea aria-label="Edit goal milestones" value={goalDraft.targets} onChange={e => setGoalDraft(prev => ({ ...prev, targets: e.target.value }))} rows={3} />
+          </label>
+          {editError && <p role="alert" style={{ margin: 0, color: 'var(--danger)', fontSize: '13px' }}>{editError}</p>}
+          <Button variant="primary" disabled={savingGoal} onClick={handleSaveGoal}>
+            {savingGoal ? 'Saving...' : 'Save goal'}
+          </Button>
+          <Button variant="secondary" onClick={() => setIsEditing(false)}>Cancel</Button>
           <Button
             variant="secondary"
             style={{ width: '100%', color: 'var(--danger)' }}
@@ -359,7 +523,7 @@ export default function GoalsTab({ t, onOpenJarvis }) {
         isOpen={showEvidence}
         onClose={() => setShowEvidence(false)}
         title={`Evidence for ${selectedGoal?.label}`}
-        evidenceItems={selectedGoal?.proof?.map(p => ({ content: p, date: 'Recent' })) || []}
+        evidenceItems={[]}
       />
     </div>
   );

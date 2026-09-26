@@ -55,7 +55,7 @@ function FindingCard({ finding, onClick }) {
   );
 }
 
-function FindingSheet({ finding, onClose, onOpenJarvis }) {
+function FindingSheet({ finding, onClose, onOpenJarvis, ignoreMode, onToggleIgnore, onIgnore }) {
   const severity = finding.severity?.toLowerCase() || 'medium';
   const stripeColor = SEVERITY_COLORS[severity] || 'var(--mu)';
 
@@ -119,14 +119,30 @@ function FindingSheet({ finding, onClose, onOpenJarvis }) {
         <Button
           variant="primary"
           style={{ flex: 1, fontSize: '14px' }}
-          onClick={onClose}
+          onClick={() => {
+            onClose();
+            onOpenJarvis?.({
+              page: 'audits',
+              entityType: 'finding',
+              entityId: finding.id,
+              payload: { type: finding.type, text: finding.text, severity },
+            });
+          }}
         >
           Review fix
         </Button>
         <Button
           variant="secondary"
           style={{ flex: 1, fontSize: '14px' }}
-          onClick={() => { onClose(); onOpenJarvis?.(); }}
+          onClick={() => {
+            onClose();
+            onOpenJarvis?.({
+              page: 'audits',
+              entityType: 'finding',
+              entityId: finding.id,
+              payload: { type: finding.type, text: finding.text, severity },
+            });
+          }}
         >
           <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
             <Sparkle size={16} />
@@ -134,6 +150,18 @@ function FindingSheet({ finding, onClose, onOpenJarvis }) {
           </span>
         </Button>
       </div>
+      <Button variant="secondary" style={{ width: '100%' }} onClick={onToggleIgnore}>
+        {ignoreMode ? 'Cancel ignore' : 'Ignore finding'}
+      </Button>
+      {ignoreMode && (
+        <div role="group" aria-label="Reason for ignoring finding" style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+          {['Not a problem', 'Already handled', 'Remind me later'].map(reason => (
+            <Button key={reason} variant="secondary" onClick={() => onIgnore(reason)}>
+              {reason}
+            </Button>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
@@ -147,6 +175,7 @@ export default function AuditsTab({ t, onOpenJarvis }) {
   const [selectedFinding, setSelectedFinding] = useState(null);
   const [showEvidence, setShowEvidence] = useState(false);
   const [toast, setToast] = useState(null);
+  const [ignoreMode, setIgnoreMode] = useState(false);
 
   useEffect(() => { loadAudits(); }, []);
 
@@ -181,11 +210,26 @@ export default function AuditsTab({ t, onOpenJarvis }) {
   const latestAudit = audits[0] || {};
   const findings = [];
   (latestAudit.contradictions || []).forEach((c, i) =>
-    findings.push({ id: `c_${i}`, type: 'Contradiction', text: c, severity: 'high' }));
+    findings.push({ id: `${latestAudit.id}:c_${i}`, type: 'Contradiction', text: c, severity: 'high' }));
   (latestAudit.risks || []).forEach((r, i) =>
-    findings.push({ id: `r_${i}`, type: 'Risk', text: r, severity: 'medium' }));
+    findings.push({ id: `${latestAudit.id}:r_${i}`, type: 'Risk', text: r, severity: 'medium' }));
   (latestAudit.recommendations || []).forEach((r, i) =>
-    findings.push({ id: `rec_${i}`, type: 'Recommendation', text: r, severity: 'low' }));
+    findings.push({ id: `${latestAudit.id}:rec_${i}`, type: 'Recommendation', text: r, severity: 'low' }));
+  const unresolvedFindings = findings.filter(finding => latestAudit.findingStates?.[finding.id]?.status !== 'ignored');
+  const resolvedFindings = findings.filter(finding => latestAudit.findingStates?.[finding.id]?.status === 'ignored');
+
+  async function setFindingState(finding, state) {
+    const audit = audits[0];
+    if (!audit) return;
+    const { updateAudit } = await import('../database/auditRepository.js');
+    await updateAudit(audit.id, {
+      findingStates: { ...(audit.findingStates || {}), [finding.id]: state },
+    });
+    await loadAudits();
+    setSelectedFinding(null);
+    setIgnoreMode(false);
+    setToast(state.status === 'ignored' ? 'Finding moved to Resolved.' : 'Finding restored.');
+  }
 
   const filters = ['unresolved', 'resolved', 'domain'];
 
@@ -250,7 +294,7 @@ export default function AuditsTab({ t, onOpenJarvis }) {
             <div style={{ color: 'var(--mu)', fontSize: '14px', padding: '24px 0', textAlign: 'center' }}>
               Loading audits...
             </div>
-          ) : findings.length === 0 ? (
+          ) : unresolvedFindings.length === 0 ? (
             <EmptyState
               title="No findings."
               description="Run an audit to scan your system for contradictions and risks."
@@ -265,9 +309,9 @@ export default function AuditsTab({ t, onOpenJarvis }) {
                 color: 'var(--mu)',
                 marginBottom: '12px',
               }}>
-                {findings.length} issues found
+                {unresolvedFindings.length} issues found
               </div>
-              {findings.map(f => (
+              {unresolvedFindings.map(f => (
                 <FindingCard
                   key={f.id}
                   finding={f}
@@ -280,14 +324,21 @@ export default function AuditsTab({ t, onOpenJarvis }) {
       )}
 
       {activeFilter === 'resolved' && (
-        <div style={{ color: 'var(--mu)', fontSize: '14px', padding: '24px 0', textAlign: 'center' }}>
-          No resolved findings yet.
-        </div>
+        resolvedFindings.length === 0 ? (
+          <EmptyState title="No resolved findings." description="Ignored findings will appear here." />
+        ) : resolvedFindings.map(finding => (
+          <div key={finding.id}>
+            <FindingCard finding={finding} onClick={() => setSelectedFinding(finding)} />
+            <Button variant="secondary" style={{ width: '100%', marginBottom: '10px' }} onClick={() => setFindingState(finding, { status: 'open' })}>
+              Restore finding
+            </Button>
+          </div>
+        ))
       )}
 
       {activeFilter === 'domain' && (
         <div style={{ color: 'var(--mu)', fontSize: '14px', padding: '24px 0', textAlign: 'center' }}>
-          Domain filter coming soon.
+          Domain-level filtering is unavailable because findings do not yet store a domain association.
         </div>
       )}
 
@@ -301,6 +352,13 @@ export default function AuditsTab({ t, onOpenJarvis }) {
             finding={selectedFinding}
             onClose={() => setSelectedFinding(null)}
             onOpenJarvis={onOpenJarvis}
+            ignoreMode={ignoreMode}
+            onToggleIgnore={() => setIgnoreMode(value => !value)}
+            onIgnore={reason => setFindingState(selectedFinding, {
+              status: 'ignored',
+              reason,
+              updatedAt: new Date().toISOString(),
+            })}
           />
         )}
       </BottomSheet>

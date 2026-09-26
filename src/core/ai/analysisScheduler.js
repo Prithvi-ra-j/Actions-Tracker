@@ -25,6 +25,11 @@ export async function bootstrapAnalysisScheduler() {
 }
 
 async function runScheduledAnalysis() {
+  if ((await getSetting('jarvisProactiveSuggestions')) === 'false') {
+    console.log('[AnalysisScheduler] Skipping passive analysis: disabled in Settings.');
+    return;
+  }
+
   const [userDataExists, apiConfigured] = await Promise.all([
     hasUserData(),
     hasJarvisApiKey(),

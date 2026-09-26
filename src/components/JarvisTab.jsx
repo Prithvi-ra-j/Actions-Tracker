@@ -4,7 +4,7 @@ import { chatWithJarvis, generateInsight } from '../core/ai/jarvisEngine.js';
 import { executeAction, undoAction } from '../core/ai/actionExecutor.js';
 import { computeImpact } from '../core/ai/impactEngine.js';
 import { conversationManager } from '../core/ai/conversationManager.js';
-import { getOrCreateConversation, saveConversation, clearConversation } from '../database/jarvisConversationRepository.js';
+import { getAllConversations, getOrCreateConversation, saveConversation } from '../database/jarvisConversationRepository.js';
 import { getRoutineConfig } from '../database/routineRepository.js';
 import { getAllHabits } from '../database/habitRepository.js';
 import { getAllLogs } from '../database/logsRepository.js';
@@ -54,7 +54,8 @@ function modeInstruction(mode) {
 
 export default function JarvisTab({ t, isActive = true, onQuestsChanged, onboardingMode = false, onOnboardingComplete, jarvisContext, onClearContext }) {
   const activeOnboardingMode = onboardingMode;
-  const conversationId = activeOnboardingMode ? ONBOARDING_CONVERSATION_ID : DEFAULT_CONVERSATION_ID;
+  const [activeConversationId, setActiveConversationId] = useState(DEFAULT_CONVERSATION_ID);
+  const conversationId = activeOnboardingMode ? ONBOARDING_CONVERSATION_ID : activeConversationId;
   const [messages, setMessages] = useState([]);
   const [input, setInput] = useState('');
   const [mode, setMode] = useState('ask');
@@ -69,10 +70,12 @@ export default function JarvisTab({ t, isActive = true, onQuestsChanged, onboard
   const [executing, setExecuting] = useState(false);
   const [modificationContext, setModificationContext] = useState(null);
   const [sheet, setSheet] = useState(null);
+  const [conversationHistory, setConversationHistory] = useState([]);
   const [conversationReady, setConversationReady] = useState(false);
   const [reviewLoading, setReviewLoading] = useState(false);
   const [proactiveInsight, setProactiveInsight] = useState(null);
   const [apiConfigured, setApiConfigured] = useState(null);
+  const [attachPageContext, setAttachPageContext] = useState(true);
   const [onboardingRetryNonce, setOnboardingRetryNonce] = useState(0);
   const messagesEndRef = useRef(null);
   const createdAtRef = useRef(null);
@@ -105,7 +108,17 @@ export default function JarvisTab({ t, isActive = true, onQuestsChanged, onboard
 
   useEffect(() => {
     let cancelled = false;
+    import('../database/settingsRepository.js').then(async ({ getSetting }) => {
+      const value = await getSetting('jarvisSendPageContext');
+      if (!cancelled && value !== null) setAttachPageContext(value === 'true');
+    }).catch(() => {});
+    return () => { cancelled = true; };
+  }, []);
+
+  useEffect(() => {
+    let cancelled = false;
     if (apiConfigured !== true) return undefined;
+    setConversationReady(false);
 
     (async () => {
       try {
@@ -180,7 +193,7 @@ export default function JarvisTab({ t, isActive = true, onQuestsChanged, onboard
   }, [conversationId, activeOnboardingMode, apiConfigured, onboardingRetryNonce]);
 
   useEffect(() => {
-    if (!messagesEndRef.current) return;
+    if (!messagesEndRef.current?.scrollIntoView) return;
     messagesEndRef.current.scrollIntoView({ behavior: 'smooth', block: 'end' });
   }, [messages, loading, error]);
 
@@ -210,7 +223,7 @@ export default function JarvisTab({ t, isActive = true, onQuestsChanged, onboard
   }
 
   const handleSend = async () => {
-    if (!input.trim() || loading) return;
+    if (!input.trim() || loading || !conversationReady) return;
     const msg = input.trim();
     setInput('');
     const newMessages = [...messages, { role: 'user', content: msg }];
@@ -223,7 +236,7 @@ export default function JarvisTab({ t, isActive = true, onQuestsChanged, onboard
         msg,
         messages,
         modificationContext,
-        { onboarding: activeOnboardingMode }
+        { onboarding: activeOnboardingMode, entryContext: attachPageContext ? jarvisContext : null }
       );
       const finalMessages = [
         ...newMessages,
@@ -253,6 +266,28 @@ export default function JarvisTab({ t, isActive = true, onQuestsChanged, onboard
       setLoading(false);
       setLoadingPhase('');
     }
+  };
+
+  const openConversationHistory = async () => {
+    try {
+      const conversations = await getAllConversations();
+      setConversationHistory(conversations.filter(conversation => (
+        conversation.id !== ONBOARDING_CONVERSATION_ID && conversation.messages?.some(message => message.role === 'user')
+      )));
+      setSheet('history');
+    } catch (err) {
+      setError('Could not load conversation history.');
+    }
+  };
+
+  const startNewConversation = async () => {
+    const id = `jarvis_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+    setActiveConversationId(id);
+    setMessages([]);
+    setInput('');
+    setError(null);
+    setSheet(null);
+    await getOrCreateConversation(id, 'New chat');
   };
 
   const executeApprovedProposal = async (proposal) => {
@@ -329,6 +364,13 @@ export default function JarvisTab({ t, isActive = true, onQuestsChanged, onboard
           ✦ Jarvis
         </b>
 
+        {!activeOnboardingMode && (
+          <div style={{ display: 'flex', gap: '6px', marginLeft: 'auto' }}>
+            <button type="button" aria-label="Conversation history" title="Conversation history" onClick={openConversationHistory} style={{ minHeight: '36px', padding: '0 10px', border: '1px solid var(--hairline)', borderRadius: 'var(--r-control)', background: 'var(--s1)', color: 'var(--tx)', cursor: 'pointer' }}>History</button>
+            <button type="button" aria-label="New chat" title="New chat" onClick={startNewConversation} style={{ minHeight: '36px', padding: '0 10px', border: '1px solid var(--hairline)', borderRadius: 'var(--r-control)', background: 'var(--s1)', color: 'var(--tx)', cursor: 'pointer' }}>New chat</button>
+          </div>
+        )}
+
         {/* Mode pill */}
         {!activeOnboardingMode && (
           <button
@@ -379,7 +421,7 @@ export default function JarvisTab({ t, isActive = true, onQuestsChanged, onboard
             color: 'var(--ac)',
           }}>
             <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: 'var(--ac)' }} />
-            {(() => {
+            {!attachPageContext ? 'Context withheld by privacy setting' : (() => {
               const ctx = modificationContext || jarvisContext;
               if (ctx.entityType === 'axis') return `Context: ${ctx.payload?.axis || 'Stats'}`;
               if (ctx.entityType === 'habit') return 'Context: Habit';
@@ -395,6 +437,22 @@ export default function JarvisTab({ t, isActive = true, onQuestsChanged, onboard
           </div>
         </div>
       )}
+
+      <BottomSheet isOpen={sheet === 'history'} onClose={() => setSheet(null)} title="Conversation history">
+        <div style={{ display: 'grid', gap: '8px', maxHeight: '55dvh', overflowY: 'auto' }}>
+          {conversationHistory.length === 0 ? (
+            <p style={{ color: 'var(--mu)', fontSize: '14px' }}>No saved conversations yet.</p>
+          ) : conversationHistory.map(conversation => (
+            <button key={conversation.id} type="button" onClick={() => {
+              setActiveConversationId(conversation.id);
+              setSheet(null);
+            }} style={{ padding: '12px 14px', textAlign: 'left', border: '1px solid var(--hairline)', borderRadius: 'var(--r-container)', background: 'var(--s2)', color: 'var(--tx)', cursor: 'pointer' }}>
+              <strong style={{ display: 'block', fontSize: '14px' }}>{conversation.title || 'Jarvis conversation'}</strong>
+              <span style={{ color: 'var(--mu)', fontSize: '12px' }}>{new Date(conversation.updatedAt).toLocaleString()}</span>
+            </button>
+          ))}
+        </div>
+      </BottomSheet>
 
       {/* Messages / feed */}
       <div

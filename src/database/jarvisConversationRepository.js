@@ -36,8 +36,13 @@ export async function getOrCreateConversation(id = DEFAULT_ID, title = 'Jarvis')
 }
 
 export async function saveConversation(conversation) {
+  const firstUserMessage = (conversation.messages || []).find(message => message.role === 'user')?.content;
+  const title = firstUserMessage
+    ? String(firstUserMessage).trim().slice(0, 56)
+    : conversation.title || 'New chat';
   const next = {
     ...conversation,
+    title,
     updatedAt: now(),
     messages: Array.isArray(conversation.messages) ? conversation.messages.slice(-200) : [],
   };

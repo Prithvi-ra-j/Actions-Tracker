@@ -18,6 +18,7 @@ import { generateOccurrencesForDate } from '../occurrenceEngine.js';
 import { localDateStr } from '../../helpers/dateHelpers.js';
 import { ActionProposalSchema } from './actionSchemas.js';
 import { addLog, deleteLog } from '../../database/logsRepository.js';
+import { getSetting } from '../../database/settingsRepository.js';
 
 function requireId(payload, actionType) {
   if (!payload.id || typeof payload.id !== 'string') {
@@ -270,6 +271,9 @@ export async function executeAction(proposal) {
     }
 
     case 'propose_memory': {
+      if ((await getSetting('jarvisSaveMemories')) === 'false') {
+        throw new Error('Memory saving is disabled in Settings.');
+      }
       const id = await addMemory({
         type: payload.type || 'semantic',
         content: payload.content,

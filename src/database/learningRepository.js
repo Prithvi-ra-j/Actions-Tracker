@@ -48,6 +48,7 @@ export async function addLearning(fields) {
     id:                  fields.id ?? generateId(),
     schemaVersion:       SCHEMA_VERSION,
     concept:             fields.concept,
+    loopStep:            fields.loopStep           ?? 'Learn',
     sourceId:            fields.sourceId            ?? null,
     sourceType:          fields.sourceType           ?? 'other',
     explanation:         fields.explanation,

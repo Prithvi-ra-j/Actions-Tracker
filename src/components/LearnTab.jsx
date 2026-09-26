@@ -17,10 +17,11 @@ const AXIS_COLORS = {
 // 5-step loop for the topic sheet
 const LOOP_STEPS = ['Learn', 'Practice', 'Apply', 'Evidence', 'Review'];
 
-function TopicCard({ topic, stepIndex, onClick }) {
+function TopicCard({ topic, onClick }) {
   const axisKey = (topic.tags?.[0] || 'Knowledge').toLowerCase();
   const axisColor = AXIS_COLORS[axisKey] || 'var(--knowledge)';
   const axisLabel = topic.tags?.[0] || 'Knowledge';
+  const stepIndex = Math.max(0, LOOP_STEPS.indexOf(topic.loopStep || 'Learn'));
   const currentStep = LOOP_STEPS[stepIndex] || LOOP_STEPS[0];
 
   return (
@@ -101,12 +102,14 @@ function TopicCard({ topic, stepIndex, onClick }) {
   );
 }
 
-function TopicSheet({ topic, onClose, onOpenJarvis }) {
-  const [practiceLogged, setPracticeLogged] = useState(false);
+function TopicSheet({ topic, onClose, onOpenJarvis, onLogPractice }) {
+  const [practiceNote, setPracticeNote] = useState('');
+  const [savingPractice, setSavingPractice] = useState(false);
+  const [practiceError, setPracticeError] = useState('');
   const axisKey = (topic.tags?.[0] || 'Knowledge').toLowerCase();
   const axisColor = AXIS_COLORS[axisKey] || 'var(--knowledge)';
   const axisLabel = topic.tags?.[0] || 'Knowledge';
-  const currentStepIndex = 1; // "Practice" — would come from learning state in domain
+  const currentStepIndex = Math.max(0, LOOP_STEPS.indexOf(topic.loopStep || 'Learn'));
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
@@ -208,21 +211,50 @@ function TopicSheet({ topic, onClose, onOpenJarvis }) {
         <p style={{ margin: '4px 0 0', fontSize: '14px', color: 'var(--tx)', lineHeight: 1.5 }}>
           Apply what you've learned to a real example. Note any gaps.
         </p>
+        <textarea
+          aria-label="Practice note"
+          value={practiceNote}
+          onChange={e => setPracticeNote(e.target.value)}
+          placeholder="What did you practice?"
+          rows={3}
+          style={{ width: '100%', marginTop: '10px', padding: '10px 12px', borderRadius: 'var(--r-control)', background: 'var(--s2)', color: 'var(--tx)', border: '1px solid var(--hairline)', font: 'inherit', resize: 'vertical' }}
+        />
       </div>
+      {practiceError && <p role="alert" style={{ margin: 0, color: 'var(--danger)', fontSize: '13px' }}>{practiceError}</p>}
 
       {/* Action buttons */}
       <div style={{ display: 'flex', gap: '10px' }}>
         <Button
           variant="primary"
           style={{ flex: 1 }}
-          onClick={() => { setPracticeLogged(true); onClose(); }}
+          disabled={savingPractice || !practiceNote.trim() || !onLogPractice}
+          onClick={async () => {
+            setSavingPractice(true);
+            setPracticeError('');
+            try {
+              await onLogPractice({ learningId: topic.id, content: practiceNote.trim(), axis: axisKey });
+              onClose();
+            } catch (error) {
+              setPracticeError('Practice could not be saved. Your note is still here; try again.');
+            } finally {
+              setSavingPractice(false);
+            }
+          }}
         >
-          {practiceLogged ? 'Practice logged ✓' : 'Log practice'}
+          {savingPractice ? 'Saving...' : 'Log practice'}
         </Button>
         <Button
           variant="secondary"
           style={{ flex: 1 }}
-          onClick={() => { onClose(); onOpenJarvis?.(); }}
+          onClick={() => {
+            onClose();
+            onOpenJarvis?.({
+              page: 'learn',
+              entityType: 'learning',
+              entityId: topic.id,
+              payload: { concept: topic.concept, axis: axisLabel },
+            });
+          }}
         >
           <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
             <Sparkle size={16} />
@@ -234,26 +266,40 @@ function TopicSheet({ topic, onClose, onOpenJarvis }) {
   );
 }
 
-export default function LearnTab({ t, learnings = [], onAddLearning, onOpenJarvis }) {
+export default function LearnTab({ t, learnings = [], onAddLearning, onLogLearningPractice, onOpenJarvis }) {
   const [sheet, setSheet] = useState(null);
   const [topic, setTopic] = useState('');
   const [objective, setObjective] = useState('');
   const [axis, setAxis] = useState('Knowledge');
+  const [savingTopic, setSavingTopic] = useState(false);
+  const [topicError, setTopicError] = useState('');
 
   const axes = ['Knowledge', 'Creativity', 'Strategy', 'Body', 'Discipline', 'Social'];
 
-  function handleCreateTopic() {
-    if (!topic.trim()) return;
-    onAddLearning?.({
-      concept: topic,
-      whyItMatters: objective,
-      tags: [axis],
-      sourceType: 'other',
-    });
-    setSheet(null);
-    setTopic('');
-    setObjective('');
-    setAxis('Knowledge');
+  async function handleCreateTopic() {
+    if (!topic.trim()) {
+      setTopicError('Enter a topic before saving.');
+      return;
+    }
+    setSavingTopic(true);
+    setTopicError('');
+    try {
+      if (!onAddLearning) throw new Error('Topic saving is unavailable.');
+      await onAddLearning({
+        concept: topic.trim(),
+        whyItMatters: objective.trim(),
+        tags: [axis],
+        sourceType: 'other',
+      });
+      setSheet(null);
+      setTopic('');
+      setObjective('');
+      setAxis('Knowledge');
+    } catch (error) {
+      setTopicError('Topic could not be saved. Your entry is still here; try again.');
+    } finally {
+      setSavingTopic(false);
+    }
   }
 
   return (
@@ -295,11 +341,10 @@ export default function LearnTab({ t, learnings = [], onAddLearning, onOpenJarvi
             </button>
           </div>
 
-          {learnings.map((item, idx) => (
+          {learnings.map(item => (
             <TopicCard
-              key={idx}
+              key={item.id}
               topic={item}
-              stepIndex={Math.min(idx, 4)}
               onClick={() => setSheet({ type: 'detail', topic: item })}
             />
           ))}
@@ -315,6 +360,7 @@ export default function LearnTab({ t, learnings = [], onAddLearning, onOpenJarvi
         <div style={{ display: 'flex', flexDirection: 'column', gap: '0' }}>
           <div style={{ fontSize: '13px', fontWeight: 500, color: 'var(--mu)', margin: '0 0 6px' }}>Topic</div>
           <input
+            aria-label="Learning topic"
             value={topic}
             onChange={e => setTopic(e.target.value)}
             placeholder="German B2"
@@ -336,6 +382,7 @@ export default function LearnTab({ t, learnings = [], onAddLearning, onOpenJarvi
 
           <div style={{ fontSize: '13px', fontWeight: 500, color: 'var(--mu)', margin: '14px 0 6px' }}>Objective</div>
           <input
+            aria-label="Learning objective"
             value={objective}
             onChange={e => setObjective(e.target.value)}
             placeholder="Pass the mock exam by March"
@@ -381,16 +428,20 @@ export default function LearnTab({ t, learnings = [], onAddLearning, onOpenJarvi
           </div>
 
           <div style={{ display: 'flex', gap: '10px' }}>
-            <Button variant="primary" style={{ flex: 1 }} onClick={handleCreateTopic}>
-              Save topic
+            <Button variant="primary" style={{ flex: 1 }} onClick={handleCreateTopic} disabled={savingTopic}>
+              {savingTopic ? 'Saving...' : 'Save topic'}
             </Button>
-            <Button variant="secondary" onClick={() => { setSheet(null); onOpenJarvis?.(); }}>
+            <Button variant="secondary" onClick={() => {
+              setSheet(null);
+              onOpenJarvis?.({ page: 'learn', payload: { concept: topic } });
+            }}>
               <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                 <Sparkle size={16} />
                 Ask Jarvis
               </span>
             </Button>
           </div>
+          {topicError && <p role="alert" style={{ color: 'var(--danger)', fontSize: '13px' }}>{topicError}</p>}
         </div>
       </BottomSheet>
 
@@ -404,6 +455,7 @@ export default function LearnTab({ t, learnings = [], onAddLearning, onOpenJarvi
             topic={sheet.topic}
             onClose={() => setSheet(null)}
             onOpenJarvis={onOpenJarvis}
+            onLogPractice={onLogLearningPractice}
           />
         )}
       </BottomSheet>

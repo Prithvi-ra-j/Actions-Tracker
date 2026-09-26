@@ -155,7 +155,15 @@ function AxisSheet({ axisKey, stats, axisDetails, snapshots, onOpenJarvis, onClo
         <Button
           variant="primary"
           style={{ flex: 1, fontSize: '14px' }}
-          onClick={() => { onClose(); onOpenJarvis?.(); }}
+          onClick={() => {
+            onClose();
+            onOpenJarvis?.({
+              page: 'stats',
+              entityType: 'axis',
+              entityId: axisKey,
+              payload: { axis: info?.label || axisKey, value: val, trend, delta },
+            });
+          }}
         >
           <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
             <Sparkle size={16} weight="fill" />
