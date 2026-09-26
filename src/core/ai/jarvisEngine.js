@@ -188,11 +188,22 @@ export async function chatWithJarvis(userMessage, history = [], modificationCont
       }
     : null;
   
+  // UI messages contain display-only metadata (proposal, contextUsed, claims,
+  // proposalStatus). Never send that metadata back to an OpenAI-compatible API:
+  // its chat message schema only accepts the role/content fields here.
+  const llmHistory = (history || [])
+    .filter(message => message && ['user', 'assistant', 'system'].includes(message.role))
+    .map(message => ({
+      role: message.role,
+      content: String(message.llmContent ?? message.content ?? message.message ?? ''),
+    }))
+    .filter(message => message.content.trim());
+
   const messages = [
     { role: 'system', content: JARVIS_SYSTEM_PROMPT },
     { role: 'system', content: `Here is the CURRENT system state and evidence:\n\n${contextText}` },
     ...(modificationInstruction ? [modificationInstruction] : []),
-    ...history,
+    ...llmHistory,
     { role: 'user', content: userMessage }
   ];
   
