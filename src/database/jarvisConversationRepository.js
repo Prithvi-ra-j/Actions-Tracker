@@ -26,10 +26,10 @@ export async function getOrCreateConversation(id = DEFAULT_ID, title = 'Jarvis')
   const existing = await getConversation(id);
   if (existing) return existing;
 
-  const conversation = id === DEFAULT_ID ? {
+  const conversation = {
     ...createConversation(title),
-    id: DEFAULT_ID,
-  } : createConversation(title);
+    id,
+  };
 
   await dbPut(STORE, conversation);
   return conversation;
