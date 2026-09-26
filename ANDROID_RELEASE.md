@@ -1,6 +1,6 @@
 # Android Releases
 
-Actions-Tracker is distributed as a personal APK through GitHub Releases.
+Actions-Tracker is distributed as a personal APK through GitHub Releases. Android workflows use four numeric version components: `Level.Phase.Patch.Hotfix`.
 
 ## Update guarantee
 
@@ -79,14 +79,14 @@ The workflow restores the keystore only inside the temporary GitHub runner and n
 
 ## Creating a release
 
-Either create a Git tag:
+The workflows require a four-part version such as `1.6.0.0`. Either create a Git tag:
 
 ```bash
-git tag v1.5.1
-git push origin v1.5.1
+git tag v1.6.0.0
+git push origin v1.6.0.0
 ```
 
-or run **Actions → Android Release → Run workflow** and enter a version such as `1.5.1`.
+or run **Actions → Android Release → Run workflow** and enter a version such as `1.6.0.0`.
 
 The workflow:
 
@@ -95,7 +95,9 @@ The workflow:
 3. Derives Android `versionCode` from the release version.
 4. Signs the APK with the configured release key.
 5. Creates a GitHub Release.
-6. Uploads `Actions-Tracker-vX.Y.Z.apk`.
+6. Uploads `Actions-Tracker-vX.Y.Z.W.apk`.
+
+The separate `android-build.yml` workflow is manually dispatched and uploads a signed APK artifact without publishing a GitHub Release. Both workflows require the Android signing secrets. See `RELEASING.md` for the required QA gates; do not tag before device and in-place upgrade checks pass.
 
 ## Data preservation
 

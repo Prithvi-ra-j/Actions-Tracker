@@ -1,28 +1,30 @@
 # Versioning
 
-This project uses **Level.Phase.Patch** versioning, not standard semantic versioning (major.minor.patch). 
-The version number is a claim about the state of the *system architecture and verified capability*, not just a counter for merged features.
+Actions Tracker uses a four-part project version: `Level.Phase.Patch.Hotfix`. It describes verified system capability, not just the number of merged changes.
 
-## The Rule
+## Components
 
-- **Level** (X.0.0): Bumps only on a schema-breaking change to the core data model. Examples: adding new `keyPath`s, dropping stores, or changing the core fact structure in a way that would require a complex migration or break derived state calculations for old exports.
-- **Phase** (1.X.0): Bumps when a new feature or sub-system is completed and integrated within the current Level, without breaking the schema.
-- **Patch** (1.1.X): Bumps on bugfixes, UI tweaks, or minor updates that add no net-new capability.
+- **Level** changes for a breaking core-schema change that needs a major migration.
+- **Phase** changes when a new capability is completed within the current schema level.
+- **Patch** changes for a bug fix or small correction without a new capability.
+- **Hotfix** changes for an additional release correction within the same patch.
 
-## The Single Source of Truth
+Example: `1.5.1.1` to `1.6.0.0` represents a phase increment. Keep all four numeric components in Android workflow inputs and tags.
 
-The current version string is defined in `src/version.js`. 
-`package.json`, the database export envelope (`_meta`), and any UI displays must import or mirror this value. They should not drift.
+## Sources of truth
 
-## Git Tags and Gate Clearing
+`src/version.js` is the app-visible version source. The release workflows stamp `APP_VERSION` from the supplied four-part version in the runner before building; they do not commit that generated stamp back to the repository. `package.json` uses npm's package-version field and is not used to derive Android release versions.
 
-Code merged to `main` is just code. It doesn't get a version tag until it has passed its verification gate (the "round-trip test"). 
+The Android workflows calculate `versionCode` as:
 
-**The Round-Trip Test (Data Safety Guarantee):**
-1. Export the database to JSON.
-2. Run `npm run test:roundtrip -- path/to/export.json` to verify schema constraints statically.
-3. Wipe the app data (Settings → Clear Data).
-4. Import the backup.
-5. Verify record counts match and all UI features function as expected.
+```text
+Level * 1,000,000,000 + Phase * 1,000,000 + Patch * 1,000 + Hotfix
+```
 
-Only when this test passes for a given Phase is the tag (e.g., `v1.5.0`) applied to the commit, and an entry added to `CHANGELOG.md`.
+For example, `1.6.0.0` produces `1006000000`. The workflows validate the supported component ranges.
+
+## Release gate
+
+Do not tag or publish until the current `NEXT_RELEASE.md` checklist passes, including the Android artifact, device validation, and in-place upgrade/data-preservation checks. Automated web tests and a successful Vite build alone do not clear the release gate.
+
+The manual Android build workflow uploads a signed artifact without publishing. The Android release workflow is triggered by a `v*` tag or manual dispatch and publishes a GitHub Release. See `RELEASING.md` for the exact process.

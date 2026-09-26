@@ -394,7 +394,9 @@ export default function App() {
         // deferred until onboarding/API setup is complete.
         if (userDataExists && apiConfigured) {
           setTimeout(() => {
-            import('./core/scoring/scoreParityCheck.js').then(m => m.runParityCheck());
+            import('./core/scoring/scoreParityCheck.js')
+              .then(m => m.runParityCheck())
+              .catch(err => console.warn('[App] Score parity check failed:', err));
           }, 15000);
         }
 

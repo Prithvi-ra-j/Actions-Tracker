@@ -325,4 +325,96 @@ describe('UI Journeys', () => {
     fireEvent.click(dockedJarvisBtn);
     expect(await screen.findByPlaceholderText(/Tell Jarvis what you want/i)).toBeTruthy();
   });
+
+  it('filters and selects Jarvis slash commands with the keyboard', async () => {
+    render(<JarvisTab />);
+    const composer = await screen.findByRole('combobox', { name: 'Tell Jarvis what you want' });
+    fireEvent.change(composer, { target: { value: '/rev' } });
+
+    const reviseCommand = await screen.findByRole('option', { name: 'Revise target' });
+    const reviewCommand = screen.getByRole('option', { name: 'Review my system' });
+    expect(reviseCommand.getAttribute('aria-selected')).toBe('true');
+    fireEvent.keyDown(composer, { key: 'ArrowDown' });
+    expect(reviewCommand.getAttribute('aria-selected')).toBe('true');
+    fireEvent.keyDown(composer, { key: 'Enter' });
+    expect(composer.value).toBe('Review my system ');
+    expect(screen.queryByRole('listbox')).toBeNull();
+
+    fireEvent.change(composer, { target: { value: '/no-such-command' } });
+    expect(await screen.findByText('No matching commands.')).toBeTruthy();
+    fireEvent.keyDown(composer, { key: 'Enter' });
+    expect(composer.value).toBe('/no-such-command');
+    fireEvent.keyDown(composer, { key: 'Escape' });
+    expect(screen.queryByRole('listbox')).toBeNull();
+  });
+
+  it('builds Jarvis review stories from saved logs and hands off to chat', async () => {
+    await addLog({
+      axis: 'body',
+      type: 'manual_evidence',
+      value: 1,
+      date: new Date().toISOString().slice(0, 10),
+      meta: { content: 'Completed a planned run' },
+    });
+    render(<JarvisTab />);
+    expect(await screen.findByText('Recent activity')).toBeTruthy();
+    expect(await screen.findByText('Completed a planned run')).toBeTruthy();
+    fireEvent.click(await screen.findByRole('button', { name: 'Review recent evidence' }));
+
+    expect(await screen.findByText('1 recorded entries')).toBeTruthy();
+    fireEvent.click(screen.getByRole('button', { name: 'Next review story' }));
+    expect(await screen.findByText('Recorded by axis')).toBeTruthy();
+    expect(screen.getByText('body')).toBeTruthy();
+    fireEvent.click(screen.getByRole('button', { name: 'Next review story' }));
+    expect(await screen.findByText('Latest saved entry')).toBeTruthy();
+    fireEvent.click(screen.getByRole('button', { name: 'Ask Jarvis' }));
+    expect(screen.getByRole('combobox').value).toBe('Review my recent evidence from the last 28 days.');
+  });
+
+  it('executes only the plan steps selected on the Jarvis Plan board', async () => {
+    const impact = {
+      affectedDomains: [],
+      scoringImpact: '',
+      routineImpact: '',
+      identityAlignment: '',
+      disciplineImpact: '',
+      risks: [],
+      dependencies: [],
+    };
+    await saveConversation({
+      id: 'jarvis_default',
+      type: 'Jarvis',
+      createdAt: new Date().toISOString(),
+      messages: [{
+        role: 'assistant',
+        content: 'A two-step plan.',
+        proposalStatus: 'pending',
+        proposal: {
+          actionType: 'create_plan',
+          payload: {
+            steps: [
+              { actionType: 'add_quest', payload: { title: 'Selected plan step', domain: 'body', metric: { type: 'manual' } } },
+              { actionType: 'add_quest', payload: { title: 'Excluded plan step', domain: 'body', metric: { type: 'manual' } } },
+            ],
+          },
+          impact,
+          reasoning: 'Plan board integration test',
+          confidence: 0.8,
+        },
+      }],
+    });
+    render(<JarvisTab />);
+    fireEvent.click(await screen.findByRole('button', { name: 'Open plan board' }));
+    fireEvent.click(screen.getByRole('checkbox', { name: 'Include step: Excluded plan step' }));
+    expect(screen.getByText('1 of 2 selected')).toBeTruthy();
+    fireEvent.click(screen.getByRole('button', { name: 'Review selected steps' }));
+    fireEvent.click(await screen.findByRole('button', { name: 'Apply' }));
+
+    await waitFor(async () => {
+      const { getAllQuests } = await import('../../src/database/questBoardRepository.js');
+      const quests = await getAllQuests();
+      expect(quests.some(quest => quest.title === 'Selected plan step')).toBe(true);
+      expect(quests.some(quest => quest.title === 'Excluded plan step')).toBe(false);
+    });
+  });
 });

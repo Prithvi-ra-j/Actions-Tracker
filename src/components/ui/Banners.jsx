@@ -56,7 +56,7 @@ export function GlobalBanners() {
 
 function Banner({ icon, text, color, textColor }) {
   return (
-    <div style={{
+    <div role="status" aria-live="polite" style={{
       display: 'flex',
       alignItems: 'center',
       gap: '8px',

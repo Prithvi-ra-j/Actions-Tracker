@@ -31,6 +31,7 @@ const MODES = [
 ];
 
 const COMMANDS = [
+  { id: 'ask', label: 'Ask Jarvis', description: 'Ask a question about your system', icon: '?', prompt: 'Ask Jarvis' },
   { id: 'habit', label: 'Create habit', description: 'Add a recurring habit', icon: '↻', prompt: 'Create a habit' },
   { id: 'quest', label: 'Create quest', description: 'Add a measurable quest or benchmark', icon: '◇', prompt: 'Create a quest' },
   { id: 'goal', label: 'Create goal', description: 'Define or update a goal', icon: '◎', prompt: 'Create a goal' },
@@ -62,8 +63,11 @@ export default function JarvisTab({ t, isActive = true, onQuestsChanged, onboard
   const [modeMenuOpen, setModeMenuOpen] = useState(false);
   const [commandMenuOpen, setCommandMenuOpen] = useState(false);
   const [commandQuery, setCommandQuery] = useState('');
+  const [selectedCommandIndex, setSelectedCommandIndex] = useState(0);
   const [selectedProposalForImpact, setSelectedProposalForImpact] = useState(null);
   const [selectedProposalForEdit, setSelectedProposalForEdit] = useState(null);
+  const [selectedPlanProposal, setSelectedPlanProposal] = useState(null);
+  const [selectedPlanSteps, setSelectedPlanSteps] = useState([]);
   const [loading, setLoading] = useState(false);
   const [loadingPhase, setLoadingPhase] = useState('');
   const [error, setError] = useState(null);
@@ -71,6 +75,9 @@ export default function JarvisTab({ t, isActive = true, onQuestsChanged, onboard
   const [modificationContext, setModificationContext] = useState(null);
   const [sheet, setSheet] = useState(null);
   const [conversationHistory, setConversationHistory] = useState([]);
+  const [homeFeedItems, setHomeFeedItems] = useState([]);
+  const [reviewStories, setReviewStories] = useState(null);
+  const [reviewStoryIndex, setReviewStoryIndex] = useState(0);
   const [conversationReady, setConversationReady] = useState(false);
   const [reviewLoading, setReviewLoading] = useState(false);
   const [proactiveInsight, setProactiveInsight] = useState(null);
@@ -193,6 +200,48 @@ export default function JarvisTab({ t, isActive = true, onQuestsChanged, onboard
   }, [conversationId, activeOnboardingMode, apiConfigured, onboardingRetryNonce]);
 
   useEffect(() => {
+    let cancelled = false;
+    if (apiConfigured !== true || !conversationReady || activeOnboardingMode) return undefined;
+
+    (async () => {
+      try {
+        const [logs, quests] = await Promise.all([getAllLogs(), getAllQuests()]);
+        if (cancelled) return;
+        const evidenceItems = logs
+          .filter(log => log.meta?.content || log.meta?.text)
+          .map(log => {
+            const text = String(log.meta.content || log.meta.text);
+            return {
+              id: `evidence-${log.id}`,
+              kind: 'Evidence',
+              title: text,
+              detail: [log.axis || log.domain, log.date].filter(Boolean).join(' · '),
+              timestamp: String(log.date || log.createdAt || ''),
+              prompt: `Review this saved evidence: ${text}`,
+            };
+          });
+        const questItems = quests
+          .filter(quest => quest.status === 'active' && quest.title)
+          .map(quest => ({
+            id: `quest-${quest.id}`,
+            kind: 'Active quest',
+            title: quest.title,
+            detail: quest.axis || quest.domain || '',
+            timestamp: String(quest.updatedAt || quest.createdAt || ''),
+            prompt: `Help me review this quest: ${quest.title}`,
+          }));
+        setHomeFeedItems([...evidenceItems, ...questItems]
+          .sort((left, right) => right.timestamp.localeCompare(left.timestamp))
+          .slice(0, 6));
+      } catch (err) {
+        recordAppError(err, { source: 'jarvis_ui', operation: 'load_home_feed' });
+      }
+    })();
+
+    return () => { cancelled = true; };
+  }, [apiConfigured, conversationReady, activeOnboardingMode]);
+
+  useEffect(() => {
     if (!messagesEndRef.current?.scrollIntoView) return;
     messagesEndRef.current.scrollIntoView({ behavior: 'smooth', block: 'end' });
   }, [messages, loading, error]);
@@ -280,6 +329,64 @@ export default function JarvisTab({ t, isActive = true, onQuestsChanged, onboard
     }
   };
 
+  const openReviewStories = async () => {
+    setReviewLoading(true);
+    setReviewStoryIndex(0);
+    setSheet('review');
+    try {
+      const logs = await getAllLogs();
+      const now = new Date();
+      const todayUtc = Date.UTC(now.getFullYear(), now.getMonth(), now.getDate());
+      const dayMs = 24 * 60 * 60 * 1000;
+      const firstDay = todayUtc - 27 * dayMs;
+      const entries = logs.filter(log => {
+        const dateText = String(log.date || '').slice(0, 10);
+        const dateMs = Date.parse(`${dateText}T00:00:00Z`);
+        return Number.isFinite(dateMs) && dateMs >= firstDay && dateMs <= todayUtc;
+      });
+      const weeklyCounts = [0, 0, 0, 0];
+      const axisCounts = {};
+      for (const log of entries) {
+        const dateMs = Date.parse(`${String(log.date).slice(0, 10)}T00:00:00Z`);
+        const weekIndex = Math.min(3, Math.floor((dateMs - firstDay) / (7 * dayMs)));
+        weeklyCounts[weekIndex] += 1;
+        const axis = String(log.axis || log.domain || log.meta?.axis || 'Unspecified');
+        axisCounts[axis] = (axisCounts[axis] || 0) + 1;
+      }
+      setReviewStories({
+        count: entries.length,
+        weeklyCounts,
+        axisCounts: Object.entries(axisCounts).sort((left, right) => right[1] - left[1]),
+        latestDate: entries.map(log => String(log.date).slice(0, 10)).sort().at(-1) || null,
+      });
+    } catch (err) {
+      recordAppError(err, { source: 'jarvis_ui', operation: 'load_review_stories' });
+      setError('Could not load recent evidence for review.');
+      setSheet(null);
+    } finally {
+      setReviewLoading(false);
+    }
+  };
+
+  const openPlanBoard = proposal => {
+    const steps = proposal?.payload?.steps || [];
+    setSelectedPlanProposal(proposal);
+    setSelectedPlanSteps(steps.map(() => true));
+  };
+
+  const reviewSelectedPlan = () => {
+    if (!selectedPlanProposal) return;
+    const steps = (selectedPlanProposal.payload.steps || [])
+      .filter((step, index) => selectedPlanSteps[index]);
+    if (steps.length === 0) return;
+    const proposal = {
+      ...selectedPlanProposal,
+      payload: { ...selectedPlanProposal.payload, steps },
+    };
+    setSelectedPlanProposal(null);
+    setSelectedProposalForImpact({ proposal, impact: proposal.impact });
+  };
+
   const startNewConversation = async () => {
     const id = `jarvis_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
     setActiveConversationId(id);
@@ -288,6 +395,52 @@ export default function JarvisTab({ t, isActive = true, onQuestsChanged, onboard
     setError(null);
     setSheet(null);
     await getOrCreateConversation(id, 'New chat');
+  };
+
+  const filteredCommands = COMMANDS.filter(command => (
+    !commandQuery || [command.id, command.label, command.description]
+      .some(value => value.toLowerCase().includes(commandQuery.toLowerCase()))
+  ));
+  const commandGroups = [
+    { group: 'Think', commands: filteredCommands.filter(command => ['ask', 'review', 'audit'].includes(command.id)) },
+    { group: 'Change', commands: filteredCommands.filter(command => ['habit', 'quest', 'goal', 'routine', 'plan', 'experiment', 'target'].includes(command.id)) },
+    { group: 'Record', commands: filteredCommands.filter(command => ['evidence', 'memory', 'learn'].includes(command.id)) },
+  ];
+
+  const selectCommand = command => {
+    setInput(command.prompt + ' ');
+    setCommandMenuOpen(false);
+    setCommandQuery('');
+    setSelectedCommandIndex(0);
+  };
+
+  const handleComposerKeyDown = event => {
+    if (commandMenuOpen) {
+      if (event.key === 'Escape') {
+        event.preventDefault();
+        setCommandMenuOpen(false);
+        return;
+      }
+      if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
+        event.preventDefault();
+        if (filteredCommands.length > 0) {
+          const direction = event.key === 'ArrowDown' ? 1 : -1;
+          setSelectedCommandIndex(current => (
+            (current + direction + filteredCommands.length) % filteredCommands.length
+          ));
+        }
+        return;
+      }
+      if (event.key === 'Enter') {
+        event.preventDefault();
+        if (filteredCommands.length > 0) {
+          selectCommand(filteredCommands[selectedCommandIndex] || filteredCommands[0]);
+        }
+        return;
+      }
+    }
+
+    if (event.key === 'Enter') handleSend();
   };
 
   const executeApprovedProposal = async (proposal) => {
@@ -454,6 +607,99 @@ export default function JarvisTab({ t, isActive = true, onQuestsChanged, onboard
         </div>
       </BottomSheet>
 
+      <BottomSheet isOpen={sheet === 'review'} onClose={() => setSheet(null)} title="Recent evidence review">
+        {reviewLoading ? (
+          <p role="status" style={{ color: 'var(--mu)' }}>Reviewing recent evidence...</p>
+        ) : reviewStories?.count ? (
+          <div style={{ display: 'grid', gap: '14px' }}>
+            <div aria-live="polite">
+              <div style={{ color: 'var(--mu)', font: "500 12px 'Geist Mono', monospace" }}>
+                Story {reviewStoryIndex + 1} of 3 · Last 28 days
+              </div>
+              {reviewStoryIndex === 0 && (
+                <>
+                  <h3 style={{ margin: '8px 0 4px', fontSize: '22px' }}>{reviewStories.count} recorded entries</h3>
+                  <p style={{ margin: 0, color: 'var(--mu)', fontSize: '13px' }}>Counts from saved log records; no score or trend is inferred.</p>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '8px', marginTop: '14px' }}>
+                    {reviewStories.weeklyCounts.map((count, index) => (
+                      <div key={index} style={{ padding: '10px 6px', background: 'var(--s2)', borderRadius: 'var(--r-control)', textAlign: 'center' }}>
+                        <strong style={{ display: 'block', fontFamily: "'Geist Mono', monospace" }}>{count}</strong>
+                        <span style={{ color: 'var(--mu)', fontSize: '11px' }}>Week {index + 1}</span>
+                      </div>
+                    ))}
+                  </div>
+                </>
+              )}
+              {reviewStoryIndex === 1 && (
+                <>
+                  <h3 style={{ margin: '8px 0 4px', fontSize: '22px' }}>Recorded by axis</h3>
+                  <div style={{ display: 'grid', gap: '8px', marginTop: '12px' }}>
+                    {reviewStories.axisCounts.map(([axis, count]) => (
+                      <div key={axis} style={{ display: 'flex', justifyContent: 'space-between', gap: '12px', padding: '10px 12px', background: 'var(--s2)', borderRadius: 'var(--r-control)' }}>
+                        <span>{axis}</span><strong style={{ fontFamily: "'Geist Mono', monospace" }}>{count}</strong>
+                      </div>
+                    ))}
+                  </div>
+                </>
+              )}
+              {reviewStoryIndex === 2 && (
+                <>
+                  <h3 style={{ margin: '8px 0 4px', fontSize: '22px' }}>Latest saved entry</h3>
+                  <p style={{ margin: 0, color: 'var(--mu)', fontSize: '14px' }}>{reviewStories.latestDate || 'No date recorded'}</p>
+                  <p style={{ margin: '10px 0 0', fontSize: '14px' }}>Ask Jarvis to interpret this evidence in context before changing your system.</p>
+                </>
+              )}
+            </div>
+            <div style={{ display: 'flex', gap: '8px' }}>
+              <button type="button" aria-label="Previous review story" onClick={() => setReviewStoryIndex(index => Math.max(0, index - 1))} disabled={reviewStoryIndex === 0} style={{ minHeight: '44px', padding: '0 12px', border: 0, borderRadius: 'var(--r-control)', background: 'var(--s2)', color: 'var(--tx)' }}>Previous</button>
+              {reviewStoryIndex < 2 ? (
+                <button type="button" aria-label="Next review story" onClick={() => setReviewStoryIndex(index => Math.min(2, index + 1))} style={{ flex: 1, minHeight: '44px', border: 0, borderRadius: 'var(--r-control)', background: 'var(--ac)', color: 'var(--on-ac)' }}>Next</button>
+              ) : (
+                <button type="button" onClick={() => { setInput('Review my recent evidence from the last 28 days.'); setSheet(null); }} style={{ flex: 1, minHeight: '44px', border: 0, borderRadius: 'var(--r-control)', background: 'var(--ac)', color: 'var(--on-ac)' }}>Ask Jarvis</button>
+              )}
+            </div>
+          </div>
+        ) : (
+          <div>
+            <p style={{ margin: '0 0 12px', color: 'var(--mu)' }}>No saved log entries in the last 28 days.</p>
+            <button type="button" onClick={() => { setInput('Review my recent evidence.'); setSheet(null); }} style={{ minHeight: '44px', padding: '0 14px', border: 0, borderRadius: 'var(--r-control)', background: 'var(--ac)', color: 'var(--on-ac)' }}>Ask Jarvis</button>
+          </div>
+        )}
+      </BottomSheet>
+
+      <BottomSheet isOpen={!!selectedPlanProposal} onClose={() => setSelectedPlanProposal(null)} title="Plan board">
+        {selectedPlanProposal && (
+          <div style={{ display: 'grid', gap: '12px' }}>
+            <p style={{ margin: 0, color: 'var(--mu)', fontSize: '13px' }}>
+              Select the steps to include. Only selected steps will reach impact review and approval.
+            </p>
+            <div style={{ display: 'grid', gap: '8px', maxHeight: '45dvh', overflowY: 'auto' }}>
+              {selectedPlanProposal.payload.steps.map((step, index) => {
+                const stepTitle = step.payload?.title || step.payload?.label || step.payload?.text || step.actionType.replaceAll('_', ' ');
+                return (
+                  <button
+                    key={`${step.actionType}-${index}`}
+                    type="button"
+                    role="checkbox"
+                    aria-checked={Boolean(selectedPlanSteps[index])}
+                    aria-label={`Include step: ${stepTitle}`}
+                    onClick={() => setSelectedPlanSteps(current => current.map((included, stepIndex) => stepIndex === index ? !included : included))}
+                    style={{ minHeight: '52px', display: 'flex', alignItems: 'center', gap: '10px', padding: '8px 12px', border: '1px solid var(--hairline)', borderRadius: 'var(--r-control)', background: 'var(--s2)', color: 'var(--tx)', textAlign: 'left' }}
+                  >
+                    <span aria-hidden="true" style={{ width: '22px', height: '22px', display: 'grid', placeItems: 'center', borderRadius: 'var(--r-check)', background: selectedPlanSteps[index] ? 'var(--ac)' : 'transparent', boxShadow: selectedPlanSteps[index] ? 'none' : 'inset 0 0 0 1px var(--mu)', color: 'var(--on-ac)', flexShrink: 0 }}>{selectedPlanSteps[index] ? '✓' : ''}</span>
+                    <span><strong style={{ display: 'block', textTransform: 'capitalize' }}>{step.actionType.replaceAll('_', ' ')}</strong><span style={{ color: 'var(--mu)', fontSize: '12px' }}>{stepTitle}</span></span>
+                  </button>
+                );
+              })}
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+              <span aria-live="polite" style={{ color: 'var(--mu)', fontSize: '12px' }}>{selectedPlanSteps.filter(Boolean).length} of {selectedPlanSteps.length} selected</span>
+              <button type="button" onClick={reviewSelectedPlan} disabled={!selectedPlanSteps.some(Boolean)} style={{ marginLeft: 'auto', minHeight: '44px', padding: '0 14px', border: 0, borderRadius: 'var(--r-control)', background: selectedPlanSteps.some(Boolean) ? 'var(--ac)' : 'var(--s2)', color: selectedPlanSteps.some(Boolean) ? 'var(--on-ac)' : 'var(--mu)' }}>Review selected steps</button>
+            </div>
+          </div>
+        )}
+      </BottomSheet>
+
       {/* Messages / feed */}
       <div
         className="jarvis-screen__messages"
@@ -466,6 +712,11 @@ export default function JarvisTab({ t, isActive = true, onQuestsChanged, onboard
           WebkitOverflowScrolling: 'touch',
         }}
       >
+        {!activeOnboardingMode && (
+          <button type="button" onClick={openReviewStories} style={{ minHeight: '40px', margin: '0 0 10px', padding: '0 12px', border: '1px solid var(--hairline)', borderRadius: 'var(--r-control)', background: 'var(--s1)', color: 'var(--tx)', fontSize: '12px', cursor: 'pointer' }}>
+            Review recent evidence
+          </button>
+        )}
         {messages.length === 0 ? (
           /* Empty state — 2-col masonry starter pins */
           <div style={{
@@ -515,6 +766,21 @@ export default function JarvisTab({ t, isActive = true, onQuestsChanged, onboard
                 ? "I'll ask a few focused questions about who you are, your constraints, priorities and where you want to go."
                 : 'Tell Jarvis what you want to understand, plan, change or record.'}
             </p>
+
+              {!activeOnboardingMode && homeFeedItems.length > 0 && (
+                <section aria-label="Jarvis home feed" style={{ width: '100%', maxWidth: '520px', margin: '22px auto 0', textAlign: 'left' }}>
+                  <h3 style={{ margin: '0 0 8px', fontFamily: "'Geist Mono', monospace", color: 'var(--mu)', fontSize: '12px', fontWeight: 500 }}>Recent activity</h3>
+                  <div style={{ display: 'grid', gap: '8px' }}>
+                    {homeFeedItems.map(item => (
+                      <button key={item.id} type="button" onClick={() => setInput(item.prompt)} style={{ minHeight: '58px', display: 'grid', gap: '3px', padding: '10px 12px', border: '1px solid var(--hairline)', borderRadius: 'var(--r-container)', background: 'var(--s1)', color: 'var(--tx)', textAlign: 'left' }}>
+                        <span style={{ color: 'var(--ac)', fontFamily: "'Geist Mono', monospace", fontSize: '11px' }}>{item.kind}</span>
+                        <strong style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontSize: '13px' }}>{item.title}</strong>
+                        {item.detail && <span style={{ color: 'var(--mu)', fontSize: '11px' }}>{item.detail}</span>}
+                      </button>
+                    ))}
+                  </div>
+                </section>
+              )}
 
             {!activeOnboardingMode && (
               <div style={{
@@ -670,6 +936,11 @@ export default function JarvisTab({ t, isActive = true, onQuestsChanged, onboard
                         }}
                       />
                     )}
+                    {msg.proposal?.actionType === 'create_plan' && msg.proposalStatus === 'pending' && (
+                      <button type="button" onClick={() => openPlanBoard(msg.proposal)} style={{ minHeight: '40px', marginTop: '8px', padding: '0 12px', border: '1px solid var(--hairline)', borderRadius: 'var(--r-control)', background: 'var(--s1)', color: 'var(--tx)' }}>
+                        Open plan board
+                      </button>
+                    )}
                   </div>
                 )}
               </div>
@@ -767,6 +1038,12 @@ export default function JarvisTab({ t, isActive = true, onQuestsChanged, onboard
         <button
           aria-label="Attach or add"
           onClick={() => { setInput('/'); setCommandMenuOpen(true); }}
+          onClick={() => {
+            setInput('/');
+            setCommandQuery('');
+            setSelectedCommandIndex(0);
+            setCommandMenuOpen(true);
+          }}
           style={{
             width: '46px', height: '46px',
             borderRadius: '50%',
@@ -784,6 +1061,14 @@ export default function JarvisTab({ t, isActive = true, onQuestsChanged, onboard
         </button>
         <input
           name="jarvis-prompt"
+          role="combobox"
+          aria-label="Tell Jarvis what you want"
+          aria-autocomplete="list"
+          aria-expanded={commandMenuOpen}
+          aria-controls={commandMenuOpen ? 'jarvis-command-list' : undefined}
+          aria-activedescendant={commandMenuOpen && filteredCommands[selectedCommandIndex]
+            ? `jarvis-command-${filteredCommands[selectedCommandIndex].id}`
+            : undefined}
           autoComplete="off"
           autoCorrect="off"
           autoCapitalize="sentences"
@@ -806,6 +1091,7 @@ export default function JarvisTab({ t, isActive = true, onQuestsChanged, onboard
           value={input}
           onChange={e => {
             setInput(e.target.value);
+            setSelectedCommandIndex(0);
             if (e.target.value.startsWith('/')) {
               setCommandMenuOpen(true);
               setCommandQuery(e.target.value.substring(1));
@@ -813,11 +1099,16 @@ export default function JarvisTab({ t, isActive = true, onQuestsChanged, onboard
               setCommandMenuOpen(false);
             }
           }}
-          onKeyDown={e => e.key === 'Enter' && handleSend()}
+          onKeyDown={handleComposerKeyDown}
         />
         <button
           aria-label="Slash commands"
-          onClick={() => setCommandMenuOpen(v => !v)}
+          aria-expanded={commandMenuOpen}
+          onClick={() => {
+            setCommandQuery('');
+            setSelectedCommandIndex(0);
+            setCommandMenuOpen(v => !v);
+          }}
           style={{
             width: '46px', height: '46px',
             borderRadius: '50%',
@@ -859,6 +1150,9 @@ export default function JarvisTab({ t, isActive = true, onQuestsChanged, onboard
       {/* Slash Palette — bottom sheet style */}
       {commandMenuOpen && (
         <div
+          id="jarvis-command-list"
+          role="listbox"
+          aria-label="Slash commands"
           className="jarvis-screen__commands"
           style={{
             position: 'absolute',
@@ -900,20 +1194,21 @@ export default function JarvisTab({ t, isActive = true, onQuestsChanged, onboard
           </div>
 
           {/* Command groups */}
-          {[
-            { group: 'Think',  cmds: COMMANDS.filter(c => ['ask', 'review', 'audit'].includes(c.id)) },
-            { group: 'Change', cmds: COMMANDS.filter(c => ['habit', 'quest', 'goal', 'routine', 'target'].includes(c.id)) },
-            { group: 'Record', cmds: COMMANDS.filter(c => ['evidence', 'memory', 'learn'].includes(c.id)) },
-          ].map(({ group, cmds }) => (
+          {filteredCommands.length === 0 && (
+            <p role="status" style={{ color: 'var(--mu)', fontSize: '13px' }}>No matching commands.</p>
+          )}
+          {commandGroups.filter(({ commands }) => commands.length > 0).map(({ group, commands }) => (
             <div key={group}>
               <div style={{ fontFamily: "'Geist Mono', monospace", fontSize: '12px', color: 'var(--mu)', margin: '8px 0 4px' }}>{group}</div>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '6px' }}>
-                {cmds
-                  .filter(c => !commandQuery || c.label.toLowerCase().includes(commandQuery.toLowerCase()))
-                  .map(cmd => (
+                {commands.map(cmd => (
                     <button
                       key={cmd.id}
-                      onClick={() => { setInput(cmd.prompt + ' '); setCommandMenuOpen(false); }}
+                      id={`jarvis-command-${cmd.id}`}
+                      type="button"
+                      role="option"
+                      aria-selected={filteredCommands[selectedCommandIndex]?.id === cmd.id}
+                      onClick={() => selectCommand(cmd)}
                       style={{
                         display: 'flex',
                         alignItems: 'center',
@@ -921,7 +1216,7 @@ export default function JarvisTab({ t, isActive = true, onQuestsChanged, onboard
                         minHeight: '46px',
                         padding: '0 10px',
                         borderRadius: 'var(--r-control)',
-                        background: 'var(--s2)',
+                        background: filteredCommands[selectedCommandIndex]?.id === cmd.id ? 'color-mix(in srgb, var(--ac) 18%, var(--s2))' : 'var(--s2)',
                         border: 'none',
                         color: 'var(--tx)',
                         fontSize: '14px',

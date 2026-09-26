@@ -2,7 +2,7 @@
 
 Product: Actions-Tracker (mobile-first React/Vite PWA + Capacitor Android, local-first IndexedDB). Owner: Ranjith.
 Direction: **Codex** (dark, burnt-orange accent, rounded cards, mono numbers, XP/level, radar stats).
-Date: 24 Sep 2026. Status: every surface is drawn: Jarvis (9 screens), Today, Stats, Goals, Learn, Audits, Settings, Onboarding, plus the goal detail and the Stats axis sheet. Implementation not started.
+Design date: 24 Sep 2026. Status as of 26 Sep 2026: design artifacts exist and implementation is in progress. See `docs/implementation-gap-task-list.md` for verified work and remaining acceptance gates; do not treat the mockups as proof of implementation.
 
 ## 0. Instructions for the AI agent reading this
 You are implementing a **frontend redesign**. Follow this order and these rules.

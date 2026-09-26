@@ -1,83 +1,60 @@
-# Next Release: v1.6.0
+# Next Release: v1.6.0.0
 
-This file is the single source of truth for what goes into the next APK release.
-Update it as you build and test. When everything in "Planned" is done and tested,
-run the release steps in `RELEASING.md`.
-
----
+This is the release checklist. A green web build does not satisfy the Android artifact, device, or upgrade gates. Do not tag or publish until every required gate below is supported by recorded evidence.
 
 ## Target version
-`v1.6.0`
+`1.6.0.0` (four-part project version; expected Android versionCode: `1006000000`)
 
 ## Status
-`IN PROGRESS` — not yet released
+`IN PROGRESS` — automated checks pass; Android artifact and device/provider gates are not verified.
 
----
+## Current scope
 
-## Planned for this release
+| Status | Feature / Fix | Evidence / remaining check |
+|---|---|---|
+| Automated tests pass; device QA pending | Jarvis conversation history, new chat, contextual entry, data-backed home/review/plan surfaces, proposal review, and keyboard-accessible slash commands | UI journeys and action contract tests pass; verify on Android. |
+| Automated tests pass; device QA pending | Goal create/edit/pause lifecycle and Learn topic/practice flows | IndexedDB UI journeys pass; verify on Android. |
+| Automated tests pass; device QA pending | Audit ignore/restore, backup import confirmation, and editable provider settings | UI journey tests pass; verify on Android. |
 
-Add features/fixes here as you work on them. Move to ✅ when tested on device.
+## Known blockers and unverified behavior
 
-| Status | Feature / Fix | Notes |
-|--------|---------------|-------|
-| 🔲 | *(add your next feature here)* | |
+| Priority | Item | Status |
+|---|---|---|
+| Release blocker | Android APK artifact | Not built locally; Android SDK is not configured. The manual build workflow has not been dispatched. |
+| Release blocker | Android/device and provider checks | Not run in this task. Health Connect, live Supabase/NutriLift, TalkBack, and in-place upgrade/data preservation remain unverified. |
+| Implementation gap | Jarvis correction/recovery details, experiment/result cards, audit-specific view, offline/provider recovery, and long-thread scrolling | Still need dedicated acceptance tests and visual review. |
+| Implementation gap | Cross-app visual/accessibility pass | 360/390/432px visual checks, focus restoration, reduced motion, and 130% text scale are not recorded. |
 
----
+## Automated checks
 
-## Known issues (carried forward / found in testing)
+- [x] `npm test` — 44 files, 279 tests passed (2026-09-26)
+- [x] `npm run build` passed (2026-09-26)
+- [ ] Manual Android build workflow completed and APK artifact verified
 
-Report bugs here after testing the current APK.
-These will be fixed before or during the next release.
+## Device checklist (must be completed before tagging)
 
-| Priority | Issue | Found in |
-|----------|-------|---------|
-| — | *(no issues yet)* | — |
-
----
-
-## Testing checklist (before tagging)
-
-Run through these on the actual device before creating the release tag:
-
-- [ ] App opens without crash
-- [ ] Today tab loads and toggles work
-- [ ] Stats tab shows correct scores
-- [ ] Jarvis responds correctly
-- [ ] Goals tab loads
-- [ ] Learn tab loads
-- [ ] Audits tab loads
-- [ ] Settings open and close cleanly
-- [ ] No console errors (check via `adb logcat`)
-- [ ] Update banner does NOT show (app is on latest version)
-- [ ] Backup runs on boot (check Settings → Backup)
-- [ ] All items in "Planned" above are ✅
-
----
+- [ ] App opens without crash; tabs and primary actions work
+- [ ] Jarvis responds; proposal approve/fail/retry behavior is correct
+- [ ] Keyboard, Android back, safe areas, and accessibility checked
+- [ ] Health Connect permission and real Steps reads checked
+- [ ] Backup/restore and in-place upgrade preserve real data without restarting onboarding
+- [ ] `adb logcat` has no relevant app errors
+- [ ] Any in-scope Supabase/NutriLift authenticated import and retraction cycle checked
+- [ ] All current-scope items above have passed device QA
 
 ## Release notes draft
 
-Write what you want users (yourself) to see in the GitHub Release:
-
-```
-## v1.6.0
+```text
+## v1.6.0.0
 
 ### New
-- ...
+- Jarvis conversation and slash-command improvements.
+- Goal, learning, audit, backup, and provider-settings workflow improvements.
 
-### Fixed
-- ...
+### Verification
+- Automated tests and production web build pass.
 ```
 
----
+## Release gate
 
-## How to release
-
-When all checklist boxes are ticked:
-
-```
-git tag v1.6.0
-git push origin v1.6.0
-```
-
-Then update this file: change version to `v1.7.0`, reset the table, archive the old planned items.
-See `RELEASING.md` for full steps.
+Use the four-part version required by both Android workflows. The `android-build.yml` workflow is manually dispatched and uploads a signed APK artifact; `android-release.yml` publishes a GitHub Release from a `v*` tag or manual dispatch. Neither workflow has been run for this worktree. Follow `RELEASING.md` only after the unchecked gates above pass; do not create a release tag yet.
