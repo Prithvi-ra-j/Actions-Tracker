@@ -28,6 +28,7 @@ coverage/
 reports/
 docs/
 skills/
+test_results.txt
 
 # Cache
 .eslintcache
