@@ -169,7 +169,7 @@ export async function generateInsight(userQuery = "Analyze my current state and 
  * @param {Array} history Previous messages [{ role, content }] (optional).
  * @returns {Promise<object>} Returns { message, proposal }
  */
-export async function chatWithJarvis(userMessage, history = [], modificationContext = null) {
+export async function chatWithJarvis(userMessage, history = [], modificationContext = null, options = {}) {
   const contextText = await assembleContext('chat', userMessage);
 
   const modificationInstruction = modificationContext
@@ -211,7 +211,12 @@ export async function chatWithJarvis(userMessage, history = [], modificationCont
     const normalized = normalizeConversationalResponse(responseObj, modificationContext);
     const validated = ConversationalResponseSchema.parse(normalized);
     const context = JSON.parse(contextText);
-    validateEvidenceClaims(validated, contextText);
+    // During Jarvis onboarding, the conversation is itself collecting new user
+    // information. Those answers are not yet persisted evidence, so requiring
+    // evidence IDs here can reject an otherwise valid onboarding turn.
+    if (!options.onboarding) {
+      validateEvidenceClaims(validated, contextText);
+    }
 
     return {
       ...validated,
