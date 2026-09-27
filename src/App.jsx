@@ -5,7 +5,8 @@ import { getGraceState } from './core/occurrenceEngine.js';
 
 // ── Database ──────────────────────────────────────────────────────────────────
 import { initDB }                from './database/db.js';
-import { migrateFromLocalStorage, migrateAxisVocabulary } from './database/migration.js';
+import './database/migration.js';
+import { runRegisteredMigrations } from './database/migrationRegistry.js';
 import { initAxisConfigs, getAllAxisConfigs } from './database/axisConfigRepository.js';
 import { getAllLogs, addLog, deleteLog, deleteDailyCheckboxLog } from './database/logsRepository.js';
 import { initQuestBoard, getAllQuests, syncQuestProgress } from './database/questBoardRepository.js';
@@ -234,7 +235,7 @@ export default function App() {
 
           await markErrorLoggerReady();
           installGlobalErrorLogging();
-          await migrateFromLocalStorage();
+          await runRegisteredMigrations();
           await saveTelemetryEvent('db_migration_success', localDateStr(), {}).catch(() => {});
         } else {
           await markErrorLoggerReady();
@@ -243,7 +244,7 @@ export default function App() {
         }
         // Hardcoded goal definitions are no longer seeded for new users.
         // Existing legacy state is handled by initGoals() when legacy checkbox data exists.
-        await migrateAxisVocabulary();
+        // Legacy migrations are executed once through the versioned registry above.
 
         await initGoals();
         await initAxisConfigs();
