@@ -21,6 +21,7 @@ import { setMilestoneCheck } from './milestonesRepository.js';
 import { getSetting, setSetting } from './settingsRepository.js';
 import { GOALS } from '../constants.js';
 import { upsertLifeObject } from './lifeObjectsRepository.js';
+import { registerMigration } from './migrationRegistry.js';
 
 /**
  * Attempts to migrate existing localStorage data into IndexedDB.
@@ -222,3 +223,25 @@ export async function migrateAxisVocabulary() {
     console.error('[Migration] migrateAxisVocabulary failed (will retry on next launch):', err);
   }
 }
+
+
+/**
+ * Registry adapters.
+ *
+ * The existing migration functions remain exported for compatibility with
+ * older callers. New bootstrap code can execute these through one ordered,
+ * verifiable boundary.
+ */
+registerMigration({
+  version: 1,
+  description: 'Migrate legacy localStorage data into IndexedDB',
+  migrate: migrateFromLocalStorage,
+  verify: async () => (await getSetting('migrated_from_localStorage')) === '1',
+});
+
+registerMigration({
+  version: 2,
+  description: 'Normalize legacy axis vocabulary to canonical domains',
+  migrate: migrateAxisVocabulary,
+  verify: async () => (await getSetting('migrated_axis_vocab_v2')) === '1',
+});
