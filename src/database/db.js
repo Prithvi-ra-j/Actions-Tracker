@@ -173,6 +173,14 @@ export function initDB() {
         db.createObjectStore('insights', { keyPath: 'id' });
       }
 
+      // Workstream 1: app metadata + migration tracking
+      if (!db.objectStoreNames.contains('appMeta')) {
+        db.createObjectStore('appMeta', { keyPath: 'key' });
+      }
+      if (!db.objectStoreNames.contains('migrationRegistry')) {
+        db.createObjectStore('migrationRegistry', { keyPath: 'version' });
+      }
+
       // DB v11 — Jarvis persistent conversations
       if (!db.objectStoreNames.contains('jarvisConversations')) {
         const conversationsStore = db.createObjectStore('jarvisConversations', { keyPath: 'id' });
@@ -385,6 +393,8 @@ const ALL_STORES = [
   'facts', 'lifeObjects',             // v1.1
   'selfModel',                        // v2.1
   'telemetry',                        // v2.2 (Phase 11)
+  'appMeta',                          // Workstream 1
+  'migrationRegistry',                // Workstream 1
   // DB v8 — Architecture Phase 1
   'habits', 'habitOccurrences',       // §12 Habit / HabitOccurrence
   'learnings',                        // §14 Learning entity

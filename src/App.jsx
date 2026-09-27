@@ -344,7 +344,7 @@ export default function App() {
         // After the first check-in, subsequent check-ins are 30 days apart.
         const realActivityLogs = allLogs
           .filter(l => !['onboarding_assessment', 'proof_check_in'].includes(l.type))
-          .filter(l => typeof l.date === 'string' && /^d{4}-d{2}-d{2}$/.test(l.date))
+          .filter(l => typeof l.date === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(l.date))
           .sort((a, b) => a.date.localeCompare(b.date));
 
         const firstDataDate = realActivityLogs[0]?.date ?? null;

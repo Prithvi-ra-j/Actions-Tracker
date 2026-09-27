@@ -8,13 +8,30 @@
 
 /**
  * Returns today (or any date) as "YYYY-MM-DD" in local time.
- * @param {Date} [date=new Date()]
+ * @param {Date|string} [date=new Date()]
  */
 export function localDateStr(date = new Date()) {
-  const y = date.getFullYear();
-  const m = String(date.getMonth() + 1).padStart(2, '0');
-  const d = String(date.getDate()).padStart(2, '0');
-  return `${y}-${m}-${d}`;
+  const d = typeof date === 'string' ? parseLocalDate(date) ?? new Date() : new Date(date);
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const dStr = String(d.getDate()).padStart(2, '0');
+  return `${y}-${m}-${dStr}`;
+}
+
+/**
+ * Returns a local timestamp in the canonical "YYYY-MM-DDTHH:mm:ss" format.
+ * This is used for database writes and event timestamps without UTC conversion.
+ * @param {Date|string} [date=new Date()]
+ */
+export function localDateTime(date = new Date()) {
+  const d = typeof date === 'string' ? parseLocalDate(date) ?? new Date() : new Date(date);
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  const h = String(d.getHours()).padStart(2, '0');
+  const min = String(d.getMinutes()).padStart(2, '0');
+  const sec = String(d.getSeconds()).padStart(2, '0');
+  return `${y}-${m}-${day}T${h}:${min}:${sec}`;
 }
 
 /**
@@ -35,10 +52,42 @@ export function getLocalTimezone() {
  * Avoids UTC-shift bugs of new Date("YYYY-MM-DD") which is parsed as UTC.
  * @param {string} str
  */
-export function localDateFromStr(str) {
-  if (!str || typeof str !== 'string') return new Date();
+export function parseLocalDate(str) {
+  if (!str || typeof str !== 'string') return null;
+  const match = /^\d{4}-\d{2}-\d{2}$/.exec(str);
+  if (!match) return null;
   const [y, m, d] = str.split('-').map(Number);
   return new Date(y, m - 1, d);
+}
+
+export const localDateFromStr = parseLocalDate;
+
+export function addDays(dateStr, days) {
+  const base = parseLocalDate(dateStr) ?? new Date();
+  const target = new Date(base);
+  target.setDate(target.getDate() + Number(days || 0));
+  return localDateStr(target);
+}
+
+export function subtractDays(dateStr, days) {
+  return addDays(dateStr, -Number(days || 0));
+}
+
+export function daysBetween(startDateStr, endDateStr) {
+  const start = parseLocalDate(startDateStr);
+  const end = parseLocalDate(endDateStr);
+  if (!start || !end) return 0;
+  return Math.round((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24));
+}
+
+export function startOfDay(dateLike) {
+  const value = typeof dateLike === 'string' ? parseLocalDate(dateLike) ?? new Date() : new Date(dateLike);
+  return new Date(value.getFullYear(), value.getMonth(), value.getDate(), 0, 0, 0, 0);
+}
+
+export function endOfDay(dateLike) {
+  const value = typeof dateLike === 'string' ? parseLocalDate(dateLike) ?? new Date() : new Date(dateLike);
+  return new Date(value.getFullYear(), value.getMonth(), value.getDate(), 23, 59, 59, 999);
 }
 
 /**

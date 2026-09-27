@@ -1,0 +1,2930 @@
+
+
+
+# Actions-Tracker 2.0 — Master Implementation Blueprint
+
+
+# 1. Workstream map
+
+I would divide the entire transformation into these workstreams:
+
+| #  | Workstream                      | Importance |
+| -- | ------------------------------- | ---------- |
+| 1  | Data & persistence foundation   | P0         |
+| 2  | Canonical domain/data model     | P0         |
+| 3  | Onboarding redesign             | P0         |
+| 4  | Calibration engine              | P0         |
+| 5  | Scoring engine                  | P0         |
+| 6  | Evidence & learning loop        | P0         |
+| 7  | Adaptive Today                  | P1         |
+| 8  | Jarvis intelligence layer       | P0         |
+| 9  | Jarvis action/approval system   | P0         |
+| 10 | Goals → actions → evidence      | P1         |
+| 11 | Audits & proactive intelligence | P1         |
+| 12 | Integrations                    | P1         |
+| 13 | Settings & system controls      | P1         |
+| 14 | Mobile UX                       | P1         |
+| 15 | Testing & release engineering   | P0         |
+| 16 | Observability & recovery        | P0         |
+
+The key dependency is:
+
+```text
+DATA
+  ↓
+DOMAIN MODEL
+  ↓
+SCORING / EVIDENCE
+  ↓
+CALIBRATION
+  ↓
+JARVIS
+  ↓
+ADAPTIVE UX
+```
+
+Not the other way around.
+
+---
+
+# 2. WORKSTREAM 1 — Data & persistence foundation
+
+## Objective
+
+Make it nearly impossible for the system to:
+
+* lose user data
+* create inconsistent data
+* calculate from stale state
+* corrupt data during updates
+* restore malformed backups
+* behave like a new user after deployment
+
+IndexedDB is an appropriate local-first foundation, but schema changes must happen through versioned upgrade transactions, and transactional writes should be treated as the atomic boundary. ([MDN Web Docs][1])
+
+---
+
+## Current issues
+
+### 1. Monthly date bug
+
+The current code contains:
+
+```js
+/^d{4}-d{2}-d{2}$/
+```
+
+instead of:
+
+```js
+/^\d{4}-\d{2}-\d{2}$/
+```
+
+This can prevent the expected monthly lifecycle from triggering.
+
+### 2. Date handling is inconsistent
+
+Some places use:
+
+```js
+new Date().toISOString().split('T')[0]
+```
+
+while other code uses:
+
+```js
+localDateStr()
+```
+
+That can produce UTC/local-day boundary errors.
+
+### 3. Browser AI secret is session-only
+
+Current browser fallback:
+
+```js
+let memoryFallback = new Map();
+```
+
+So:
+
+```text
+browser refresh
+   ↓
+API key gone
+```
+
+while IndexedDB data remains.
+
+### 4. Migration testing isn't deep enough
+
+The database is already at v11 with a large number of stores.
+
+That means future migrations are a major risk.
+
+---
+
+## Technical approach
+
+Create one persistence architecture:
+
+```text
+UI
+ ↓
+Domain service
+ ↓
+Repository
+ ↓
+IndexedDB
+```
+
+No direct database writes from random components.
+
+---
+
+## Implementation
+
+### 1. Central date service
+
+Create:
+
+```text
+src/helpers/dateHelpers.js
+```
+
+Canonical APIs:
+
+```js
+localDateStr()
+localDateTime()
+parseLocalDate()
+addDays()
+subtractDays()
+daysBetween()
+startOfDay()
+endOfDay()
+isToday()
+```
+
+Rule:
+
+```text
+Human day → local timezone
+Database timestamp → ISO
+```
+
+---
+
+### 2. Installation metadata
+
+Create an `appMeta` store:
+
+```json
+{
+  "id": "installation",
+  "installationId": "...",
+  "firstInstallDate": "...",
+  "schemaVersion": 11,
+  "lastMigrationVersion": 11,
+  "lastSuccessfulBoot": "...",
+  "onboardingVersion": 5
+}
+```
+
+---
+
+### 3. Migration engine
+
+Instead of implicit migration logic becoming scattered:
+
+```text
+v11
+ ↓
+migrationRegistry
+ ↓
+migration 12
+ ↓
+migration 13
+...
+```
+
+Every migration should have:
+
+```text
+version
+description
+preconditions
+migration
+verification
+rollback/recovery strategy
+```
+
+---
+
+### 4. Backup schema
+
+Backup format:
+
+```json
+{
+  "schemaVersion": 1,
+  "databaseVersion": 11,
+  "appVersion": "1.6.0",
+  "createdAt": "...",
+  "stores": {}
+}
+```
+
+---
+
+### 5. Restore pipeline
+
+```text
+file
+ ↓
+parse
+ ↓
+validate schema
+ ↓
+validate version
+ ↓
+preview
+ ↓
+create safety backup
+ ↓
+restore
+ ↓
+verify
+ ↓
+reload
+```
+
+---
+
+## Enablers
+
+You already have:
+
+* IndexedDB
+* repositories
+* migration system
+* backup service
+* fresh-start reset
+* telemetry
+* DB versioning
+
+That is a strong foundation.
+
+---
+
+## Blockers
+
+* Existing data structures are not uniformly validated.
+* More than one date convention exists.
+* Restore/migration edge cases need systematic fixtures.
+* Web API-key persistence needs a deliberate architectural decision.
+
+---
+
+## Dependencies
+
+Everything else depends on this.
+
+---
+
+## Definition of done
+
+```text
+Fresh install       ✓
+Existing user       ✓
+Reload              ✓
+Update              ✓
+Migration           ✓
+Backup              ✓
+Restore             ✓
+Restore failure     ✓
+Reset               ✓
+Offline             ✓
+```
+
+And every one has automated regression tests.
+
+---
+
+# 3. WORKSTREAM 2 — Canonical domain model
+
+This is probably the most important conceptual change.
+
+Currently there are many concepts:
+
+```text
+Goal
+Habit
+Quest
+Fact
+Evidence
+Observation
+Learning
+Memory
+Experiment
+Audit
+Insight
+Stat
+```
+
+Technically they make sense.
+
+For the user, it is too fragmented.
+
+---
+
+# New conceptual hierarchy
+
+The user only needs to understand:
+
+```text
+INTENT
+  ↓
+ACTIONS
+  ↓
+EVIDENCE
+  ↓
+PATTERNS
+  ↓
+INSIGHTS
+  ↓
+ADAPTATION
+```
+
+Underneath:
+
+```text
+Intent
+ ├── Goal
+ └── desired outcome
+
+Action
+ ├── Habit
+ ├── Quest
+ └── Routine
+
+Evidence
+ ├── Log
+ ├── Observation
+ ├── Integration data
+ └── Learning practice
+
+Pattern
+ ├── Score
+ ├── Momentum
+ ├── Consistency
+ └── Trend
+
+Insight
+ ├── Recommendation
+ ├── Contradiction
+ └── Audit finding
+```
+
+---
+
+## Technique
+
+Create a canonical domain-event model.
+
+Example:
+
+```js
+{
+  type: "evidence.recorded",
+  source: "user",
+  domain: "body",
+  objectId: "...",
+  occurredAt: "...",
+  payload: {}
+}
+```
+
+Then:
+
+```text
+UI
+Jarvis
+Integrations
+Scheduler
+```
+
+all generate domain events through the same service.
+
+---
+
+## Enabler
+
+You already have:
+
+* logs
+* facts
+* evidence
+* repositories
+* action executor
+
+---
+
+## Blocker
+
+There is currently some conceptual duplication.
+
+Before adding more features, define what each entity is responsible for.
+
+---
+
+# 4. WORKSTREAM 3 — Onboarding redesign
+
+This is one of the biggest changes.
+
+## Current
+
+```text
+Connect AI
+ ↓
+Chat
+ ↓
+Questions
+ ↓
+LLM forms baseline
+ ↓
+Approve
+```
+
+## Desired
+
+```text
+Meet system
+ ↓
+Tell story
+ ↓
+Current reality
+ ↓
+Direction
+ ↓
+Constraints
+ ↓
+Initial baseline
+ ↓
+Confirm understanding
+ ↓
+Calibrate
+```
+
+---
+
+# New onboarding philosophy
+
+Don't ask:
+
+> "What is your goal?"
+
+too early.
+
+Ask:
+
+> "What are you trying to change?"
+
+Then:
+
+> "Why does that matter?"
+
+Then:
+
+> "What's happening right now?"
+
+Then:
+
+> "What have you already tried?"
+
+Then:
+
+> "What does a good week normally look like?"
+
+The system extracts:
+
+```text
+Identity
+Goals
+Constraints
+Current state
+Existing routines
+Interests
+Focus areas
+Desired future
+Baseline signals
+```
+
+---
+
+# Technical architecture
+
+Create:
+
+```text
+src/core/onboarding/
+
+onboardingEngine.js
+onboardingState.js
+onboardingQuestions.js
+onboardingAssessment.js
+onboardingPersistence.js
+onboardingCalibration.js
+```
+
+---
+
+## State machine
+
+```text
+NEW
+ ↓
+INTRO
+ ↓
+STORY
+ ↓
+CURRENT_STATE
+ ↓
+DIRECTION
+ ↓
+ROUTINE
+ ↓
+CONSTRAINTS
+ ↓
+BASELINE
+ ↓
+CONFIRMATION
+ ↓
+CALIBRATING
+ ↓
+ACTIVE
+```
+
+---
+
+## Technique: resumable state machine
+
+Persist:
+
+```json
+{
+  "status": "in_progress",
+  "step": "current_state",
+  "answers": {},
+  "completedSteps": []
+}
+```
+
+Every meaningful answer is persisted.
+
+---
+
+## Enabler
+
+Your existing Jarvis onboarding already exists and `complete_onboarding` is already represented as a validated action.
+
+That means this is a **refactor/expansion**, not a complete rewrite.
+
+---
+
+## Blocker
+
+Current Jarvis API configuration is part of the entry experience.
+
+We need to separate:
+
+```text
+using the app
+```
+
+from:
+
+```text
+connecting AI
+```
+
+as much as possible.
+
+---
+
+# 5. WORKSTREAM 4 — Calibration engine
+
+This is one of the defining features of 2.0.
+
+The app should explicitly acknowledge:
+
+> "I don't know you very well yet."
+
+---
+
+# Calibration stages
+
+```text
+Stage 0
+No data
+
+Stage 1
+Initial estimate
+
+Stage 2
+Early signal
+
+Stage 3
+Developing pattern
+
+Stage 4
+Established
+
+Stage 5
+Stable
+```
+
+---
+
+# Every score becomes
+
+```json
+{
+  "value": 68,
+  "confidence": 0.72,
+  "coverage": 0.63,
+  "stage": "developing",
+  "sampleSize": 27,
+  "lastUpdated": "..."
+}
+```
+
+---
+
+# Example
+
+### Day 1
+
+```text
+Body
+58
+
+Initial estimate
+Confidence 21%
+```
+
+### Day 10
+
+```text
+Body
+61
+
+Early pattern
+Confidence 48%
+```
+
+### Day 30
+
+```text
+Body
+66
+
+Established
+Confidence 84%
+```
+
+---
+
+# Technique
+
+Separate:
+
+```text
+score
+```
+
+from:
+
+```text
+confidence
+```
+
+and:
+
+```text
+coverage
+```
+
+Don't let sparse evidence generate false precision.
+
+---
+
+## Enabler
+
+Your score system already tracks:
+
+* coverage
+* confidence
+* warnings
+* source
+* fallback reason
+
+That is excellent for this.
+
+---
+
+## Blocker
+
+The scoring engine needs stronger semantics before confidence can be trusted.
+
+---
+
+# 6. WORKSTREAM 5 — Scoring engine
+
+This needs to become mathematically boring and predictable.
+
+That's good.
+
+---
+
+# Canonical pipeline
+
+```text
+User behavior
+ ↓
+Evidence
+ ↓
+Signal extraction
+ ↓
+C / V / M
+ ↓
+Raw domain score
+ ↓
+Confidence
+ ↓
+Coverage
+ ↓
+Calibration
+ ↓
+Final stat
+```
+
+---
+
+# Six axes
+
+```text
+Body
+Discipline
+Knowledge
+Social
+Creativity
+Strategy
+```
+
+But each axis needs a written contract.
+
+Example:
+
+## Discipline
+
+Signals:
+
+```text
+consistency
+commitment completion
+routine adherence
+recovery from misses
+```
+
+Not:
+
+```text
+"I clicked something 10 times"
+```
+
+---
+
+# Create scoring contracts
+
+Example:
+
+```js
+export const DisciplineContract = {
+  signals: [
+    "scheduled_completion",
+    "consistency",
+    "recovery",
+    "evidence_quality"
+  ],
+  exclusions: [
+    "onboarding_assessment",
+    "system_events"
+  ]
+};
+```
+
+---
+
+# Critical requirement
+
+Every score should answer:
+
+> "Why did this number change?"
+
+Example:
+
+```text
+Discipline 72
+
++18 completed commitments
++7 evidence events
++3 completed quests
+-4 missed commitments
+
+Confidence 81%
+```
+
+---
+
+# Current things to fix
+
+### Strength
+
+Ensure actual strength evidence has:
+
+```text
+input
+→ persistence
+→ signal
+→ score
+```
+
+### Volume
+
+Ensure quests actually affect volume.
+
+### Strategy
+
+Define real strategy signals:
+
+```text
+planning
+decision quality
+goal adjustments
+experiments
+review behavior
+```
+
+### Consecutive
+
+Explicitly define whether "consecutive" means:
+
+```text
+scheduled occurrences completed
+```
+
+rather than simply counting events.
+
+---
+
+# Enabler
+
+Your existing `scoreEngine`, stats engine, projections, snapshots, confidence and coverage fields.
+
+---
+
+# Blocker
+
+Existing signals are not yet all conceptually aligned.
+
+---
+
+# 7. WORKSTREAM 6 — Evidence engine
+
+This is the bridge between what the user says and what the system knows.
+
+---
+
+# Evidence types
+
+```text
+Manual
+Habit completion
+Goal milestone
+Learning practice
+Integration
+Reflection
+Observation
+Experiment
+Outcome
+```
+
+---
+
+# Evidence quality
+
+Not all evidence should weigh equally.
+
+Example:
+
+```text
+"I feel more disciplined"
+```
+
+vs:
+
+```text
+17/20 planned sessions completed
+```
+
+They are both useful, but not equivalent.
+
+---
+
+# Evidence object
+
+```json
+{
+  "id": "...",
+  "type": "outcome",
+  "domain": "body",
+  "source": "health_connect",
+  "value": 82,
+  "unit": "minutes",
+  "confidence": 0.95,
+  "occurredAt": "...",
+  "context": {}
+}
+```
+
+---
+
+# Technique
+
+Create an **evidence normalization layer**:
+
+```text
+User
+Integration
+Jarvis
+UI
+   ↓
+Evidence Normalizer
+   ↓
+Canonical evidence
+```
+
+This prevents every subsystem inventing its own evidence format.
+
+---
+
+# 8. WORKSTREAM 7 — Adaptive Today
+
+This is where the app starts feeling intelligent.
+
+---
+
+# Current
+
+```text
+Quest log
+□ Habit
+□ Habit
+□ Habit
+
+Main quest
+████░░░░
+```
+
+---
+
+# Future
+
+```text
+TODAY
+
+Your focus
+
+1. Train
+2. German
+3. Recover
+
+Why these?
+
+Training matters because your Body goal
+is currently behind schedule.
+
+German maintains your current momentum.
+
+Recovery is recommended because you've had
+three high-load days this week.
+```
+
+---
+
+# Technical approach
+
+Today becomes a derived view:
+
+```text
+todayContext
++
+activeGoals
++
+recentEvidence
++
+workload
++
+habits
++
+scores
++
+calendar/time constraints
++
+recent insights
+```
+
+Then:
+
+```text
+TodayRecommendationEngine
+```
+
+produces:
+
+```json
+{
+  "focusItems": [],
+  "reasoning": [],
+  "warnings": [],
+  "suggestions": []
+}
+```
+
+---
+
+# Important
+
+The recommendation engine should not directly mutate data.
+
+It proposes.
+
+Jarvis/domain action system executes.
+
+---
+
+# 9. WORKSTREAM 8 — Jarvis intelligence layer
+
+Current Jarvis architecture is one of the stronger parts of the repo.
+
+You already have:
+
+* context builder
+* prompt/persona
+* action schema
+* action executor
+* action validation
+* impact engine
+* conversation persistence
+* proposal editing
+* plans
+* undo
+* claims/evidence validation
+
+So don't throw it away.
+
+---
+
+# Change the mental model
+
+Jarvis should not be:
+
+> "The chatbot tab."
+
+It should be:
+
+> **The intelligence/orchestration layer for the entire app.**
+
+---
+
+# Architecture
+
+```text
+User input
+    ↓
+Intent understanding
+    ↓
+Context assembly
+    ↓
+Reasoning
+    ↓
+Response OR action proposal
+    ↓
+Validation
+    ↓
+Risk classification
+    ↓
+Approval
+    ↓
+Domain executor
+    ↓
+Evidence
+    ↓
+Score refresh
+```
+
+---
+
+# Modes
+
+Keep:
+
+```text
+Ask
+Plan
+Review
+Act
+Capture
+Audit
+```
+
+but don't make users manage them.
+
+Jarvis decides automatically.
+
+Advanced users can override.
+
+---
+
+# Example
+
+User:
+
+> I'm getting lazy again.
+
+Jarvis internally chooses:
+
+```text
+Review
+ +
+Context
+ +
+Audit
+```
+
+Then perhaps:
+
+> Your overall activity hasn't collapsed. Your evening routine has become inconsistent over the last 6 days.
+
+That is far more natural than:
+
+```text
+Select Review mode
+```
+
+---
+
+# 10. WORKSTREAM 9 — Jarvis action architecture
+
+This is where you need strict technical boundaries.
+
+---
+
+# Action lifecycle
+
+```text
+PROPOSED
+ ↓
+VALIDATED
+ ↓
+WAITING_APPROVAL
+ ↓
+APPROVED
+ ↓
+EXECUTING
+ ↓
+COMPLETED
+```
+
+Failure:
+
+```text
+FAILED
+ ↓
+ROLLBACK
+```
+
+---
+
+# Risk classes
+
+```text
+SAFE
+CONFIRM
+DESTRUCTIVE
+```
+
+Example:
+
+### Safe
+
+```text
+add learning
+log evidence
+suggest experiment
+```
+
+### Confirm
+
+```text
+change goal
+modify routine
+pause habit
+```
+
+### Destructive
+
+```text
+delete
+archive
+bulk reset
+memory deletion
+```
+
+---
+
+# Enabler
+
+Your `actionSchemas.js` and `actionExecutor.js` are already moving in the right direction.
+
+The architecture already enforces the principle that approved proposals pass through one execution boundary.
+
+That should become an explicit platform rule.
+
+---
+
+# 11. WORKSTREAM 10 — Plans + rollback
+
+User:
+
+> I want to get fit again.
+
+Jarvis proposes:
+
+```text
+1. Create Body goal
+2. Add 3 weekly workouts
+3. Add recovery habit
+4. Set 4-week checkpoint
+```
+
+User:
+
+```text
+[Approve]
+```
+
+Execution:
+
+```text
+Step 1 ✓
+Step 2 ✓
+Step 3 ✗
+```
+
+System:
+
+```text
+Step 2 ← rollback
+Step 1 ← rollback
+```
+
+Then:
+
+> I couldn't safely create the complete plan, so I rolled back the changes rather than leaving your system partially updated.
+
+That is excellent product behavior.
+
+---
+
+# 12. WORKSTREAM 11 — Undo
+
+Every mutation needs an audit trail.
+
+```json
+{
+  "actionId": "...",
+  "before": {},
+  "after": {},
+  "timestamp": "...",
+  "undoable": true
+}
+```
+
+Then:
+
+```text
+Updated goal
+
+[Undo]
+```
+
+---
+
+# Special handling
+
+Some actions can't be literally reversed.
+
+For evidence:
+
+```text
+do not delete history
+```
+
+Instead:
+
+```text
+retraction
+```
+
+Your existing design already moves in this direction.
+
+Keep it.
+
+---
+
+# 13. WORKSTREAM 12 — Goals → Actions → Evidence
+
+This is a huge product improvement.
+
+---
+
+# Current
+
+```text
+Goal
+ ↓
+Milestone
+ ↓
+checkbox
+```
+
+---
+
+# Future
+
+```text
+GOAL
+
+Run 10K continuously
+
+      ↓
+
+CURRENT STATE
+
+5K with stops
+
+      ↓
+
+PLAN
+
+3 runs/week
+
+      ↓
+
+ACTIONS
+
+Run
+Recovery
+Mobility
+
+      ↓
+
+EVIDENCE
+
+Distance
+Duration
+RPE
+Consistency
+
+      ↓
+
+PROGRESS
+
+5K → 6.2K → 7.4K
+
+      ↓
+
+GOAL STATUS
+
+On track / At risk / Recalibrate
+```
+
+---
+
+# Technique
+
+Goal progress should be **computed where possible**, not solely manually checked.
+
+Manual confirmation remains available.
+
+---
+
+# 14. WORKSTREAM 13 — Learn becomes part of the same loop
+
+Current:
+
+```text
+Learn
+ ↓
+topic
+ ↓
+practice
+```
+
+Future:
+
+```text
+QUESTION
+ ↓
+LEARN
+ ↓
+UNDERSTAND
+ ↓
+PRACTICE
+ ↓
+APPLY
+ ↓
+EVIDENCE
+ ↓
+MASTERY
+```
+
+Example:
+
+> "I want to improve SQL."
+
+Jarvis:
+
+```text
+Learning goal
+ ↓
+Curriculum
+ ↓
+Daily practice
+ ↓
+Exercises
+ ↓
+Applied project
+ ↓
+Evidence
+ ↓
+Mastery confidence
+```
+
+Learning becomes connected to Goals and Stats.
+
+---
+
+# 15. WORKSTREAM 14 — Audits become continuous
+
+Current Audits feels like:
+
+> Go open Audits and inspect problems.
+
+Future:
+
+```text
+SYSTEM
+ ↓
+continuously detect
+ ↓
+store signals
+ ↓
+rank significance
+ ↓
+surface at right time
+```
+
+---
+
+# Insight severity
+
+```text
+LOW
+store silently
+
+MEDIUM
+show in app
+
+HIGH
+surface prominently
+```
+
+Avoid turning the app into a nagging notification machine.
+
+---
+
+# Example
+
+Instead of:
+
+> Risk: inconsistent habit behavior
+
+Show:
+
+> Your current schedule looks overloaded.
+
+> You have added 4 new commitments in the last 10 days, while completion has dropped 22%.
+
+```text
+[Adjust workload]
+[Inspect evidence]
+```
+
+---
+
+# 16. WORKSTREAM 15 — Monthly audit
+
+Current intended rule is good:
+
+```text
+first meaningful data
++
+30 days
+=
+monthly audit eligible
+```
+
+Keep that.
+
+The important improvement is **what the audit produces**.
+
+---
+
+# Monthly report
+
+```text
+MONTHLY REVIEW
+
+What changed?
+──────────────
+
+Body +8
+Discipline -4
+Knowledge +11
+
+What worked?
+──────────────
+Morning routine
+
+What failed?
+──────────────
+Evening workload
+
+What is uncertain?
+───────────────────
+Social score needs more evidence
+
+What should change?
+───────────────────
+Reduce commitments from 6 → 4
+
+[Discuss with Jarvis]
+```
+
+---
+
+# 17. WORKSTREAM 16 — Integrations
+
+You already have:
+
+```text
+HealthConnectConnector
+NutriLiftConnector
+syncManager
+syncState
+```
+
+That's the enabler.
+
+The missing layer is the user-facing lifecycle.
+
+---
+
+# Integration lifecycle
+
+```text
+AVAILABLE
+ ↓
+CONNECTING
+ ↓
+CONNECTED
+ ↓
+SYNCING
+ ↓
+SYNCED
+```
+
+Failure:
+
+```text
+SYNC_FAILED
+ ↓
+retry
+```
+
+---
+
+# Health Connect
+
+User:
+
+```text
+Health Connect
+
+Import:
+
+✓ workouts
+✓ steps
+✓ sleep
+```
+
+Then:
+
+```text
+[Connect]
+```
+
+After:
+
+```text
+Connected
+
+Last sync:
+9 minutes ago
+
+1,284 records
+
+[Sync now]
+[Manage]
+```
+
+---
+
+# NutriLift
+
+Same architecture.
+
+But critical rule:
+
+```text
+Integration
+ ↓
+canonical evidence
+ ↓
+score engine
+```
+
+Never:
+
+```text
+integration
+ ↓
+directly change score
+```
+
+---
+
+# 18. WORKSTREAM 17 — API architecture
+
+Current browser storage:
+
+```text
+API key
+ ↓
+memory
+```
+
+This is acceptable as a temporary local fallback, but poor for a persistent web experience.
+
+---
+
+# Preferred web architecture
+
+```text
+Browser
+ ↓
+Actions-Tracker backend
+ ↓
+LLM provider
+```
+
+Advantages:
+
+```text
+key security
+provider switching
+rate limiting
+usage tracking
+error normalization
+centralized configuration
+```
+
+Native can continue to use secure storage.
+
+---
+
+# Dependency
+
+This requires deciding whether your web app will have a small backend.
+
+If you don't want that yet, explicitly label web API keys as session-scoped rather than silently implying persistent configuration.
+
+---
+
+# 19. WORKSTREAM 18 — Settings
+
+Settings should be a real control system.
+
+Sections:
+
+```text
+AI & Jarvis
+Integrations
+Notifications
+Appearance
+Data & Backup
+Memory & Privacy
+About
+```
+
+Every control must have:
+
+```text
+default
+load
+save
+runtime effect
+reset
+test
+```
+
+---
+
+# 20. WORKSTREAM 19 — Mobile UX
+
+The app needs to feel designed around mobile, not shrunk onto it.
+
+Targets:
+
+```text
+360px
+393px
+412px
+432px
+```
+
+---
+
+# Required techniques
+
+### Bottom sheets
+
+For:
+
+```text
+context
+evidence
+filters
+impact
+approval
+undo
+```
+
+### Keyboard-safe chat
+
+Especially Jarvis.
+
+### Safe-area support
+
+For:
+
+```text
+notches
+gesture bars
+bottom nav
+keyboard
+```
+
+### Touch targets
+
+At least comfortably tappable.
+
+---
+
+# 21. WORKSTREAM 20 — Jarvis UI redesign
+
+Current:
+
+```text
+Jarvis
+Mode: Ask
+
+What do you want to work on?
+
+/
+```
+
+Future:
+
+```text
+Jarvis
+
+What are you trying to figure out?
+
+Try saying:
+
+"Help me fix my routine."
+
+"Why did my Discipline score fall?"
+
+"I want to learn German."
+
+"Build me a 10K plan."
+
+"What should I focus on today?"
+```
+
+Then:
+
+```text
+user types normally
+```
+
+---
+
+# Slash commands become an accelerator
+
+Keep `/` because you specifically wanted it.
+
+But:
+
+```text
+normal users → natural language
+
+power users → slash commands
+```
+
+---
+
+# 22. WORKSTREAM 21 — Explainability
+
+Every important system output should answer:
+
+```text
+WHAT
+WHY
+EVIDENCE
+CONFIDENCE
+WHAT NEXT
+```
+
+Example:
+
+```text
+Discipline: 72
+
+WHY
+Consistency improved over 14 days.
+
+EVIDENCE
+18/22 scheduled actions completed.
+
+CONFIDENCE
+81%
+
+NEXT
+Keep the current routine for another week.
+```
+
+---
+
+# 23. WORKSTREAM 22 — Proactive behavior
+
+Jarvis should become proactive, but carefully.
+
+---
+
+# Current scheduler
+
+```text
+boot
+ ↓
+wait 10 sec
+ ↓
+check enabled
+ ↓
+check data
+ ↓
+check API
+ ↓
+daily analysis
+```
+
+Keep the basic structure.
+
+Add:
+
+```text
+last successful run
+last failed run
+lock
+cooldown
+significance
+```
+
+---
+
+# Example proactive insight
+
+Not:
+
+> Hey! You haven't done your habit!
+
+Instead:
+
+> Your workload changed this week and your completion rate dropped sharply. I think reducing one commitment could help.
+
+That's intelligence rather than nagging.
+
+---
+
+# 24. WORKSTREAM 23 — Error/recovery architecture
+
+Create:
+
+```text
+AppError
+errorCodes
+errorBoundary
+errorPresenter
+```
+
+Errors:
+
+```text
+DB_ERROR
+MIGRATION_ERROR
+AI_ERROR
+NETWORK_ERROR
+SYNC_ERROR
+VALIDATION_ERROR
+RESTORE_ERROR
+PERMISSION_ERROR
+```
+
+---
+
+# User experience
+
+Never:
+
+```text
+TransactionInactiveError
+```
+
+Show:
+
+> I couldn't save that change.
+
+```text
+[Retry]
+```
+
+Log technical detail separately.
+
+---
+
+# 25. WORKSTREAM 24 — Testing architecture
+
+Current breadth is good.
+
+The biggest missing piece is **cross-system confidence**.
+
+Especially since:
+
+```text
+tests/scenarios/jarvis-advanced-flows.test.jsx
+```
+
+is empty.
+
+---
+
+# Testing pyramid
+
+```text
+              E2E
+             /   \
+        Scenario  Integration
+          /          \
+       Domain       Repository
+           \        /
+              Unit
+```
+
+---
+
+# Mandatory test categories
+
+## Data
+
+```text
+fresh install
+update
+migration
+restore
+reset
+```
+
+## Scoring
+
+```text
+determinism
+bounds
+confidence
+coverage
+signal mapping
+```
+
+## Jarvis
+
+```text
+chat
+context
+proposal
+approval
+edit
+plan
+rollback
+undo
+failure
+```
+
+## Integrations
+
+```text
+connect
+disconnect
+sync
+dedupe
+failure
+retry
+```
+
+## UX
+
+```text
+mobile
+keyboard
+navigation
+accessibility
+```
+
+---
+
+# 26. Specific current blockers
+
+These are the things I would put visibly on the project board.
+
+## BLOCKER 1 — Incorrect monthly-date logic
+
+**Severity:** P0
+
+Fix before building anything dependent on monthly lifecycle.
+
+---
+
+## BLOCKER 2 — Browser API-key persistence
+
+**Severity:** P1
+
+Decision required:
+
+```text
+backend proxy
+OR
+session-only web keys
+OR
+browser-side protected storage strategy
+```
+
+I prefer backend proxy for the public web app.
+
+---
+
+## BLOCKER 3 — Scoring semantics
+
+**Severity:** P0
+
+You cannot build trustworthy personalization if:
+
+```text
+signal → score
+```
+
+isn't well-defined.
+
+---
+
+## BLOCKER 4 — Empty advanced Jarvis scenario suite
+
+**Severity:** P0/P1
+
+Jarvis is too important to have its most complex scenario suite empty.
+
+---
+
+## BLOCKER 5 — Integration UI
+
+**Severity:** P1
+
+Connectors exist, but the user-facing connection lifecycle is incomplete.
+
+---
+
+## BLOCKER 6 — Fragmented domain concepts
+
+**Severity:** architectural
+
+You don't necessarily need to delete the underlying entities.
+
+You need to hide complexity behind a coherent domain model.
+
+---
+
+# 27. Current enablers
+
+This is why I wouldn't rebuild from scratch.
+
+You already have:
+
+```text
+✓ IndexedDB
+✓ repositories
+✓ migrations
+✓ backups
+✓ reset
+✓ telemetry
+✓ global error logging
+✓ scoring engine
+✓ projections
+✓ snapshots
+✓ confidence/coverage
+✓ Jarvis context
+✓ Zod action validation
+✓ action executor
+✓ plan execution
+✓ rollback
+✓ undo
+✓ persistent conversations
+✓ audit engine
+✓ sync manager
+✓ Health Connect connector
+✓ NutriLift connector
+✓ scenario tests
+```
+
+So the project is not lacking infrastructure.
+
+It needs **integration and productization of the infrastructure**.
+
+---
+
+# 28. Dependency graph
+
+This is how I would actually sequence development:
+
+```text
+                    ┌─────────────┐
+                    │ DATA SAFETY │
+                    └──────┬──────┘
+                           ↓
+                  ┌─────────────────┐
+                  │ DOMAIN CONTRACTS│
+                  └────────┬────────┘
+                           ↓
+            ┌──────────────┴──────────────┐
+            ↓                             ↓
+      EVIDENCE ENGINE               ACTION SYSTEM
+            ↓                             ↓
+            └──────────────┬──────────────┘
+                           ↓
+                    SCORING ENGINE
+                           ↓
+                     CALIBRATION
+                           ↓
+              ┌────────────┴────────────┐
+              ↓                         ↓
+          TODAY ENGINE              JARVIS
+              ↓                         ↓
+              └────────────┬────────────┘
+                           ↓
+                       ADAPTATION
+                           ↓
+                     AUDITS/INSIGHTS
+```
+
+Integrations plug into:
+
+```text
+EVIDENCE ENGINE
+```
+
+not directly into scoring.
+
+---
+
+# 29. Recommended implementation phases
+
+## Phase 0 — Baseline
+
+```text
+Freeze current behavior
+Inventory current tests
+Capture bugs
+Record current score outputs
+```
+
+Deliverable:
+
+> Known-good baseline.
+
+---
+
+# Phase 1 — Reliability
+
+```text
+Date system
+Persistence
+Backup
+Restore
+Migration
+Update persistence
+Error recovery
+```
+
+Deliverable:
+
+> Data cannot silently break.
+
+---
+
+# Phase 2 — Domain contracts
+
+```text
+Goal
+Action
+Evidence
+Pattern
+Insight
+```
+
+Deliverable:
+
+> Common language for the entire system.
+
+---
+
+# Phase 3 — Evidence + scoring
+
+```text
+Evidence normalization
+Signal contracts
+Score contracts
+Confidence
+Coverage
+Calibration
+```
+
+Deliverable:
+
+> The numbers become trustworthy.
+
+---
+
+# Phase 4 — Onboarding 2.0
+
+```text
+Conversation
+State machine
+Baseline
+Confirmation
+Calibration start
+```
+
+Deliverable:
+
+> First-run experience feels personal.
+
+---
+
+# Phase 5 — Jarvis 2.0
+
+```text
+Context
+Intent
+Actions
+Plans
+Approval
+Undo
+Provenance
+```
+
+Deliverable:
+
+> Jarvis becomes system intelligence rather than a chatbot.
+
+---
+
+# Phase 6 — Adaptive Today
+
+```text
+Daily context
+Priorities
+Workload
+Patterns
+Recommendations
+```
+
+Deliverable:
+
+> The home screen becomes useful without requiring user administration.
+
+---
+
+# Phase 7 — Goal/evidence integration
+
+```text
+Goal
+→ plan
+→ action
+→ evidence
+→ progress
+→ recalibration
+```
+
+Deliverable:
+
+> Goals maintain themselves much more automatically.
+
+---
+
+# Phase 8 — Audits + proactive intelligence
+
+```text
+Pattern detection
+Contradiction
+Workload
+Goal drift
+Behavior changes
+```
+
+Deliverable:
+
+> System begins noticing things before the user asks.
+
+---
+
+# Phase 9 — Integrations
+
+```text
+Health Connect
+NutriLift
+sync
+dedupe
+evidence
+```
+
+Deliverable:
+
+> External data actually improves intelligence.
+
+---
+
+# Phase 10 — UX polish
+
+Only now:
+
+```text
+visual design
+animation
+mobile refinements
+accessibility
+micro-interactions
+```
+
+Because otherwise you're polishing unstable behavior.
+
+---
+
+# 30. Example complete future flow
+
+Let's take the most important one.
+
+## User opens the app on day 1
+
+### Current
+
+```text
+Open
+ ↓
+API setup
+ ↓
+Jarvis onboarding
+ ↓
+questions
+ ↓
+baseline
+ ↓
+Today
+```
+
+### Proposed
+
+```text
+Open
+ ↓
+"Let's understand where you are."
+ ↓
+Conversation
+ ↓
+Current reality
+ ↓
+Direction
+ ↓
+Constraints
+ ↓
+Existing habits
+ ↓
+Desired future
+ ↓
+System summarizes
+ ↓
+"You can correct anything."
+ ↓
+Confirm
+ ↓
+Calibration begins
+```
+
+---
+
+# 31. Example: first 7 days
+
+The system shouldn't immediately act like it knows everything.
+
+### Day 1
+
+```text
+Initial baseline
+confidence low
+```
+
+### Day 2
+
+```text
+observe
+```
+
+### Day 3
+
+```text
+observe
+```
+
+### Day 4
+
+```text
+"Your mornings appear more consistent
+than your evenings."
+```
+
+### Day 5
+
+```text
+observe
+```
+
+### Day 6
+
+```text
+"You tend to complete planned training
+when it is before work."
+```
+
+### Day 7
+
+```text
+Weekly reflection
+
+"I've noticed two patterns..."
+
+[Confirm]
+[That's wrong]
+```
+
+That **feedback loop** is incredibly important.
+
+---
+
+# 32. Example: month 1
+
+At 30 days:
+
+```text
+MONTH 1
+
+What I learned about you
+
+You complete:
+• morning tasks better than evening tasks
+• 3 workouts/week consistently
+• learning sessions become irregular after busy workdays
+
+Your strongest emerging pattern:
+Morning consistency
+
+Your weakest pattern:
+Evening overload
+
+Confidence:
+Medium-high
+```
+
+Then:
+
+> I'd change your routine based on this.
+
+```text
+[Review changes]
+```
+
+That's the product becoming adaptive.
+
+---
+
+# 33. Techniques to use throughout
+
+These are the engineering patterns I would deliberately standardize.
+
+### State machines
+
+Use for:
+
+```text
+onboarding
+sync
+migration
+action execution
+calibration
+```
+
+### Domain services
+
+Use for:
+
+```text
+goal progression
+score calculation
+today recommendations
+evidence processing
+```
+
+### Repository pattern
+
+Keep all IndexedDB access behind repositories.
+
+### Zod contracts
+
+Use at boundaries:
+
+```text
+AI
+backup
+domain events
+actions
+integrations
+```
+
+### Event-driven updates
+
+Use domain events to notify:
+
+```text
+score
+insights
+UI
+Jarvis
+audit
+```
+
+### Transaction boundaries
+
+Critical multi-record mutations should use one transaction where possible; IndexedDB provides atomic transactions for this style of operation. ([MDN Web Docs][2])
+
+### Optimistic UI only when reversible
+
+Don't optimistically update critical state unless rollback is guaranteed.
+
+### Idempotency
+
+Your Jarvis action executor already has an execution-key approach.
+
+Expand this across:
+
+```text
+sync
+actions
+scheduled analysis
+migration
+imports
+```
+
+### Provenance
+
+Every important insight should know:
+
+```text
+what data
+when
+source
+confidence
+```
+
+### Feature flags
+
+Use for risky new intelligence:
+
+```text
+adaptiveToday
+calibrationV2
+jarvisPlansV2
+proactiveInsightsV2
+```
+
+---
+
+# 34. What could block the whole program?
+
+There are five major risks.
+
+## 1. Trying to redesign everything simultaneously
+
+Avoid:
+
+```text
+UI redesign
++
+scoring rewrite
++
+Jarvis rewrite
++
+DB migration
+```
+
+in one branch.
+
+---
+
+## 2. Changing the database too aggressively
+
+IndexedDB version upgrades are special version-change transactions; migration must be carefully tested and old connections need to be handled correctly. ([MDN Web Docs][3])
+
+---
+
+## 3. AI overreach
+
+Never let:
+
+```text
+LLM output
+```
+
+become:
+
+```text
+truth
+```
+
+Always:
+
+```text
+LLM
+ ↓
+schema
+ ↓
+validation
+ ↓
+domain rules
+ ↓
+approval
+```
+
+---
+
+## 4. Too much personalization too soon
+
+The system must be able to say:
+
+> "Not enough evidence yet."
+
+---
+
+## 5. Deployment/update instability
+
+Your Vite app has dynamic imports. A stale client can request a chunk that no longer exists after a deployment, so update recovery needs an explicit strategy such as graceful reload handling or asset/version management. Vite documents this exact version-skew failure mode. ([vitejs][4])
+
+---
+
+# 35. Definition of the finished 2.0 product
+
+I would call the implementation successful only when this is true:
+
+### User says
+
+> "I want to become better at X."
+
+System can:
+
+```text
+understand
+ ↓
+ask intelligently
+ ↓
+build model
+ ↓
+establish baseline
+ ↓
+create appropriate structures
+ ↓
+observe behavior
+ ↓
+measure evidence
+ ↓
+learn patterns
+ ↓
+give contextual recommendations
+ ↓
+ask for confirmation
+ ↓
+adapt the system
+```
+
+And the user never needs to think:
+
+> "Should I create a habit, quest, learning item, or evidence record?"
+
+The system understands the underlying intent and maps it to the right internal objects.
+
+---
+
+# 36. The real north-star architecture
+
+This is what I would put at the top of the project README internally:
+
+```text
+                 ACTIONS-TRACKER 2.0
+
+                         USER
+                          │
+                          ▼
+                   ┌─────────────┐
+                   │   INTENT    │
+                   └──────┬──────┘
+                          ▼
+                   ┌─────────────┐
+                   │   JARVIS    │
+                   │ UNDERSTANDS  │
+                   └──────┬──────┘
+                          ▼
+                   ┌─────────────┐
+                   │    PLAN     │
+                   └──────┬──────┘
+                          ▼
+                   ┌─────────────┐
+                   │    ACT      │
+                   └──────┬──────┘
+                          ▼
+                   ┌─────────────┐
+                   │  EVIDENCE   │
+                   └──────┬──────┘
+                          ▼
+                   ┌─────────────┐
+                   │   LEARN     │
+                   └──────┬──────┘
+                          ▼
+                   ┌─────────────┐
+                   │   SCORE     │
+                   │ + CONFIDENCE│
+                   └──────┬──────┘
+                          ▼
+                   ┌─────────────┐
+                   │   INSIGHT   │
+                   └──────┬──────┘
+                          ▼
+                   ┌─────────────┐
+                   │   ADAPT     │
+                   └──────┬──────┘
+                          │
+                          └──────────► PLAN
+```
+
+That is the **actual product architecture** I would build toward.
+
+---
+
+# 37. Immediate backlog
+
+I would now convert this into these implementation epics:
+
+```text
+EPIC-01  Persistence & Recovery
+EPIC-02  Canonical Domain Model
+EPIC-03  Evidence Engine
+EPIC-04  Scoring Engine v2
+EPIC-05  Calibration System
+EPIC-06  Onboarding v2
+EPIC-07  Jarvis Intelligence v2
+EPIC-08  Jarvis Action System v2
+EPIC-09  Goal Intelligence
+EPIC-10  Adaptive Today
+EPIC-11  Learning System v2
+EPIC-12  Audit & Insight Engine
+EPIC-13  Integration Platform
+EPIC-14  Settings & Security
+EPIC-15  Mobile UX
+EPIC-16  Observability
+EPIC-17  Full QA / Regression
+EPIC-18  Release Engineering
+```
+
+Within each epic:
+
+```text
+Requirements
+ ↓
+Architecture
+ ↓
+Files/components
+ ↓
+Data changes
+ ↓
+Dependencies
+ ↓
+Implementation
+ ↓
+Unit tests
+ ↓
+Integration tests
+ ↓
+Scenario tests
+ ↓
+UX validation
+ ↓
+Acceptance criteria
+```
+
+---
+
+## The most important sequencing decision
+
+I would **not** start by redesigning all the screens.
+
+I would start:
+
+```text
+1. Persistence
+2. Domain contracts
+3. Evidence
+4. Scoring
+5. Calibration
+6. Onboarding
+7. Jarvis
+8. Adaptive Today
+9. Goals/Learn integration
+10. Audits
+11. Integrations
+12. Visual polish
+```
+
+Because the final UI should be a **projection of the intelligent system underneath**, not the other way around.
+
+That is how we get from the current **~5.6/10** to something plausibly in the **8.5–9/10 range** without throwing away the substantial engineering work already present.
+
+[1]: https://developer.mozilla.org/en-US/docs/Web/API/IndexedDB_API/Using_IndexedDB?utm_source=chatgpt.com "Using IndexedDB - Web APIs | MDN"
+[2]: https://developer.mozilla.org/en-US/docs/Web/API/IDBTransaction?utm_source=chatgpt.com "IDBTransaction - Web APIs | MDN"
+[3]: https://developer.mozilla.org/en-US/docs/Web/API/IDBTransaction/mode?utm_source=chatgpt.com "IDBTransaction: mode property - Web APIs | MDN"
+[4]: https://vite.dev/guide/troubleshooting?utm_source=chatgpt.com "Troubleshooting | Vite"

@@ -1,60 +1,422 @@
-# Codebase Static Analysis & Cleanup Plan
+# Actions-Tracker 2.0 — Master Implementation Blueprint
 
-I ran a comprehensive static analysis across the entire repository to map out every single disconnected function, unused component, and potential loophole. 
+Status: Working execution plan, grounded in the repository as inspected on 2026-09-27. This is a plan, not a claim that every listed change has been implemented. Complete work only when behavior, persistence boundary, user path, tests, and release evidence meet the definition of done.
 
-Here is exactly what is disconnected, unused, or silently failing.
+## Product Outcome
 
-## 1. Disconnected Components & Unused Files
-The following files are completely orphaned (nothing imports them). 
+The product loop is:
 
-**Old UI Components:**
-- `src/components/OnboardingScreen.jsx` (Replaced by the new V3 flow)
-- `src/components/ArchetypeCompiler.jsx` 
-- `src/components/BookTracker.jsx`
-- `src/components/EvidencePrompt.jsx`
-- `src/components/ProfileTab.jsx`
-- `src/components/SundayReflection.jsx`
+```text
+USER INTENT -> UNDERSTAND -> PLAN -> ACT -> EVIDENCE -> LEARN / MEASURE -> ADAPT -> PLAN
+```
 
-**Orphaned Database & Schema Models (v8 remnants):**
-- `src/database/creativeWorkRepository.js`
-- `src/database/decisionRepository.js`
-- `src/database/gymSessionsRepository.js`
-- `src/database/observationRepository.js`
-- `src/models/creativeWorkSchema.js`, `decisionSchema.js`, `observationSchema.js`, `habitSchema.js`
+The user should experience one coherent system that understands their goals, helps them take feasible actions, records evidence, explains what it learned, and changes recommendations only with user control. The user should not need to understand internal ledgers, projections, calibration, or connectors.
 
-**Simulation Scripts:**
-- `simulations/personas/*.js` and `simulations/runner*.js` (Testing scripts that aren't used in production).
+## Verified Repository Baseline
 
-## 2. Disconnected Functions (Unused Exports)
-The following functions are defined but **never called anywhere in the app**.
+- The app has Today, Stats, Learn, Goals, Jarvis, and Audits navigation in `src/App.jsx`. First-run onboarding currently wraps Jarvis in `src/components/onboarding/OnboardingFlow.jsx`.
+- IndexedDB is currently version 11 in `src/database/db.js`. Object-store creation is grouped in one `onupgradeneeded` handler. Additional data migrations are separate setting-flag functions in `src/database/migration.js`; there is no central migration registry or `appMeta` store today.
+- Export metadata currently uses `_meta` with `appVersion` and exported `schemaVersion` 1. Import checks JSON shape, future schema version, and that present stores are arrays, then replaces stores transactionally. It does not validate individual records, show a preview, or make a safety backup before replacement.
+- Automatic restore checks whether a subset of user stores is empty and imports a Documents backup. The current empty check omits stores such as settings, telemetry, and sync state. The browser API-key fallback is an in-memory `Map` in `src/native/secureStorage.js`; it does not survive refresh.
+- `applyFreshStartReset()` is called during bootstrap before restore and migration. On a device without its marker, it clears IndexedDB, the AI key, legacy local storage, and local backup files. Treat the release-targeting and data-preservation consequences as a stop-ship question, not as a routine migration.
+- `src/helpers/dateHelpers.js` already provides local calendar-date helpers. UTC-derived date strings still occur in backup, telemetry, AI scheduling, history, and other call sites. The alleged malformed migration regex was not present in the current source; the regex in `migration.js` is correctly escaped.
+- Facts, evidence records, domain engines, score projections, action schemas, an action executor, connector registry, Health Connect Steps, NutriLift/Supabase receiver, settings controls, backups, error logging, and extensive Vitest coverage already exist. Existence is not proof of full device/provider/recovery behavior.
+- Scoring has two extant concepts: legacy C/V/M stats and the newer facts/evidence/domain projection pipeline. `scoreEngine.js` uses an evidence authority threshold (coverage >= 0.8 and confidence >= 0.7 with required signals), otherwise it falls back to canonical stats. Domain vocabulary and mappings need a single explicit contract before further scoring expansion.
+- The current release notes report `npm test` passing 44 files / 279 tests and `npm run build` passing. Android artifact, live provider, in-place upgrade, and cross-device accessibility checks remain unverified in the current validation reports.
 
-**Domain Engines (AI logic not hooked up):**
-- **Every single domain engine** (`bodyEngine.js`, `creativityEngine.js`, `disciplineEngine.js`, `knowledgeEngine.js`, `socialEngine.js`, `strategyEngine.js`) exports a `detectPatterns()` and `recommendNextActions()` function that is never used. The AI logic here is completely dormant.
+## Priority And Dependency Rules
 
-**Notifications (Native API not hooked up):**
-- `checkNotificationPermission`, `scheduleReminder`, `cancelReminder` in `src/native/notifications.js`.
+Priority labels indicate product/release priority, not permission to violate dependency order.
 
-**Supabase (Cloud sync not hooked up):**
-- `getSupabaseSession` and `supabase` client in `src/integrations/supabase/`.
+```text
+PRESERVE EXISTING DATA
+	-> DATA / PERSISTENCE
+	-> CANONICAL DOMAIN MODEL
+	-> EVIDENCE + SCORING
+	-> CALIBRATION + ONBOARDING
+	-> JARVIS INTELLIGENCE + APPROVED ACTIONS
+	-> GOALS / ADAPTIVE TODAY
+	-> AUDITS, INTEGRATIONS, SETTINGS, MOBILE POLISH
+	-> RELEASE GATES + OBSERVABILITY
+```
 
-**Database operations (Dead endpoints):**
-- `getHabitsByDomain`, `pauseHabit`, `resumeHabit`
-- `getAllInsights`, `deleteInsight`
-- `getOccurrencesForDate`, `rescheduleOccurrence`
-- `getRelationsBetween`, `getRelationsFrom`
-- `getAuditByPeriod`, `getLatestAudit`
+Workstreams 1, 2, 5, 6, 8, 9, 15, and 16 are P0. Workstreams 3 and 4 are P0 for the new-user experience and must ship only after the preservation gate. Workstreams 7, 10, 11, 12, 13, and 14 are P1; existing safety defects in these areas can still block release. Do not ship UI that assumes data, a domain mapping, or a score authority that the lower layers do not guarantee.
 
-## 3. Loopholes & Silent Fails
-- **Empty Catch Blocks**: `src/App.jsx` line 430 has an empty catch block for `Haptics.impact()`. This is acceptable because we don't want the app to crash if the device lacks vibration hardware, but it is a literal "silent fail".
-- **Dynamic Imports**: There are warnings in the Vite build where static imports are mixed with dynamic imports (e.g. `booksRepository.js` imported dynamically in handlers but statically elsewhere). This creates bundle bloat and breaks code-splitting.
+## Execution Workstreams
 
----
+### 1. Data And Persistence Foundation — P0
 
-## User Review Required
-> [!CAUTION]
-> Deleting unused files and functions will significantly clean up the repository and reduce bugs, but we need to decide what is "dead code" vs "code we want to finish wiring up".
+**Goal:** Preserve user data across install, reload, upgrade, migration, backup, restore, reset, and offline use.
 
-How would you like to proceed?
-1. **The Purge**: I will aggressively delete all the unused components, orphaned schemas, and dead repository functions.
-2. **The Wiring**: Do you want me to hook up any of the disconnected features? (e.g., wiring the domain engines to the AI Insights tab, or wiring up push notifications).
-3. **Both**: Delete the dead legacy files (like `OnboardingScreen.jsx`), but wire up the dormant engines.
+**Current problem:** DB v11 is initialized centrally, but schema creation and application data migrations are split across mechanisms. Restore validation is shallow, automatic restore has an incomplete empty-database test, backup dates use UTC conversion, and there is no safety backup/preview in the manual restore path. Most urgently, bootstrap runs a destructive fresh-start reset before normal recovery unless its local marker is already present.
+
+**Desired behavior:** Existing installations never silently become new users. Each migration is idempotent and verified. A restore is previewed, protected by a pre-restore backup, validated before writes, atomic on failure, and followed by a verifiable reload. Reset is explicit, confirmed, and recoverable unless the user deliberately chooses permanent deletion.
+
+**Technical approach:** First gate deployment on a written decision and regression test for `applyFreshStartReset`. Then centralize local calendar functions and remove UTC date derivation for human dates. Add installation metadata in a versioned DB upgrade. Establish a migration registry for future versions while preserving the existing v11 upgrade path. Version the export envelope separately from IndexedDB and validate known stores/record schemas. Make restore preview -> validate -> safety export -> transactional replace -> verify -> reload. Keep repository modules as the only DB access path.
+
+**Techniques/patterns:** IndexedDB version-change transactions; idempotent expand/contract migrations; repository boundary; atomic multi-store writes; Zod/domain schema validation; checksum/count verification; explicit recovery journal; fault injection after each restore stage.
+
+**Enablers:** `db.js`, repositories, `migration.js`, `backupService.js`, settings, fresh-start reset, fake-indexeddb, Capacitor Filesystem.
+
+**Dependencies:** This is the release gate for all data-dependent work. Coordinate with domain-model migration and secure-key policy.
+
+**Blockers:** Resolve whether the fresh-start reset was intentionally release-scoped and how existing installs are identified; decide browser secret persistence (session-only by explicit choice, Web Crypto-wrapped storage, or no browser key support); define backup compatibility and retention policy. Never imply browser storage is equivalent to Android secure storage.
+
+**Tests:** Fresh DB; v11 fixture upgrade; repeated migration; old localStorage migration; valid/invalid/future/legacy backup; malformed record; interrupted restore; write failure rollback; backup failure; partial/empty store set; settings-only DB; offline boot; reset confirmation; timezone/DST/month/year boundaries; browser key refresh behavior.
+
+**Definition of done:** Fresh install, existing-user upgrade, reload, restore, restore failure, reset, and offline boot all preserve or intentionally change data exactly as specified. Every path has automated regression coverage and an artifact/device upgrade check before release.
+
+### 2. Canonical Domain And Data Model — P0
+
+**Goal:** Give every user concept one stable meaning and traceable identity across UI, storage, scoring, integrations, and AI.
+
+**Current problem:** The repository contains facts, logs, life objects, goals, habits, occurrences, learnings, and legacy quest/stat structures. Current documentation and code expose legacy axis vocabulary alongside the target body/discipline/knowledge/social/creativity/strategy vocabulary. Mappings and ownership boundaries are therefore easy to duplicate or misinterpret.
+
+**Desired behavior:** Each canonical entity has a schema, ID policy, lifecycle, ownership, and allowed mutations. Facts remain append-only; derived projections can be rebuilt; UI labels and integrations map to stable domain IDs; historical data is never silently relabeled or discarded.
+
+**Technical approach:** Publish an entity/domain registry and compatibility matrix before changing schema. Specify canonical IDs, domain enums, fact types, event time vs recorded time, source/provenance, correction/retraction behavior, and derived-state ownership. Implement one-way, idempotent adapters from legacy records to canonical records; retain source IDs and migration provenance. Mark duplicate concepts as deprecated only after read/write call sites and export compatibility are covered.
+
+**Techniques/patterns:** Canonical schema packages, discriminated unions, immutable event/fact ledger, explicit adapters, stable IDs, strangler migration, dual-read comparison followed by single-write ownership.
+
+**Enablers:** `src/models`, `factsRepository.js`, `lifeObjectsRepository.js`, `habitRepository.js`, `evidenceRepository.js`, `relationRepository.js`, `docs/current-model.md`, migration/property tests.
+
+**Dependencies:** Persistence safety first; scoring, evidence, integrations, onboarding, and action schemas depend on the registry.
+
+**Blockers:** Decide canonical domain vocabulary and the future of legacy logs/quests; define which store is authoritative for each concept. Existing user records need a tested mapping, not a wholesale rename.
+
+**Tests:** Schema acceptance/rejection; stable ID and serialization contracts; legacy fixture migration; duplicate/replay import; referential integrity; property tests for immutability and determinism; round-trip export/import across supported schema versions.
+
+**Definition of done:** One documented source of truth per entity and domain; all production writers/readers use it or an explicit compatibility adapter; no data loss in legacy fixtures; migration and export contracts are executable tests.
+
+### 3. Onboarding Redesign — P0
+
+**Goal:** Turn user intent into a useful first plan and a trustworthy starting model without demanding architecture knowledge.
+
+**Current problem:** Onboarding is currently a thin wrapper around Jarvis (`OnboardingFlow.jsx`). The product needs onboarding to capture outcomes, constraints, confidence, and preferred effort, then persist those answers reliably. Data-based first-run detection and a returning-user path already exist in bootstrap and must remain compatible with restored data.
+
+**Desired behavior:** A user can state what matters, choose a manageable focus, review an understandable first plan, edit/decline it, and complete onboarding without an API key. Returning users, restored users, interrupted sessions, and users who skip optional questions resume correctly.
+
+**Technical approach:** Build a deterministic onboarding state machine over the canonical Self Model and action proposal contract. Separate required intent capture from optional AI elaboration. Persist each completed step or persist a single validated completion payload atomically; record onboarding version and completion evidence. Provide a non-AI fallback plan and a clear edit path. Avoid converting self-report into authoritative measured score.
+
+**Techniques/patterns:** Resumable workflow state; schema-versioned answers; progressive disclosure; explicit consent; idempotent completion action; draft vs committed state.
+
+**Enablers:** `OnboardingFlow.jsx`, Jarvis, Self Model repository, action executor, secure storage, existing `complete_onboarding` action behavior.
+
+**Dependencies:** Canonical domain model and persistence safety; calibration policy; approval boundary.
+
+**Blockers:** Define minimum useful questions, whether API setup is optional, how imported backups affect onboarding state, and how a user can restart/edit answers.
+
+**Tests:** New install; each step validation; skip/back/resume; reload mid-flow; no API key; AI failure; duplicate completion; restored completed state; invalid/partial answers; completion does not grant evidence authority to self-reports.
+
+**Definition of done:** A first-time user reaches a persisted, editable first action plan without AI; a returning/restored user never sees first-run onboarding incorrectly; all state transitions and failure paths are covered.
+
+### 4. Calibration Engine — P0
+
+**Goal:** Estimate how the user’s stated plans compare with observed behavior and adapt recommendations at an honest level of confidence.
+
+**Current problem:** There are onboarding priors, evidence coverage/confidence, canonical fallback, and domain score engines, but no single calibration contract coordinating user estimate, observed behavior, uncertainty, and recalibration cadence.
+
+**Desired behavior:** Calibration begins as a tentative prior, uses only relevant observed evidence, communicates uncertainty, distinguishes missing data from failure, and changes plan difficulty only when a stated threshold and user-facing explanation justify it.
+
+**Technical approach:** Define a pure calibration model with versioned inputs/outputs: baseline estimate, observed adherence/effort, coverage, confidence, time window, uncertainty, and recommended adjustment. Keep calibration separate from raw fact capture and scoring formulas. Use a minimum evidence window and hysteresis to prevent day-to-day oscillation. Ask the user before material plan changes.
+
+**Techniques/patterns:** Bayesian/prior update only where assumptions are documented; otherwise deterministic bounded update; minimum sample size; confidence intervals or explicit low/medium/high confidence; hysteresis; replayable fixtures.
+
+**Enablers:** Onboarding answers, habit occurrences, evidence pipeline, score metadata, audit history.
+
+**Dependencies:** Canonical data, evidence quality, scoring definitions, onboarding persistence.
+
+**Blockers:** Product must define what is calibrated (capacity, cadence, difficulty, or confidence), which evidence is relevant, minimum sample size, adjustment bounds, and whether calibration is per-domain or per-habit.
+
+**Tests:** No-data state; sparse/noisy data; conflicting signals; timezone/window boundary; outlier; repeated recomputation determinism; bounds; hysteresis; declined adjustment; recalibration version migration.
+
+**Definition of done:** Calibration is deterministic, versioned, explainable, uncertainty-aware, and cannot silently alter goals or schedules; every adjustment can be traced to evidence and accepted/declined by the user.
+
+### 5. Scoring Engine — P0
+
+**Goal:** Produce reproducible, explainable measures that support decisions without presenting weak evidence as certainty.
+
+**Current problem:** Legacy C/V/M stats coexist with the facts/evidence/domain projection path. Evidence authority currently requires coverage >= 0.8 and confidence >= 0.7, otherwise canonical fallback is used. The exact mapping between legacy axes, target domains, scores, and visible Stats is not yet a single stable contract.
+
+**Desired behavior:** One score per declared dimension, with source, version, period, methodology, inputs, confidence, coverage, warnings, and fallback reason. Recomputing identical input yields identical output; sparse evidence never creates false precision; prior valid projections survive pipeline failure.
+
+**Technical approach:** Establish canonical domain IDs and a versioned ScoreProjection contract. Select one authority resolver and explicit legacy fallback/retirement policy. Keep math pure; DB orchestration stays in `scoreEngine.js`; persist rebuildable snapshots. Add parity telemetry during transition and remove shadow comparison only after stable agreement or an approved intentional divergence.
+
+**Techniques/patterns:** Pure functions; deterministic windows; bounded values; golden fixtures; property tests; authority thresholds; methodology versioning; no-write-on-failure; explainability from source evidence.
+
+**Enablers:** `scoreEngine.js`, domain engines, `statsEngine.js`, `scoreSchema.js`, score display tests, parity check, current-model documentation.
+
+**Dependencies:** Canonical model and evidence pipeline; calibration consumes score quality metadata.
+
+**Blockers:** Resolve domain vocabulary/formula ownership, period/time semantics, legacy score compatibility, and which user-visible scores can affect recommendations.
+
+**Tests:** Existing unit/property tests plus per-domain golden vectors, missing/low-quality evidence, authority threshold edges, canonical fallback, failed projection preserving prior valid value, parity fixtures, version-upgrade comparison.
+
+**Definition of done:** Every displayed score names its source and meaning; scoring is deterministic and versioned; authority/fallback is tested at boundaries; docs are generated/updated with executable formula fixtures.
+
+### 6. Evidence And Learning Loop — P0
+
+**Goal:** Connect actions and external observations to trustworthy evidence, explanations, and future plans.
+
+**Current problem:** Facts and evidence are distinct and the score pipeline builds evidence from facts, but evidence coverage, correction/retraction handling, freshness, and user-facing provenance must be consistently enforced across domains and integrations.
+
+**Desired behavior:** Every important conclusion can be traced to dated source facts. Corrections do not erase history. Missing data is not treated as failure. Learnings and insights identify supporting evidence and can be corrected or dismissed.
+
+**Technical approach:** Define evidence schemas and builder contracts by domain. Record source, occurred/recorded dates, supporting fact IDs, confidence, and derivation version. Model external deletion/correction as retraction or superseding facts. Rebuild evidence/projections idempotently; expose provenance and correction controls in user-facing detail.
+
+**Techniques/patterns:** Append-only fact ledger; derived materialized views; provenance chains; idempotent rebuild; retraction events; explicit unknown state; freshness and coverage policy.
+
+**Enablers:** Fact/evidence repositories and schemas, evidence builder, domain engines, NutriLift retraction mapping, connector sync state.
+
+**Dependencies:** Canonical model and persistence; scoring and Jarvis require these contracts.
+
+**Blockers:** Define retention/deletion behavior, evidence authority per type, manual correction semantics, and privacy boundaries for AI context.
+
+**Tests:** Fact-to-evidence fixtures; rebuild repeatability; stale/missing facts; correction/retraction; deleted external records; invalid provenance; unsupported signal; unknown-vs-missed distinction; user deletion consent.
+
+**Definition of done:** Every score/insight claim is explainable to its evidence; evidence can be rebuilt; corrections preserve auditability; no domain silently treats missing data as negative evidence.
+
+### 7. Adaptive Today — P1
+
+**Goal:** Make Today the smallest useful next step from the user’s current goals, schedule, capacity, and recent evidence.
+
+**Current problem:** Today already shows habit occurrences, completion, grace prompts, and progress. It does not yet form a single adaptive plan from calibrated capacity, active goals, and evidence quality. The occurrence engine already protects against treating unknown as missed; preserve that invariant.
+
+**Desired behavior:** Show a short, ranked, feasible action set with a clear reason; let the user complete, defer, edit, or dismiss; adapt future suggestions from evidence without rewriting user intent or punishing unknown days.
+
+**Technical approach:** Add a pure action-ranking policy over active commitments, occurrence state, user availability, calibration, and evidence confidence. Keep recommendation separate from persisted occurrence generation. Use user-selected capacity and explicit constraints. Provide stable ordering and a non-AI fallback.
+
+**Techniques/patterns:** Deterministic ranking; capacity budget; explainable reason codes; grace/unknown state; user override; no silent rescheduling; accessibility-first interaction.
+
+**Enablers:** TodayTab, occurrence/routine engines, habit repository, goals, calibration, score/evidence metadata.
+
+**Dependencies:** Canonical model, evidence, scoring/calibration; action approval for plan mutations.
+
+**Blockers:** Decide whether Today ranks existing commitments only or may propose new ones, and what user controls capacity and overload thresholds.
+
+**Tests:** Ranking policy unit tests; overload/empty state; incomplete/unknown/grace cases; user override persistence; stale occurrence; same input determinism; mobile layout and screen-reader journey.
+
+**Definition of done:** Today gives a useful plan offline and without AI, explains why actions appear, preserves unknown/grace semantics, and never mutates goals/schedules without explicit approval.
+
+### 8. Jarvis Intelligence Layer — P0
+
+**Goal:** Let Jarvis understand intent and evidence, ask clarifying questions, and generate useful explanations or proposals without becoming a hidden source of truth.
+
+**Current problem:** Jarvis has context assembly, chat, provider setup, structured response schemas, claim-support validation, persistent conversations, and audit/proactive paths. Remaining gaps reported by current implementation notes include correction/recovery, experiment/result and audit-specific views, offline/provider recovery, and long-thread behavior. Browser API-key persistence is deliberately session-only today.
+
+**Desired behavior:** Jarvis cites available evidence, distinguishes observation from inference, asks rather than inventing missing details, degrades gracefully offline, and never writes directly to storage. User controls what context is sent and whether memory is retained.
+
+**Technical approach:** Keep context building allowlisted and minimized; version prompts and schemas; validate claims against context; separate conversational response from action proposal; use bounded/relevant conversation history; expose provider status, retries, timeout, and cancellation. Keep all generated actions pending approval.
+
+**Techniques/patterns:** Structured outputs; schema parsing; evidence-ID grounding; prompt-injection boundary; least-context; timeout/retry policy; provider adapter; explicit memory consent; non-AI fallback.
+
+**Enablers:** `jarvisEngine.js`, context builder, LLM client, AI schemas, memory repository, conversation repository, existing Jarvis journeys.
+
+**Dependencies:** Data/domain/evidence/scoring contracts; secure key policy; approval system.
+
+**Blockers:** Finalize browser secret policy, provider support contract, retention and redaction rules, and online/offline behavior.
+
+**Tests:** Malformed/model refusal/timeout/rate limit; unsupported claims; prompt injection in facts/page context; empty context; offline recovery; memory opt-out; thread truncation; provider switch; no DB writes from the intelligence layer.
+
+**Definition of done:** All responses are bounded and validated; factual claims are grounded or clearly uncertain; provider failure is recoverable; user privacy controls are honored; no model output bypasses the action boundary.
+
+### 9. Jarvis Action And Approval System — P0
+
+**Goal:** Make every AI-proposed change inspectable, editable, reversible where possible, and explicitly authorized.
+
+**Current problem:** The action schema, precondition validation, centralized `actionExecutor`, execution keys, and action facts exist. The executor composes repository writes, occurrence generation, routine updates, and fact recording across multiple calls; partial failure between those writes needs an explicit atomicity/recovery guarantee.
+
+**Desired behavior:** A proposal is validated, previewed with impacts and risks, approved by the user, applied once, and recorded with before/after state. Stale targets fail safely. Retrying cannot duplicate or partially repeat the change. Undo is available for reversible operations.
+
+**Technical approach:** Keep schemas and business validation server-independent and deterministic. Inventory actions and assign transaction/compensation semantics. Where multiple stores change, use a single IndexedDB transaction through a domain command or a durable action journal with idempotent recovery. Persist approval and execution lifecycle, result, and rollback metadata.
+
+**Techniques/patterns:** Command pattern; strict schemas; optimistic preconditions; idempotency key; transactional outbox/journal; compensating action; least privilege; explicit confirmation.
+
+**Enablers:** `actionSchemas.js`, `actionExecutor.js`, feedback engine, fact ledger, approval/proposal UI, fake IndexedDB end-to-end tests.
+
+**Dependencies:** Canonical model, persistence transactions, Jarvis output validation.
+
+**Blockers:** Define reversible action set, stale proposal policy, failure/replay semantics, and which actions need stronger confirmation.
+
+**Tests:** One test per action; invalid/unknown fields; stale entity; duplicate approval; crash at each write boundary; partial failure recovery; undo; concurrent modification; unauthorized/model-only attempt creates no writes.
+
+**Definition of done:** Approved actions are atomic or recoverably journaled, replay-safe, auditable, and never run without explicit consent; every action has success, failure, stale, and retry coverage.
+
+### 10. Goals -> Actions -> Evidence — P1
+
+**Goal:** Make each goal operational: a clear outcome, selected actions, observable evidence, and periodic reassessment.
+
+**Current problem:** Goals, life objects, habits, quests, facts, and evidence already exist, but the user path must consistently connect them. Avoid treating a goal checkbox or AI-generated task as proof of meaningful progress.
+
+**Desired behavior:** A goal can be decomposed into user-approved actions; actions produce dated evidence; progress explains what counts and what remains unknown; the user can revise, pause, or archive without deleting history.
+
+**Technical approach:** Define goal-to-action/evidence links with stable relations and domain-specific measurement rules. Preserve user-defined outcomes separately from generated plans. Derive progress from evidence where a valid metric exists; otherwise label manual status as self-reported. Show evidence sources and allow correction.
+
+**Techniques/patterns:** Explicit relation records; derived progress; immutable history; user-owned plan; non-destructive archive; no inferred completion.
+
+**Enablers:** Goals/Life Objects, habits, quest progress, facts/evidence, relation repository, action proposals.
+
+**Dependencies:** Canonical model, persistence, action approval, evidence authority.
+
+**Blockers:** Decide whether goals are canonical Life Objects or separate records during transition, define metric ownership, and choose milestone cadence.
+
+**Tests:** Goal create/edit/pause/archive; action relation; evidence updates progress; no-evidence state; duplicate facts; deleted/retracted evidence; backup round trip; migration fixtures.
+
+**Definition of done:** Every active goal can show its next approved actions and progress provenance; derived progress is reproducible; no goal is marked achieved without an explicit valid rule or user assertion.
+
+### 11. Audits And Proactive Intelligence — P1
+
+**Goal:** Surface timely, evidence-backed patterns and risks without nagging, leaking data, or generating repeated noise.
+
+**Current problem:** Audit engine, insights, telemetry, anomaly detection, and an analysis scheduler exist. Current bootstrap gates proactive analysis on onboarding and API configuration, but UTC date usage and schedule idempotency/recovery need coverage. Product notes still identify audit-specific Jarvis view and recovery journeys as open.
+
+**Desired behavior:** Audits are dated, deduplicated, evidence-linked, consent-aware, dismissible, and actionable. Proactive work respects user controls, time windows, provider availability, and offline state.
+
+**Technical approach:** Separate deterministic local checks from optional LLM interpretation. Define schedule/cadence, dedupe key, freshness, and notification policy. Make audit generation idempotent and store method/version plus evidence references. Route suggestions into the same approval queue as chat proposals.
+
+**Techniques/patterns:** Scheduled job leases; idempotent audit keys; quiet hours; deterministic anomaly detectors; opt-in AI; deduplication; bounded notifications; no background write actions.
+
+**Enablers:** `auditEngine.js`, analysis scheduler, insights/audits repositories, telemetry, settings, Jarvis.
+
+**Dependencies:** Evidence/scoring, date service, consent/privacy settings, approval boundary.
+
+**Blockers:** Define audit cadence, notification budget, retention, and behavior when dates/timezone change or the app has been offline.
+
+**Tests:** Duplicate scheduler boot; timezone/month boundary; offline catch-up; opt-out; missing API key; low-coverage audit; repeated identical pattern; dismiss/approve; no unsupported claims.
+
+**Definition of done:** Proactive items are explainable, deduplicated, user-controlled, and cannot make silent writes; scheduler behavior is tested under restart and offline recovery.
+
+### 12. Integrations — P1
+
+**Goal:** Add reliable external evidence while keeping the local app usable and user data portable.
+
+**Current problem:** Health Connect Steps and NutriLift/Supabase paths are implemented in code and covered by contract tests, but live provider, Android permission, Vercel configuration, and device behavior remain release checks. Plugin capability does not currently support every desired health type.
+
+**Desired behavior:** Each connector declares capability, permission, connection state, cursor, last sync, and recoverable error. Repeated sync is idempotent; revoked permissions and provider deletion are handled without fabricating or silently erasing facts.
+
+**Technical approach:** Keep a shared connector contract and sync manager. Validate provider records and schema versions at ingress; map to deterministic immutable facts with external IDs and source provenance; persist cursor only after successful writes; represent corrections/deletions as retractions. Ship capabilities only when the provider supports them.
+
+**Techniques/patterns:** Adapter/connector boundary; cursor checkpoint; deterministic IDs; at-least-once sync plus dedupe; permission lifecycle; retry with backoff; contract tests; no mocks in production.
+
+**Enablers:** HealthConnectConnector, NutriLiftConnector, sync manager, sync state, Supabase schema, integration tests.
+
+**Dependencies:** Canonical fact/evidence schemas, persistence, secure auth settings, observability.
+
+**Blockers:** Live credentials/environment, device/emulator, Health Connect availability/permission, companion producer deployment. Sleep/exercise remain out of scope until a real supported API is selected.
+
+**Tests:** Contract and mapper fixtures; duplicate/cursor/retry; revoked permission; provider unavailable; malformed/future schema; deletion/tombstone; RLS/current-user isolation; no fake fact path.
+
+**Definition of done:** Automated contract tests pass and each shipped connector has live provider/device evidence, documented capabilities, observable failure recovery, and a no-data-loss sync guarantee.
+
+### 13. Settings And System Controls — P1
+
+**Goal:** Give users understandable control over privacy, AI, reminders, integrations, memory, data portability, and reset.
+
+**Current problem:** Settings already covers AI setup, memories, proactive suggestions, reminders, backups, restore, and diagnostics. Manual restore currently replaces stores immediately after basic validation, with no preview or safety backup. Browser API keys are session-only. Reset/clear-data behavior needs especially clear scope and confirmation.
+
+**Desired behavior:** Each setting has an accurate saved state, clear effect, and failure recovery. Export/restore shows counts/version and protects current data. Secret handling is explicit per platform. Users can delete memories, revoke connections, disable AI, export all data, and reset without ambiguity.
+
+**Technical approach:** Build controls on domain/settings services, not direct DB writes from components. Add restore preview and safety snapshot. Categorize diagnostics and remove secrets/PII. Show platform-specific key-storage status and do not promise persistence where unavailable. Require explicit destructive confirmation and define whether backups are included.
+
+**Techniques/patterns:** Settings repository; optimistic update with rollback; secure-storage adapter; permission status; progressive confirmation; export manifest; recovery receipts.
+
+**Enablers:** SettingsTab, settings repository, backup service, secure storage, memory repository, connector registry, error logger.
+
+**Dependencies:** Data foundation and privacy policy; integration/auth behavior.
+
+**Blockers:** Browser key decision, backup scope/retention, consent defaults, user-facing reset semantics.
+
+**Tests:** Save/reload; failed persistence rollback; export/import; restore cancellation/preview; secret not exported/logged; memory deletion; integration sign-out; disabled AI; reset confirmation and recovery.
+
+**Definition of done:** Every control persists or clearly reports why it cannot; backup and reset cannot surprise users; privacy controls are testable and documented.
+
+### 14. Mobile UX — P1
+
+**Goal:** Make frequent workflows reliable on small screens, assistive technology, variable text scaling, and native Android.
+
+**Current problem:** The app uses Capacitor and has native reminders, haptics, back handling, and status bar support. Existing reports explicitly say Android artifact/device checks, TalkBack, text scaling, small-screen visual audit, and some native behavior have not been verified.
+
+**Desired behavior:** Today completion, onboarding, approval, recovery, settings, and restore work on narrow screens and with keyboard/screen reader. Touch targets, focus return, reduced motion, offline feedback, and native back behavior remain coherent.
+
+**Technical approach:** Define critical journeys and supported viewport/text-scale matrix. Validate semantic roles, focus order, live updates, contrast, target size, safe areas, and reduced-motion behavior. Keep web fallback parity where native APIs are unavailable. Fix specific journey defects rather than broad visual churn.
+
+**Techniques/patterns:** Semantic HTML; keyboard/focus management; live regions; responsive constraints; reduced-motion; native capability detection; manual device checklist.
+
+**Enablers:** Existing React UI, Phosphor icons, Capacitor plugins, UI journey tests, design-system docs.
+
+**Dependencies:** Stable workflows and state contracts; Android build/release environment.
+
+**Blockers:** Android SDK/emulator or physical device and assistive-technology test environment.
+
+**Tests:** Automated keyboard and responsive smoke checks; manual 360/390/432px, 130% text scale, TalkBack, back button, offline, permission denial, haptics/reminders on device.
+
+**Definition of done:** Critical journeys pass automated and documented manual checks on web and Android; no blocking accessibility defects; native-specific claims have device evidence.
+
+### 15. Testing And Release Engineering — P0
+
+**Goal:** Make every release reproducible and prevent data loss, schema breakage, or unverified claims from shipping.
+
+**Current problem:** Vitest, fake IndexedDB, property/regression/scenario tests, production web build, versioning docs, and Android workflows exist. Current reports show web test/build pass but Android artifact, live integrations, in-place upgrade, and signed release gates are incomplete. `package.json` version and `src/version.js` are separate version declarations and can drift.
+
+**Desired behavior:** A release has one version source, automated gates, migration/backup fixtures, retained build artifact, upgrade evidence, and explicit manual/device checks. No tag/publish occurs while a P0 or data-preservation gate is open.
+
+**Technical approach:** Define CI stages for lint/type diagnostics where available, unit/property/scenario suites, production build, migration/restore fixtures, dependency/security checks, Android build, artifact retention, and release approval. Reconcile app/package/schema/database version meanings and automate consistency checks. Maintain a known-good v11 upgrade fixture and current backup fixtures.
+
+**Techniques/patterns:** CI quality gates; deterministic fixtures; release checklist; artifact provenance; semantic version contract; staged rollout/rollback plan; test pyramid.
+
+**Enablers:** npm scripts, Vitest, GitHub Actions/Gradle, versioning and release docs, existing validation report.
+
+**Dependencies:** All workstreams; release gate is the integration point.
+
+**Blockers:** Android SDK/signing secrets/workflow access and physical device/provider validation; do not expose secrets in test logs.
+
+**Tests:** `npm test`, `npm run build`, migration/restore suite, version consistency, Android debug/release build, install-over-existing-data scenario, provider/device checklist.
+
+**Definition of done:** CI is green, artifact is retained and identified, existing-user upgrade preserves records, manual gates are signed off, and release metadata matches code/schema.
+
+### 16. Observability And Recovery — P0
+
+**Goal:** Detect failures without collecting unnecessary sensitive data and give the user a way to recover.
+
+**Current problem:** Error logging, telemetry, migration events, backups, and update checks exist, but several bootstrap failures are intentionally swallowed or reduced to console output. Recovery status is not yet a single user-visible model, and telemetry/date/PII policy must be consistent.
+
+**Desired behavior:** Database, migration, backup, restore, scheduler, provider, and AI failures are distinguishable, actionable, privacy-filtered, and non-fatal where safe. The app can resume or retry after interruption and never reports success before durable commit.
+
+**Technical approach:** Define error categories, severity, correlation IDs, redaction, retention, and user-visible recovery states. Add stage markers around boot/migration/backup/restore and action execution. Persist only minimal diagnostics; expose exportable redacted logs. Ensure every swallowed error has an intentional fallback and observable outcome.
+
+**Techniques/patterns:** Structured errors; correlation IDs; redaction allowlist; startup state machine; retry classification; durable checkpoints; health checks; privacy budgets.
+
+**Enablers:** `errorLogger.js`, telemetry repository, bootstrap flow, backup service, connector status, update banner.
+
+**Dependencies:** Persistence, settings/privacy controls, release process.
+
+**Blockers:** Define diagnostics retention/consent and distinguish expected capability absence from actionable faults.
+
+**Tests:** Redaction (including API keys and user content); storage unavailable; migration failure/retry; restore failure; stale backup; connector timeout; telemetry disabled; no false-success status; recovery after reload.
+
+**Definition of done:** Critical failure classes are observable and recoverable; logs contain no secrets or raw sensitive context; success is emitted only after durable completion; recovery paths have regression tests.
+
+## Delivery Gates
+
+1. **Gate A — Preserve:** Resolve and test fresh-start reset targeting; establish v11 migration/backup fixtures; prove existing-user install-over-upgrade does not erase data.
+2. **Gate B — Canonicalize:** Approve canonical entity/domain registry and legacy mappings; make exports/imports compatible.
+3. **Gate C — Measure:** Lock evidence/scoring contracts, version formulas, run parity fixtures, and define calibration policy.
+4. **Gate D — Understand And Act:** Ship resumable onboarding, grounded Jarvis, validated proposals, atomic/recoverable action execution, and per-action replay tests.
+5. **Gate E — Adapt:** Connect goals, actions, evidence, calibration, and Today with user-approved plan changes.
+6. **Gate F — Release:** Verify integrations on real providers/devices, accessibility journeys, Android build/upgrade, backup/restore/reset, telemetry redaction, and release metadata.
+
+## Cross-Cutting Release Invariants
+
+- Raw facts and user-authored intent are not overwritten by scores, AI, or calibration.
+- Missing evidence is unknown, not failure.
+- AI output is untrusted input; only a validated, user-approved command can mutate data.
+- Every derived result is rebuildable, versioned, and traceable to inputs.
+- A failed transaction or restore does not leave a partially applied state or report success.
+- No destructive migration/reset ships without an existing-user fixture and a recovery path.
+- Local calendar dates use the date service; timestamps are stored as ISO instants.
+- Integrations never fabricate records and never advance a cursor before durable writes complete.
+- Offline use preserves core actions, evidence, and recovery; AI and providers are optional capabilities.
+
+## First Execution Slice
+
+Do not begin with a visual redesign. Start at Gate A: audit the reset marker/release targeting, add a regression proving an existing v11 database and backup survive a normal upgrade, then close the restore-preview/safety-backup gap. Once that check is green, establish the canonical model decisions that unblock scoring and evidence work. This is the cheapest sequence that directly tests the largest data-loss risk before new product behavior is layered on top.
