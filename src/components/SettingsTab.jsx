@@ -10,6 +10,7 @@ export default function SettingsTab({ t, onClose, reminders: reminderConfigs = [
   const [storageUsed, setStorageUsed] = useState('0');
   const [restoreFile, setRestoreFile] = useState(null);
   const [restoreStatus, setRestoreStatus] = useState(null);
+  const [restorePreview, setRestorePreview] = useState(null);
   const [restoring, setRestoring] = useState(false);
   const restoreInputRef = useRef(null);
 
@@ -143,11 +144,12 @@ export default function SettingsTab({ t, onClose, reminders: reminderConfigs = [
     setRestoring(true);
     setRestoreStatus(null);
     try {
-      const { importDatabase } = await import('../database/db.js');
-      const result = await importDatabase(await restoreFile.text());
+      const { restoreWithSafetyBackup } = await import('../database/restoreSafety.js');
+      const result = await restoreWithSafetyBackup(await restoreFile.text());
       const recordCount = Object.values(result.counts).reduce((sum, count) => sum + count, 0);
       setRestoreStatus({ success: true, message: `Restore complete. ${recordCount} records imported.` });
       setRestoreFile(null);
+      setRestorePreview(null);
       window.location.reload();
     } catch (error) {
       setRestoreStatus({
@@ -362,11 +364,20 @@ export default function SettingsTab({ t, onClose, reminders: reminderConfigs = [
           accept="application/json,.json"
           aria-label="Choose backup file"
           style={{ display: 'none' }}
-          onChange={event => {
+          onChange={async event => {
             const file = event.target.files?.[0] || null;
             event.target.value = '';
             setRestoreStatus(null);
+            setRestorePreview(null);
             setRestoreFile(file);
+            if (file) {
+              try {
+                const { parseRestorePreview } = await import('../database/restoreSafety.js');
+                setRestorePreview(parseRestorePreview(await file.text()));
+              } catch (error) {
+                setRestoreStatus({ success: false, message: error.message });
+              }
+            }
           }}
         />
         {restoreStatus && (
@@ -379,7 +390,9 @@ export default function SettingsTab({ t, onClose, reminders: reminderConfigs = [
           onClose={() => setRestoreFile(null)}
           onConfirm={handleRestore}
           title="Replace app data?"
-          description={`Restore ${restoreFile?.name || 'this backup'}? This replaces the current local data.`}
+          description={restorePreview
+            ? `Restore ${restoreFile?.name || 'this backup'}? Preview: ${restorePreview.totalRecords} records across ${Object.keys(restorePreview.stores).length} stores. A safety backup is created before replacement.`
+            : `Restore ${restoreFile?.name || 'this backup'}? The backup will be validated and a safety backup created before replacement.`}
         />
       </div>
 
