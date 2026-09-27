@@ -42,7 +42,9 @@ export async function getSyncState(connectorId) {
     lastAttemptedSync:  null,
     status:             'idle',
     lastError:          null,
+    lastSyncResult:     resultStatus,
     connectorVersion:   '1.0',
+    lastSyncResult:     null,
   };
 }
 
@@ -67,7 +69,7 @@ export async function markSyncStarted(connectorId) {
  * @param {string|null} cursor  — provider-specific change token for next incremental sync
  * @returns {Promise<void>}
  */
-export async function markSyncSuccess(connectorId, cursor = null) {
+export async function markSyncSuccess(connectorId, cursor = null, resultStatus = 'success') {
   const state = await getSyncState(connectorId);
   await dbPut(STORE, {
     ...state,
