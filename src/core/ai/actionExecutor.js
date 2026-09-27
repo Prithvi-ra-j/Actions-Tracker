@@ -320,6 +320,14 @@ export async function executeAction(proposal) {
         onboardingCompletedAt: now,
         onboardingVersion: 5,
         provenance: payload.provenance || { source: 'jarvis_conversational' },
+        onboarding: {
+          ...(before.selfModel?.onboarding || {}),
+          schemaVersion: 1,
+          step: 'active',
+          status: 'active',
+          completedAt: now,
+          updatedAt: now,
+        },
       });
 
       for (const axis of focusAxes) {
