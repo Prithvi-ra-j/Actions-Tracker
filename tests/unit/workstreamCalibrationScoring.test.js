@@ -4,6 +4,7 @@ import {
   CALIBRATION_STAGES,
   composeCalibratedScore,
   getCalibrationStage,
+  applyCalibrationHysteresis,
 } from '../../src/core/scoring/calibration.js';
 
 import {
@@ -25,10 +26,18 @@ describe('workstream calibration and scoring contracts', () => {
     expect(medium.stage).toBe(2);
     expect(strong.stage).toBe(4);
 
-    const output = composeCalibratedScore({ score: 72, coverage: 0.8, confidence: 0.81 });
+    const output = composeCalibratedScore({ score: 72, coverage: 0.8, confidence: 0.81, sampleSize: 14 });
     expect(output.score).toBe(72);
     expect(output.calibration.stage).toBeGreaterThanOrEqual(3);
     expect(output.calibration.label).toBeTruthy();
+    expect(output.sampleSize).toBe(14);
+    expect(output.calibration.stage).toBe(4);
+
+    expect(getCalibrationStage({ score: 50, coverage: 0, confidence: 0.25, hasBaseline: true }).stage).toBe(1);
+    expect(getCalibrationStage({ score: 50, coverage: 0.4, confidence: 0.5, sampleSize: 2 }).stage).toBe(1);
+    expect(getCalibrationStage({ score: 50, coverage: 0.4, confidence: 0.5, sampleSize: 3 }).stage).toBe(2);
+    expect(applyCalibrationHysteresis(4, 3, { coverage: 0.75, confidence: 0.78 })).toBe(4);
+    expect(applyCalibrationHysteresis(4, 3, { coverage: 0.2, confidence: 0.2 })).toBe(3);
   });
 
   it('exports the canonical scoring contracts and axes', () => {
