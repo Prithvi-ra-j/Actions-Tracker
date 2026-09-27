@@ -19,18 +19,19 @@ export function getCalibrationStage({
   score,
   coverage = 0,
   confidence = 0,
-  sampleSize = 0,
+  sampleSize = null,
   hasBaseline = false,
 }) {
   const normalizedScore = Number.isFinite(score) ? Number(score) : 0;
   const coverageValue = clamp01(coverage);
   const confidenceValue = clamp01(confidence);
-  const samples = Math.max(0, Number.isFinite(sampleSize) ? Math.floor(sampleSize) : 0);
+  const samplesProvided = Number.isFinite(sampleSize);
+  const samples = Math.max(0, samplesProvided ? Math.floor(sampleSize) : 0);
 
   for (let i = CALIBRATION_STAGES.length - 1; i >= 0; i -= 1) {
     const stage = CALIBRATION_STAGES[i];
     const baselineEligible = stage.stage === 1 && hasBaseline && confidenceValue >= stage.minConfidence;
-    const meets = samples >= stage.minSampleSize
+    const meets = (!samplesProvided || samples >= stage.minSampleSize)
       && coverageValue >= stage.minCoverage
       && confidenceValue >= stage.minConfidence;
     if (baselineEligible || meets) {
