@@ -69,12 +69,12 @@ export function clearSafetyBackup() {
   try { localStorage.removeItem(SAFETY_KEY); } catch { /* storage unavailable */ }
 }
 
-export async function restoreWithSafetyBackup(jsonString, { createBackup = createSafetyBackup } = {}) {
+export async function restoreWithSafetyBackup(jsonString, { createBackup = createSafetyBackup, importer = importDatabase } = {}) {
   const preview = parseRestorePreview(jsonString);
   const safetyBackup = await createBackup();
 
   try {
-    const result = await importDatabase(jsonString);
+    const result = await importer(jsonString);
     return { preview, safetyBackup, result };
   } catch (error) {
     // importDatabase writes through one transaction; on failure it rejects and
