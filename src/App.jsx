@@ -761,6 +761,9 @@ export default function App() {
           todayOccurrences={todayOccurrences}
           onAddEvidence={handleAddEvidence}
           allQuests={allQuests}
+          stats={stats}
+          axisDetails={axisDetails}
+          lifeGoals={lifeGoals}
           onCompleteOccurrence={handleCompleteOccurrence}
           onExcuseOccurrence={handleExcuseOccurrence}
           onOccurrenceReason={handleOccurrenceReason}
