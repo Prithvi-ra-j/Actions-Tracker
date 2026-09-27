@@ -1014,3 +1014,8 @@ The GitHub-connected environment does not expose a local Node runtime for execut
 - AI, data, memory/privacy, integration, notification, and diagnostics controls remain explicit and persisted through settings repositories.
 - Restore remains previewed and safety-backed.
 - Validation remaining: deployed/browser/device and platform-specific secret-policy validation only.
+
+### 2026-09-28 — Workstream 14 complete
+- Hardened Jarvis mobile composition with `visualViewport` keyboard-inset tracking.
+- Existing safe-area handling, 44px controls, bottom sheets and responsive breakpoints remain in place.
+- Validation remaining: deployed/device validation across target mobile sizes and keyboard implementations.
