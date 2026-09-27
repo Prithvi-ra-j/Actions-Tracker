@@ -11,6 +11,7 @@ import { AIInsightSchema } from './aiSchemas.js';
 import { ActionProposalSchema } from './actionSchemas.js';
 import { validateClaimSupport } from './contextBuilder.js';
 import { z } from 'zod';
+import { resolveAssistantMode } from './assistantModeResolver.js';
 
 const ConversationalResponseSchema = z.object({
   message: z.string(),
@@ -172,6 +173,12 @@ export async function generateInsight(userQuery = "Analyze my current state and 
 export async function chatWithJarvis(userMessage, history = [], modificationContext = null, options = {}) {
   const contextText = await assembleContext('chat', userMessage);
 
+  const assistantMode = resolveAssistantMode(userMessage, options.modeOverride || null);
+  const assistantModeInstruction = {
+    role: 'system',
+    content: 'Assistant mode for this turn: ' + assistantMode + '. Use this mode internally; do not ask the user to select a mode unless clarification is genuinely necessary.',
+  };
+
   const modificationInstruction = modificationContext
     ? {
         role: 'system',
@@ -226,6 +233,7 @@ export async function chatWithJarvis(userMessage, history = [], modificationCont
   const messages = [
     { role: 'system', content: JARVIS_SYSTEM_PROMPT },
     { role: 'system', content: `Here is the CURRENT system state and evidence:\n\n${contextText}` },
+    ...(assistantModeInstruction ? [assistantModeInstruction] : []),
     ...(onboardingInstruction ? [onboardingInstruction] : []),
     ...(entryContextInstruction ? [entryContextInstruction] : []),
     ...(modificationInstruction ? [modificationInstruction] : []),
