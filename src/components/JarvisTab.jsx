@@ -303,7 +303,7 @@ export default function JarvisTab({ t, isActive = true, onQuestsChanged, onboard
         msg,
         messages,
         modificationContext,
-        { onboarding: activeOnboardingMode, onboardingStep: onboardingStepBeforeSend, entryContext: attachPageContext ? jarvisContext : null }
+        { onboarding: activeOnboardingMode, onboardingStep: onboardingStepBeforeSend, modeOverride: mode !== 'ask' ? mode : null, entryContext: attachPageContext ? jarvisContext : null }
       );
       const finalMessages = [
         ...newMessages,
