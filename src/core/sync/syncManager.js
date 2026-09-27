@@ -31,6 +31,18 @@ export async function getConnectorStatuses() {
   const statuses = {};
   for (const [id, connector] of registry.entries()) {
     try {
+      statuses[id] = await connector.getStatus();
+    } catch (error) {
+      statuses[id] = 'error';
+    }
+  }
+  return statuses;
+}
+
+export async function getConnectorLifecycleStatuses() {
+  const statuses = {};
+  for (const [id, connector] of registry.entries()) {
+    try {
       const connectionStatus = await connector.getStatus();
       const syncState = await getSyncState(id);
       statuses[id] = {
@@ -39,7 +51,11 @@ export async function getConnectorStatuses() {
         syncState,
       };
     } catch (error) {
-      statuses[id] = { status: 'error', message: error.message };
+      statuses[id] = {
+        connectionStatus: 'error',
+        lifecycle: 'sync_failed',
+        syncState: await getSyncState(id).catch(() => null),
+      };
     }
   }
   return statuses;
