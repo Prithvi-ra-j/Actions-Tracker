@@ -8,6 +8,12 @@
 import { exportDatabase, importDatabase } from './db.js';
 
 const SAFETY_KEY = 'actions_tracker_pre_restore_safety_backup';
+const KNOWN_STORES = new Set([
+  'goals','milestones','settings','logs','axis_config','books','gymSessions','questBoard','statSnapshots',
+  'facts','lifeObjects','selfModel','telemetry','appMeta','migrationRegistry','habits','habitOccurrences',
+  'learnings','evidence','relations','memories','syncState','audits','insights','decisions','experiments',
+  'creativeWorks','observations','jarvisConversations','routineConfig'
+]);
 
 export function parseRestorePreview(jsonString) {
   let parsed;
