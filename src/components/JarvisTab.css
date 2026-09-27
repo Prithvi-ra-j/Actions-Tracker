@@ -627,7 +627,7 @@
 
 .jarvis-composer-wrap {
   flex: 0 0 auto;
-  padding: 0.25rem 0.72rem calc(0.42rem + env(safe-area-inset-bottom));
+  padding: 0.25rem 0.72rem calc(0.42rem + env(safe-area-inset-bottom) + var(--keyboard-inset, 0px));
   background: linear-gradient(to top, var(--j-bg) 78%, transparent);
   z-index: 6;
 }
