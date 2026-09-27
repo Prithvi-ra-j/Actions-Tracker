@@ -1,3 +1,5 @@
+import { composeCalibratedScore } from '../core/scoring/calibration.js';
+
 /**
  * ScoreProjection schema factory (§22 Scoring Architecture).
  *
@@ -40,6 +42,8 @@ function now() {
  *   components:             { signal: string, value: number, weight: number, contribution: number }[],
  *   methodology:            { engine: string, version: string },
  *   supportingEvidenceIds:  string[],
+ *   sampleSize?:             number,
+ *   hasBaseline?:            boolean,
  *   scoreSource?:           'evidence'|'canonical',
  *   fallbackReason?:        string,
  *   warnings?:              string[],   — e.g. 'low coverage', 'stale data'
@@ -52,6 +56,16 @@ export function createScoreProjection(fields) {
   }
   const clampedValue = Math.min(100, Math.max(0, Math.round(fields.value)));
 
+  const sampleSize = Math.max(0, Number.isFinite(fields.sampleSize) ? Math.floor(fields.sampleSize) : fields.supportingEvidenceIds?.length ?? 0);
+  const calibrated = composeCalibratedScore({
+    score: clampedValue,
+    coverage: fields.coverage ?? 0,
+    confidence: fields.confidence ?? 0,
+    sampleSize,
+    hasBaseline: Boolean(fields.hasBaseline),
+    previousStage: fields.previousCalibrationStage,
+  });
+
   return {
     id:                   fields.id ?? generateId(),
     schemaVersion:        SCHEMA_VERSION,
@@ -63,6 +77,8 @@ export function createScoreProjection(fields) {
     components:           fields.components          ?? [],
     methodology:          fields.methodology,
     supportingEvidenceIds: fields.supportingEvidenceIds ?? [],
+    sampleSize,
+    calibration: calibrated.calibration,
     scoreSource:          fields.scoreSource         ?? 'canonical',
     fallbackReason:       fields.fallbackReason      ?? null,
     warnings:             fields.warnings            ?? [],
