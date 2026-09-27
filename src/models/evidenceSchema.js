@@ -1,3 +1,5 @@
+import { normalizeEvidence } from '../core/evidence/evidenceNormalizer.js';
+
 /**
  * Evidence schema factory (§11 Evidence Model).
  *
@@ -59,16 +61,23 @@ export function createEvidence(fields) {
     throw new Error('[evidenceSchema] confidence must be a number between 0 and 1');
   }
 
+  const normalized = normalizeEvidence(fields);
+
   return {
     id:                fields.id ?? generateId(),
     schemaVersion:     SCHEMA_VERSION,
-    domain:            fields.domain,
+    domain:            normalized.domain,
     signal:            fields.signal,
     value:             fields.value,
     unit:              fields.unit              ?? null,
     confidence:        fields.confidence,
     timeWindow:        fields.timeWindow,
-    supportingFactIds: fields.supportingFactIds ?? [],
+    supportingFactIds: normalized.supportingFactIds,
+    source:            normalized.source,
+    occurredAt:        normalized.occurredAt,
+    observedAt:        normalized.observedAt,
+    status:            normalized.status,
+    freshness:         normalized.freshness,
     methodology:       fields.methodology,
     createdAt:         now(),
   };
