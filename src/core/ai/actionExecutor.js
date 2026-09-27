@@ -20,6 +20,7 @@ import { ActionProposalSchema } from './actionSchemas.js';
 import { addLog, deleteLog } from '../../database/logsRepository.js';
 import { getSetting } from '../../database/settingsRepository.js';
 import { getActionRiskClass } from './actionPolicy.js';
+import { linkEvidenceToGoal, linkActionToGoal } from '../goals/goalProgressEngine.js';
 
 function requireId(payload, actionType) {
   if (!payload.id || typeof payload.id !== 'string') {
@@ -130,6 +131,9 @@ export async function executeAction(proposal) {
         source: { type: 'integration', integrationId: 'jarvis_conversational' }
       });
       await addRoutineSlot(payload, id);
+      if (payload.goalObjectId || payload.goalId) {
+        await linkActionToGoal(id, payload.goalObjectId || payload.goalId);
+      }
       await generateOccurrencesForDate(payload.firstOccurrenceDate || localDateStr());
       result = { ...result, id };
       break;
@@ -267,7 +271,11 @@ export async function executeAction(proposal) {
         context: payload.context || {},
         occurredAt: payload.occurredAt || new Date().toISOString(),
       });
+      if (payload.goalId) {
+        await linkEvidenceToGoal(evidenceFactId, payload.goalId, Number.isFinite(payload.confidence) ? payload.confidence : 0.8);
+      }
       result = { ...result, id: evidenceFactId, evidenceFactId };
+
       break;
     }
 
