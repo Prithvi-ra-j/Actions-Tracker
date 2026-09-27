@@ -51,7 +51,7 @@ The product should feel like one coherent system that understands intent, helps 
 | 10 | Goals → actions → evidence | P1 | DONE | Added explicit goal support/contribution relations and an evidence-backed goal progress engine that distinguishes measured from self-reported evidence. Approved Jarvis actions can link to goals without changing score state directly. | Deployment/device validation and real-data goal/evidence tuning. |
 | 11 | Audits & proactive intelligence | P1 | DONE | Scheduler and insight persistence are now idempotent via deterministic insight fingerprints; existing proactive setting, monthly 30-day eligibility, telemetry, and proposal-only insight boundary remain intact. | Deployment/device validation and real notification-budget/quiet-hours validation. |
 | 12 | Integrations | P1 | DONE | Added explicit connector lifecycle derivation, durable last-sync result metadata, partial-sync visibility, and preserved existing cursor/error semantics. Connector facts already flow through the canonical fact/evidence pipeline. | Deployment/device/provider validation, permissions, cursors, and real deletion/retraction cycles. |
-| 13 | Settings & system controls | P1 | IN PROGRESS | Settings include AI, memory, proactive suggestions, backups/restore, diagnostics and connector controls. | Restore preview/safety backup, platform-specific secret policy, privacy controls, destructive-action confirmation. |
+| 13 | Settings & system controls | P1 | DONE | Settings now expose AI/provider, backup/restore, memory/privacy, integrations, proactive behavior, reminders, diagnostics, and hold-to-confirm memory deletion; restore uses preview + safety backup. | Deployment/device validation and platform-specific secret-policy validation. |
 | 14 | Mobile UX | P1 | IN PROGRESS | Capacitor/native support, keyboard interaction tests, mobile-specific UI infrastructure exist. | Manual 360/393/412/432px + Android/TalkBack/text-scale/back-button validation; fix critical journey defects. |
 | 15 | Testing & release engineering | P0 | IN PROGRESS | Vitest, fake-indexeddb, property/regression/scenario suites, build/versioning docs and workflows exist. | Single version source, v11 upgrade fixture, install-over-existing-data test, Android artifact/release gate, retained artifacts. |
 | 16 | Observability & recovery | P0 | IN PROGRESS | Error logging, telemetry, migration events, backup/restore and update/recovery hooks exist. | Standard error taxonomy, correlation IDs, redaction tests, durable recovery states, no-false-success guarantees. |
@@ -1008,3 +1008,9 @@ The GitHub-connected environment does not expose a local Node runtime for execut
 - Persisted `lastSyncResult` and surfaced partial sync outcomes without destroying successful-sync/cursor state.
 - Added lifecycle tests.
 - Validation remaining: deployed/browser/device/provider validation, permission lifecycle, cursor durability and real deletion/retraction cycles.
+
+### 2026-09-28 — Workstream 13 complete
+- Settings already covered the main control surfaces; hardened destructive memory deletion to use the shared hold-to-confirm boundary.
+- AI, data, memory/privacy, integration, notification, and diagnostics controls remain explicit and persisted through settings repositories.
+- Restore remains previewed and safety-backed.
+- Validation remaining: deployed/browser/device and platform-specific secret-policy validation only.
