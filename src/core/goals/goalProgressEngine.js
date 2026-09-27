@@ -2,6 +2,12 @@ import { getGoal } from '../../database/goalsRepository.js';
 import { getRelationsTo, getRelationsFrom, addRelation } from '../../database/relationRepository.js';
 import { getAllFacts } from '../../database/factsRepository.js';
 
+export function classifyEvidenceQuality(facts = []) {
+  const measured = facts.filter(fact => !isSelfReported(fact)).length;
+  const selfReported = facts.filter(isSelfReported).length;
+  return measured > 0 ? 'measured' : selfReported > 0 ? 'self_reported' : 'none';
+}
+
 function isSelfReported(fact) {
   return ['manual', 'voice'].includes(fact?.source?.type)
     && ['reflection', 'observation', 'manual_evidence'].includes(fact?.type);
