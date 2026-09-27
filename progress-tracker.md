@@ -1024,3 +1024,9 @@ The GitHub-connected environment does not expose a local Node runtime for execut
 - Updated `.github/workflows/test.yml` to run `npm run test:roundtrip` alongside unit tests and build smoke test.
 - Existing Android build/release workflows remain separate gates.
 - Validation remaining: CI execution and deployed/device validation confirmation.
+
+### 2026-09-28 — Workstream 16 complete
+- Added `src/core/recovery/bootRecovery.js` for durable boot start/success/failure markers.
+- App bootstrap now records recovery state without blocking startup if metadata writes fail.
+- Existing telemetry, global error logging, backup recovery, restore safety, and migration failure paths remain intact.
+- Validation remaining: deployed/device recovery validation and recovery-state UI validation.
