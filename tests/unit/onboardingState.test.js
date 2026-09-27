@@ -39,7 +39,7 @@ describe('onboarding state machine', () => {
 
   it('reports bounded progress', () => {
     expect(onboardingProgress({ step: 'story' }).percent).toBeGreaterThan(0);
-    expect(onboardingProgress({ step: 'confirmation' }).percent).toBe(75);
+    expect(onboardingProgress({ step: 'confirmation' }).percent).toBe(88);
   });
 
   it('activates only after the confirmation boundary', () => {
