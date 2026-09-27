@@ -7,6 +7,8 @@
  */
 import { exportDatabase, importDatabase } from './db.js';
 
+const SAFETY_KEY = 'actions_tracker_pre_restore_safety_backup';
+
 export function parseRestorePreview(jsonString) {
   let parsed;
   try { parsed = JSON.parse(jsonString); }
@@ -38,11 +40,27 @@ export function parseRestorePreview(jsonString) {
 
 export async function createSafetyBackup() {
   const json = await exportDatabase();
-  return {
+  const backup = {
     json,
     createdAt: new Date().toISOString(),
     totalBytes: new TextEncoder().encode(json).length,
   };
+  if (typeof localStorage !== 'undefined') {
+    try { localStorage.setItem(SAFETY_KEY, JSON.stringify(backup)); } catch { /* quota/storage unavailable */ }
+  }
+  return backup;
+}
+
+export function getSafetyBackup() {
+  if (typeof localStorage === 'undefined') return null;
+  try {
+    const raw = localStorage.getItem(SAFETY_KEY);
+    return raw ? JSON.parse(raw) : null;
+  } catch { return null; }
+}
+
+export function clearSafetyBackup() {
+  try { localStorage.removeItem(SAFETY_KEY); } catch { /* storage unavailable */ }
 }
 
 export async function restoreWithSafetyBackup(jsonString, { createBackup = createSafetyBackup } = {}) {
