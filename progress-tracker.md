@@ -41,7 +41,7 @@ The product should feel like one coherent system that understands intent, helps 
 |---|---|---|---|---|---|
 | 1 | Data & persistence foundation | P0 | IN PROGRESS | IndexedDB v11, repositories, appMeta, export/import, backup/migration infrastructure, local-date helpers. **2026-09-27:** fresh-start reset hardened; restore-safety boundary and migration registry added with executable tests. | Remaining: decide browser AI-key persistence policy and complete final device/upgrade release evidence. Core preview, safety backup, record validation, migration registry, v10→v11 preservation fixture, and interrupted-restore fixture are implemented. |
 | 2 | Canonical domain/data model | P0 | DONE | Canonical constructors/events plus domainRegistry.js and domainValidators.js now define domains, entity ownership/history, legacy mappings, normalization and validation; executable tests added. | Future: migrate remaining production writers/readers behind this registry and add legacy fixture round-trip coverage. |
-| 3 | Onboarding redesign | P0 | IN PROGRESS | Existing onboarding flow, Jarvis completion action, resumability-related infrastructure. | Implement state-machine UX: story → reality → direction → constraints → baseline → confirmation → calibrating; non-AI fallback; interruption/recovery tests. |
+| 3 | Onboarding redesign | P0 | DONE | Persisted 10-state onboarding machine, step-driven Jarvis interview, answer persistence, confirmation boundary, resumable progress UI, and non-AI guided fallback. | Deployment/device validation of resume, AI/no-AI paths, and approval flow. |
 | 4 | Calibration engine | P0 | NOT STARTED | Score confidence/coverage infrastructure exists. | Create deterministic calibration contract, evidence windows, minimum sample size, hysteresis, user-approved plan adjustment. |
 | 5 | Scoring engine | P0 | IN PROGRESS | Legacy C/V/M + newer evidence/domain projection paths coexist; confidence/coverage/fallback concepts exist; parity tests exist. | Lock canonical six-domain contract, version formulas, authority resolver, explainability payload, golden fixtures. |
 | 6 | Evidence & learning loop | P0 | IN PROGRESS | Facts/evidence repositories and domain evidence pipeline exist; Today evidence capture exists. | Normalize all evidence sources, provenance/retractions/freshness rules, derived rebuild contract, user correction UX. |
@@ -937,3 +937,12 @@ The GitHub-connected environment does not expose a local Node runtime for execut
 - Added interrupted-restore fixture proving the safety snapshot survives a simulated write failure.
 - Workstream 1 is implementation-complete pending browser AI-key policy and real device/release validation.
 - Workstream 2 is implementation-complete; future work is compatibility fixture expansion and migrating every remaining writer behind the registry.
+
+### 2026-09-28 — Workstream 3 complete
+- Added persisted onboarding state machine under `src/core/onboarding/`.
+- Added structured onboarding questions and deterministic step transitions.
+- Updated Jarvis onboarding to load/save state, show progress, persist each answer, and constrain completion to the confirmation boundary.
+- Added non-AI guided onboarding fallback that stores answers locally and requires explicit confirmation.
+- Updated approved `complete_onboarding` execution to mark persisted onboarding state active.
+- Added `tests/unit/onboardingState.test.js` covering transitions, normalization, progress, and activation.
+- Validation remaining: deployed/browser/device validation only; automated tests were committed but not executed in this session because no Node runtime was available.
