@@ -180,7 +180,11 @@ async function _buildProjection(domain, period) {
     projection.warnings.push('plateau_detected: Score has barely changed in 4 weeks. Consider increasing difficulty or shifting phase to maintaining.');
   }
 
-  return createScoreProjection(projection);
+  return createScoreProjection({
+    ...projection,
+    sampleSize: projection.sampleSize ?? projection.supportingEvidenceIds?.length ?? 0,
+    hasBaseline: axisLogs.some(log => log.type === 'onboarding_assessment'),
+  });
 }
 
 async function _buildDisciplineProjection(period) {
