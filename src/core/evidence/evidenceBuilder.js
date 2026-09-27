@@ -42,6 +42,7 @@ export function buildEvidenceFromFacts(domain, facts, timeWindow, engineId, engi
 
     const { value, unit, confidence } = fn(relevant, timeWindow);
 
+    const sourceFact = relevant[relevant.length - 1];
     results.push(createEvidence({
       domain,
       signal,
@@ -49,6 +50,8 @@ export function buildEvidenceFromFacts(domain, facts, timeWindow, engineId, engi
       unit,
       confidence,
       timeWindow,
+      occurredAt: sourceFact?.occurredAt || sourceFact?.date || timeWindow.end,
+      source: sourceFact?.source || sourceFact?.meta?.source || { type: 'system' },
       supportingFactIds: relevant.map(f => f.id),
       methodology: {
         engineId,
