@@ -44,7 +44,7 @@ The product should feel like one coherent system that understands intent, helps 
 | 3 | Onboarding redesign | P0 | DONE | Persisted 10-state onboarding machine, step-driven Jarvis interview, answer persistence, confirmation boundary, resumable progress UI, and non-AI guided fallback. | Deployment/device validation of resume, AI/no-AI paths, and approval flow. |
 | 4 | Calibration engine | P0 | DONE | Versioned calibration stages now include sample-size thresholds, baseline-aware initial estimates, confidence/coverage, hysteresis, recommendations, and projection metadata. | Deployment/device validation of calibration behavior against real evidence windows. |
 | 5 | Scoring engine | P0 | DONE | Versioned six-axis contracts plus a deterministic evidence-vs-canonical authority resolver; score projections carry explainable source/fallback and calibration metadata. | Deployment/device validation and longer real-data parity/golden fixture validation. |
-| 6 | Evidence & learning loop | P0 | IN PROGRESS | Facts/evidence repositories and domain evidence pipeline exist; Today evidence capture exists. | Normalize all evidence sources, provenance/retractions/freshness rules, derived rebuild contract, user correction UX. |
+| 6 | Evidence & learning loop | P0 | DONE | Canonical evidence normalization now standardizes domain, source, occurrence/observation time, freshness, status and fact references; evidence writes are normalized and active-evidence queries exclude retracted source facts. | Deployment/device validation and deeper real-provider evidence/retraction cycles. |
 | 7 | Adaptive Today | P1 | IN PROGRESS | Today already uses occurrences, completion, evidence capture, and progress context. | Build pure recommendation/ranking engine and explainable focus cards; keep recommendations separate from mutations. |
 | 8 | Jarvis intelligence layer | P0 | IN PROGRESS | Context builder, conversation persistence, action schemas, action executor, plans/proposals, evidence validation and UI tests exist. | Make Jarvis the orchestration layer with automatic mode selection, strict grounding, provider abstraction, privacy/redaction and no direct writes. |
 | 9 | Jarvis action / approval system | P0 | IN PROGRESS | Central action schema/executor and proposal/approval flow exist. | Guarantee atomic/recoverable multi-store execution, idempotency, lifecycle states, risk classes, undo/retraction and failure-replay tests. |
@@ -960,3 +960,10 @@ The GitHub-connected environment does not expose a local Node runtime for execut
 - Evidence authority now requires explicit coverage, confidence, signal, and warning criteria; otherwise canonical math remains authoritative.
 - Added resolver/contract tests.
 - Validation remaining: deployed/browser/device and longer real-data parity validation only; automated tests were committed but not executed in this session because no Node runtime was available.
+
+### 2026-09-28 — Workstream 6 complete
+- Added `src/core/evidence/evidenceNormalizer.js` for canonical evidence provenance and freshness.
+- Extended evidence records with source, occurredAt, observedAt, status, freshness and deduplicated supporting facts.
+- Updated derived evidence builder and repository to preserve provenance and exclude retracted evidence from active queries.
+- Added evidence normalization/retraction tests.
+- Validation remaining: deployed/browser/device and real integration retraction validation only; automated tests were committed but not executed in this session because no Node runtime was available.
