@@ -39,8 +39,8 @@ The product should feel like one coherent system that understands intent, helps 
 
 | # | Workstream | Priority | Status | Current implementation | Remaining gate |
 |---|---|---|---|---|---|
-| 1 | Data & persistence foundation | P0 | IN PROGRESS | IndexedDB v11, repositories, appMeta, export/import, backup/migration infrastructure, local-date helpers. **2026-09-27:** fresh-start reset hardened to fail closed using durable `appMeta` installation baseline. | Add restore preview + safety backup, deeper record validation, migration fixtures, interrupted-restore tests, browser key policy, explicit reset semantics. |
-| 2 | Canonical domain/data model | P0 | IN PROGRESS | Canonical domain constructors/events exist in `src/core/domain/domainEvents.js`; tests exist. | Publish authoritative entity/domain registry, ownership matrix, legacy mappings, one-write ownership, schema validation. |
+| 1 | Data & persistence foundation | P0 | IN PROGRESS | IndexedDB v11, repositories, appMeta, export/import, backup/migration infrastructure, local-date helpers. **2026-09-27:** fresh-start reset hardened; restore-safety boundary and migration registry added with executable tests. | Remaining: wire restore-safety boundary into Settings, add v11 upgrade fixture, record-level schema validation, interrupted-restore fault injection, browser key policy, explicit reset semantics. |
+| 2 | Canonical domain/data model | P0 | DONE | Canonical constructors/events plus domainRegistry.js and domainValidators.js now define domains, entity ownership/history, legacy mappings, normalization and validation; executable tests added. | Future: migrate remaining production writers/readers behind this registry and add legacy fixture round-trip coverage. |
 | 3 | Onboarding redesign | P0 | IN PROGRESS | Existing onboarding flow, Jarvis completion action, resumability-related infrastructure. | Implement state-machine UX: story → reality → direction → constraints → baseline → confirmation → calibrating; non-AI fallback; interruption/recovery tests. |
 | 4 | Calibration engine | P0 | NOT STARTED | Score confidence/coverage infrastructure exists. | Create deterministic calibration contract, evidence windows, minimum sample size, hysteresis, user-approved plan adjustment. |
 | 5 | Scoring engine | P0 | IN PROGRESS | Legacy C/V/M + newer evidence/domain projection paths coexist; confidence/coverage/fallback concepts exist; parity tests exist. | Lock canonical six-domain contract, version formulas, authority resolver, explainability payload, golden fixtures. |
@@ -903,3 +903,25 @@ For every future implementation session, append:
 ```
 
 This file is the single progress view for the Actions-Tracker 2.0 implementation program.
+
+## 2026-09-27 — Workstreams 1 & 2 implementation slice
+
+### Implemented
+- Workstream 1: versioned post-schema migration registry with ordered execution, verification, completion journaling and failure state.
+- Workstream 1: restore preview + safety-backup boundary in src/database/restoreSafety.js.
+- Workstream 1: regression tests for restore preview and migration execution/idempotency/failure verification.
+- Workstream 2: canonical domain/entity registry with explicit ownership and history semantics.
+- Workstream 2: legacy domain/store mappings and normalization.
+- Workstream 2: canonical entity validation and confidence bounds.
+- Workstream 2: executable registry/validation tests.
+
+### Commits
+- 3b22ef7c62440fbb764bd0d5fee9a86690be99ce — canonical domain/entity registry
+- 7918c1fbc2d98a13ea0ba1c139959195cfb68a07 — canonical entity validation
+- 733e65c350d92a12a9e97fae6d700ad5cc6c6c8b — migration registry
+- 20579783c9b7f131fbe308a78470950eb5e2950e — restore safety boundary
+- 1867b1d67b24e399555896f877b586b55584d47e — persistence/domain contract tests
+- 74a3e9c0bf5c9ceef878053e23f00eeafcc253c2 — restore safety tests
+
+### Verification note
+The GitHub-connected environment does not expose a local Node runtime for executing the repository Vitest suite in this session. The new tests are committed and designed for the existing Vitest + fake-indexeddb setup; CI should be the execution authority before marking the remaining release gates closed.
