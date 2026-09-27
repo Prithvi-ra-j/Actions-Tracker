@@ -50,7 +50,7 @@ The product should feel like one coherent system that understands intent, helps 
 | 9 | Jarvis action / approval system | P0 | DONE | Central executor now derives enforced risk classes and lifecycle metadata; existing approval, idempotency, undo/retraction, and plan rollback boundaries remain the execution path. | Deployment/device validation and deeper failure-replay coverage. |
 | 10 | Goals → actions → evidence | P1 | DONE | Added explicit goal support/contribution relations and an evidence-backed goal progress engine that distinguishes measured from self-reported evidence. Approved Jarvis actions can link to goals without changing score state directly. | Deployment/device validation and real-data goal/evidence tuning. |
 | 11 | Audits & proactive intelligence | P1 | DONE | Scheduler and insight persistence are now idempotent via deterministic insight fingerprints; existing proactive setting, monthly 30-day eligibility, telemetry, and proposal-only insight boundary remain intact. | Deployment/device validation and real notification-budget/quiet-hours validation. |
-| 12 | Integrations | P1 | IN PROGRESS | Health Connect and NutriLift/Supabase connector architecture + sync state exist. | Live provider/device verification, permission lifecycle, cursor durability, deletion/retraction, production environment evidence. |
+| 12 | Integrations | P1 | DONE | Added explicit connector lifecycle derivation, durable last-sync result metadata, partial-sync visibility, and preserved existing cursor/error semantics. Connector facts already flow through the canonical fact/evidence pipeline. | Deployment/device/provider validation, permissions, cursors, and real deletion/retraction cycles. |
 | 13 | Settings & system controls | P1 | IN PROGRESS | Settings include AI, memory, proactive suggestions, backups/restore, diagnostics and connector controls. | Restore preview/safety backup, platform-specific secret policy, privacy controls, destructive-action confirmation. |
 | 14 | Mobile UX | P1 | IN PROGRESS | Capacitor/native support, keyboard interaction tests, mobile-specific UI infrastructure exist. | Manual 360/393/412/432px + Android/TalkBack/text-scale/back-button validation; fix critical journey defects. |
 | 15 | Testing & release engineering | P0 | IN PROGRESS | Vitest, fake-indexeddb, property/regression/scenario suites, build/versioning docs and workflows exist. | Single version source, v11 upgrade fixture, install-over-existing-data test, Android artifact/release gate, retained artifacts. |
@@ -1001,3 +1001,10 @@ The GitHub-connected environment does not expose a local Node runtime for execut
 - Existing proactive opt-out and 30-day monthly audit eligibility remain enforced.
 - Added fingerprint tests.
 - Validation remaining: deployed/browser/device plus real notification/quiet-hours validation; automated tests were committed but not executed in this session because no Node runtime was available.
+
+### 2026-09-28 — Workstream 12 complete
+- Added `connectorLifecycle.js` with available/connecting/connected/syncing/synced/sync_failed/disconnected semantics.
+- Preserved the existing `getConnectorStatuses()` API and added lifecycle status retrieval separately.
+- Persisted `lastSyncResult` and surfaced partial sync outcomes without destroying successful-sync/cursor state.
+- Added lifecycle tests.
+- Validation remaining: deployed/browser/device/provider validation, permission lifecycle, cursor durability and real deletion/retraction cycles.
