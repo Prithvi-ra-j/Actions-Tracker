@@ -12,6 +12,7 @@ import { ActionProposalSchema } from './actionSchemas.js';
 import { validateClaimSupport } from './contextBuilder.js';
 import { z } from 'zod';
 import { resolveAssistantMode } from './assistantModeResolver.js';
+import { getActionRiskClass } from './actionPolicy.js';
 
 const ConversationalResponseSchema = z.object({
   message: z.string(),
@@ -80,6 +81,8 @@ function normalizeActionProposal(proposal) {
     confidence: Number.isFinite(confidenceNumber)
       ? Math.max(0, Math.min(1, confidenceNumber))
       : 0.5,
+    riskClass: getActionRiskClass(actionType),
+    lifecycle: 'waiting_approval',
   };
 }
 
