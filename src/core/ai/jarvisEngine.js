@@ -188,6 +188,19 @@ export async function chatWithJarvis(userMessage, history = [], modificationCont
       }
     : null;
 
+  const onboardingInstruction = options.onboarding
+    ? {
+        role: 'system',
+        content: [
+          'This is the structured onboarding interview.',
+          'Current onboarding step: ' + String(options.onboardingStep || 'intro'),
+          'Ask one focused question at a time and keep the conversation natural.',
+          'Do not propose changes while collecting information.',
+          'Do not use complete_onboarding until the user is at the confirmation step and has explicitly confirmed the summary.',
+        ].join('\\n'),
+      }
+    : null;
+
   const entryContextInstruction = options.entryContext
     ? {
         role: 'system',
@@ -213,6 +226,7 @@ export async function chatWithJarvis(userMessage, history = [], modificationCont
   const messages = [
     { role: 'system', content: JARVIS_SYSTEM_PROMPT },
     { role: 'system', content: `Here is the CURRENT system state and evidence:\n\n${contextText}` },
+    ...(onboardingInstruction ? [onboardingInstruction] : []),
     ...(entryContextInstruction ? [entryContextInstruction] : []),
     ...(modificationInstruction ? [modificationInstruction] : []),
     ...llmHistory,
