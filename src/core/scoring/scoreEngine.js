@@ -39,6 +39,7 @@ import { getOccurrencesForHabit } from '../../database/habitOccurrenceRepository
 import { getAllHabits }           from '../../database/habitRepository.js';
 import { getAllLearnings }        from '../../database/learningRepository.js';
 import { getAllBooks }            from '../../database/booksRepository.js';
+import { resolveScoreAuthority } from './scoringAuthority.js';
 
 const SCORE_ENGINE_VERSION = '1.0';
 
@@ -132,24 +133,18 @@ async function _buildProjection(domain, period) {
   // Step 4: Scoring Authority Resolver (P0)
   // If evidence is strong enough, the engine's projection value takes authority.
   // Otherwise, it falls back to the canonical statsEngine value.
-  const requiredSignalsPresent = projection.components && projection.components.length > 0;
-  const noCriticalWarnings = !projection.warnings || !projection.warnings.some(w => w.startsWith('low_coverage'));
-  
-  const authority = (
-    projection.coverage >= 0.8 &&
-    projection.confidence >= 0.7 &&
-    requiredSignalsPresent &&
-    noCriticalWarnings
-  );
+  const authority = resolveScoreAuthority({
+    evidenceValue: projection.value,
+    canonicalValue,
+    coverage: projection.coverage,
+    confidence: projection.confidence,
+    components: projection.components,
+    warnings: projection.warnings || [],
+  });
 
-  if (authority) {
-    projection.scoreSource = 'evidence';
-    // projection.value remains whatever the domain engine calculated based on evidence
-  } else {
-    projection.scoreSource = 'canonical';
-    projection.fallbackReason = 'Insufficient evidence coverage/confidence';
-    projection.value = canonicalValue; 
-  }
+  projection.scoreSource = authority.source;
+  projection.fallbackReason = authority.fallbackReason;
+  projection.authority = authority;
   
   // Step 7: Plateau Detection
   const allSnapshots = await getAllSnapshots();
