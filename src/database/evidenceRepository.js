@@ -12,6 +12,8 @@
  */
 
 import { dbGet, dbPut, dbGetAll, dbGetAllByIndex } from './db.js';
+import { createEvidence } from '../models/evidenceSchema.js';
+import { getAllFacts } from './factsRepository.js';
 
 const STORE = 'evidence';
 const SCHEMA_VERSION = 1;
@@ -44,21 +46,8 @@ function now() {
  * @returns {Promise<string>} The generated evidence ID
  */
 export async function addEvidence(fields) {
-  const ts = now();
-  const record = {
-    id:                fields.id ?? generateId(),
-    schemaVersion:     SCHEMA_VERSION,
-    domain:            fields.domain,
-    signal:            fields.signal,
-    value:             fields.value,
-    unit:              fields.unit             ?? null,
-    confidence:        fields.confidence,
-    timeWindow:        fields.timeWindow,
-    supportingFactIds: fields.supportingFactIds ?? [],
-    methodology:       fields.methodology,
-    createdAt:         ts,
-  };
-  await dbPut(STORE, record);
+  const record = createEvidence(fields);
+  await dbPut(STORE, { ...record, createdAt: record.createdAt || now() });
   return record.id;
 }
 
@@ -115,4 +104,19 @@ export async function getLatestEvidence(domain) {
 export async function getAllEvidence() {
   const all = await dbGetAll(STORE);
   return all.sort((a, b) => a.createdAt.localeCompare(b.createdAt));
+}
+
+
+export async function getActiveEvidence(domain = null) {
+  const evidence = domain ? await getEvidenceByDomain(domain) : await getAllEvidence();
+  const facts = await getAllFacts();
+  const retractedFactIds = new Set(
+    facts
+      .filter(f => f.type === 'retraction' && f.meta?.retractedFactId)
+      .map(f => f.meta.retractedFactId)
+  );
+  return evidence.filter(item =>
+    item.status !== 'retracted' &&
+    !(item.supportingFactIds || []).some(id => retractedFactIds.has(id))
+  );
 }
