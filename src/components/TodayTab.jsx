@@ -6,6 +6,7 @@ import { Button } from './ui/Buttons.jsx';
 import { EmptyState } from './ui/States.jsx';
 import { SegmentedBar } from './ui/Indicators.jsx';
 import { Sparkle, Warning, PencilSimple } from '@phosphor-icons/react';
+import { buildTodayRecommendations } from '../core/today/todayRecommendationEngine.js';
 
 // Axis color map — only used as small dots per design rules
 const AXIS_COLORS = {
@@ -165,6 +166,9 @@ export default function TodayTab({
   onOccurrenceReason,
   onAddEvidence,
   allQuests,
+  stats,
+  axisDetails,
+  lifeGoals,
   onGoToGoals,
   onOpenJarvis,
 }) {
@@ -181,6 +185,7 @@ export default function TodayTab({
 
   const occurrences = todayOccurrences || [];
   const overloaded = occurrences.length > 6;
+  const todayPlan = buildTodayRecommendations({ occurrences, stats, axisDetails, goals: lifeGoals });
 
   const handleComplete = useCallback((id) => {
     onCompleteOccurrence(id);
@@ -222,6 +227,23 @@ export default function TodayTab({
             Ask Jarvis
           </button>
         </div>
+      )}
+
+      {todayPlan.items.length > 0 && (
+        <section aria-label="Today focus" style={{ marginBottom: '18px' }}>
+          <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', marginBottom: '7px' }}>
+            <span style={{ fontFamily: "'Geist Mono', monospace", fontSize: '11.5px', color: 'var(--mu)' }}>Your focus</span>
+            <span style={{ fontSize: '11px', color: 'var(--mu)' }}>{todayPlan.workload.pending} pending</span>
+          </div>
+          <div style={{ display: 'grid', gap: '8px' }}>
+            {todayPlan.items.map(item => (
+              <div key={item.id} style={{ padding: '12px 13px', borderRadius: 'var(--r-container)', background: 'var(--s1)', boxShadow: 'inset 0 0 0 1px var(--hairline)' }}>
+                <div style={{ fontSize: '14px', fontWeight: 600 }}>{item.title}</div>
+                <div style={{ marginTop: '4px', color: 'var(--mu)', fontSize: '12.5px', lineHeight: 1.4 }}>{item.reason}</div>
+              </div>
+            ))}
+          </div>
+        </section>
       )}
 
       {/* Quest Log */}
