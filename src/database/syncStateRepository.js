@@ -77,6 +77,7 @@ export async function markSyncSuccess(connectorId, cursor = null, resultStatus =
     cursor:             cursor ?? state.cursor,
     lastSuccessfulSync: now(),
     lastError:          null,
+    lastSyncResult:     resultStatus,
   });
 }
 
