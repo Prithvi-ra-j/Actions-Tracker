@@ -8,6 +8,7 @@
 
 import { getSyncState, markSyncStarted, markSyncSuccess, markSyncError } from '../../database/syncStateRepository.js';
 import { addFact } from '../../database/factsRepository.js';
+import { deriveConnectorLifecycle } from './connectorLifecycle.js';
 
 const registry = new Map();
 
@@ -30,7 +31,13 @@ export async function getConnectorStatuses() {
   const statuses = {};
   for (const [id, connector] of registry.entries()) {
     try {
-      statuses[id] = await connector.getStatus();
+      const connectionStatus = await connector.getStatus();
+      const syncState = await getSyncState(id);
+      statuses[id] = {
+        connectionStatus,
+        lifecycle: deriveConnectorLifecycle(connectionStatus, syncState),
+        syncState,
+      };
     } catch (error) {
       statuses[id] = { status: 'error', message: error.message };
     }
@@ -86,6 +93,9 @@ export async function runAllSyncs() {
       } else {
         await markSyncSuccess(id, result.cursor);
         summary.totalImported += ingestedCount;
+        if (result.status === 'partial') {
+          summary.errors.push({ id, message: 'Connector completed with partial results' });
+        }
       }
     } catch (err) {
       console.error(`[syncManager] Unhandled error syncing connector ${id}:`, err);
