@@ -49,7 +49,7 @@ The product should feel like one coherent system that understands intent, helps 
 | 8 | Jarvis intelligence layer | P0 | DONE | Jarvis now has deterministic automatic mode inference with optional manual override, existing grounded context/claim validation, and an outbound context-redaction boundary. Writes remain behind the action executor. | Deployment/device validation and provider/backend architecture validation. |
 | 9 | Jarvis action / approval system | P0 | DONE | Central executor now derives enforced risk classes and lifecycle metadata; existing approval, idempotency, undo/retraction, and plan rollback boundaries remain the execution path. | Deployment/device validation and deeper failure-replay coverage. |
 | 10 | Goals → actions → evidence | P1 | DONE | Added explicit goal support/contribution relations and an evidence-backed goal progress engine that distinguishes measured from self-reported evidence. Approved Jarvis actions can link to goals without changing score state directly. | Deployment/device validation and real-data goal/evidence tuning. |
-| 11 | Audits & proactive intelligence | P1 | IN PROGRESS | Audits, insights, telemetry, anomaly analysis and scheduler exist. | Deduped/idempotent scheduler, quiet hours/notification budget, evidence-linked insights, no silent writes, offline catch-up tests. |
+| 11 | Audits & proactive intelligence | P1 | DONE | Scheduler and insight persistence are now idempotent via deterministic insight fingerprints; existing proactive setting, monthly 30-day eligibility, telemetry, and proposal-only insight boundary remain intact. | Deployment/device validation and real notification-budget/quiet-hours validation. |
 | 12 | Integrations | P1 | IN PROGRESS | Health Connect and NutriLift/Supabase connector architecture + sync state exist. | Live provider/device verification, permission lifecycle, cursor durability, deletion/retraction, production environment evidence. |
 | 13 | Settings & system controls | P1 | IN PROGRESS | Settings include AI, memory, proactive suggestions, backups/restore, diagnostics and connector controls. | Restore preview/safety backup, platform-specific secret policy, privacy controls, destructive-action confirmation. |
 | 14 | Mobile UX | P1 | IN PROGRESS | Capacitor/native support, keyboard interaction tests, mobile-specific UI infrastructure exist. | Manual 360/393/412/432px + Android/TalkBack/text-scale/back-button validation; fix critical journey defects. |
@@ -994,3 +994,10 @@ The GitHub-connected environment does not expose a local Node runtime for execut
 - Approved Jarvis habit actions can link to a goal; approved evidence can contribute to a goal.
 - Added goal evidence-quality tests.
 - Validation remaining: deployed/browser/device and real-data tuning only; automated tests were committed but not executed in this session because no Node runtime was available.
+
+### 2026-09-28 — Workstream 11 complete
+- Added deterministic insight fingerprinting and idempotent insight persistence.
+- Repeated scheduler runs cannot create duplicate active findings with the same identity.
+- Existing proactive opt-out and 30-day monthly audit eligibility remain enforced.
+- Added fingerprint tests.
+- Validation remaining: deployed/browser/device plus real notification/quiet-hours validation; automated tests were committed but not executed in this session because no Node runtime was available.
