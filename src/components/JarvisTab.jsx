@@ -139,6 +139,7 @@ export default function JarvisTab({ t, isActive = true, onQuestsChanged, onboard
   useEffect(() => {
     let cancelled = false;
     if (apiConfigured !== true) return undefined;
+    if (activeOnboardingMode && !onboardingState) return undefined;
     setConversationReady(false);
 
     (async () => {
@@ -213,7 +214,7 @@ export default function JarvisTab({ t, isActive = true, onQuestsChanged, onboard
     })();
 
     return () => { cancelled = true; };
-  }, [conversationId, activeOnboardingMode, apiConfigured, onboardingRetryNonce]);
+  }, [conversationId, activeOnboardingMode, apiConfigured, onboardingRetryNonce, onboardingState]);
 
   useEffect(() => {
     let cancelled = false;
