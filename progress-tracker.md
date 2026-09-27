@@ -45,7 +45,7 @@ The product should feel like one coherent system that understands intent, helps 
 | 4 | Calibration engine | P0 | DONE | Versioned calibration stages now include sample-size thresholds, baseline-aware initial estimates, confidence/coverage, hysteresis, recommendations, and projection metadata. | Deployment/device validation of calibration behavior against real evidence windows. |
 | 5 | Scoring engine | P0 | DONE | Versioned six-axis contracts plus a deterministic evidence-vs-canonical authority resolver; score projections carry explainable source/fallback and calibration metadata. | Deployment/device validation and longer real-data parity/golden fixture validation. |
 | 6 | Evidence & learning loop | P0 | DONE | Canonical evidence normalization now standardizes domain, source, occurrence/observation time, freshness, status and fact references; evidence writes are normalized and active-evidence queries exclude retracted source facts. | Deployment/device validation and deeper real-provider evidence/retraction cycles. |
-| 7 | Adaptive Today | P1 | IN PROGRESS | Today already uses occurrences, completion, evidence capture, and progress context. | Build pure recommendation/ranking engine and explainable focus cards; keep recommendations separate from mutations. |
+| 7 | Adaptive Today | P1 | DONE | Added a pure recommendation engine and explainable Today focus cards using scheduled actions, score confidence/coverage, and active goals without mutating data. | Deployment/device validation and tuning against real usage. |
 | 8 | Jarvis intelligence layer | P0 | IN PROGRESS | Context builder, conversation persistence, action schemas, action executor, plans/proposals, evidence validation and UI tests exist. | Make Jarvis the orchestration layer with automatic mode selection, strict grounding, provider abstraction, privacy/redaction and no direct writes. |
 | 9 | Jarvis action / approval system | P0 | IN PROGRESS | Central action schema/executor and proposal/approval flow exist. | Guarantee atomic/recoverable multi-store execution, idempotency, lifecycle states, risk classes, undo/retraction and failure-replay tests. |
 | 10 | Goals → actions → evidence | P1 | IN PROGRESS | Goals, life objects, habits, quests, facts, evidence and relations exist. | Make relations explicit and progress derived from valid evidence; distinguish measured vs self-reported progress. |
@@ -967,3 +967,10 @@ The GitHub-connected environment does not expose a local Node runtime for execut
 - Updated derived evidence builder and repository to preserve provenance and exclude retracted evidence from active queries.
 - Added evidence normalization/retraction tests.
 - Validation remaining: deployed/browser/device and real integration retraction validation only; automated tests were committed but not executed in this session because no Node runtime was available.
+
+### 2026-09-28 — Workstream 7 complete
+- Added `src/core/today/todayRecommendationEngine.js` as a pure derived recommendation layer.
+- Today now shows up to three explainable focus items from scheduled actions, low-confidence evidence areas, and active goals.
+- Recommendations do not create, edit, or delete user data.
+- Added recommendation engine tests.
+- Validation remaining: deployed/browser/device validation and real-usage tuning only; automated tests were committed but not executed in this session because no Node runtime was available.
