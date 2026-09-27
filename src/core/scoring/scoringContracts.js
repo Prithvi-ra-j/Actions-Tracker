@@ -1,3 +1,5 @@
+export const SCORING_CONTRACT_VERSION = '1.1';
+
 export const SCORE_AXES = Object.freeze([
   'body',
   'discipline',
@@ -8,6 +10,7 @@ export const SCORE_AXES = Object.freeze([
 ]);
 
 export const DISCIPLINE_CONTRACT = Object.freeze({
+  contractVersion: SCORING_CONTRACT_VERSION,
   axis: 'discipline',
   signals: ['consistency', 'commitment_completion', 'routine_adherence', 'recovery'],
   explanation: 'Why did this number change?',
@@ -17,6 +20,7 @@ export const DISCIPLINE_CONTRACT = Object.freeze({
 });
 
 export const BODY_CONTRACT = Object.freeze({
+  contractVersion: SCORING_CONTRACT_VERSION,
   axis: 'body',
   signals: ['training_volume', 'recovery', 'consistency', 'readiness'],
   explanation: 'Why did this number change?',
@@ -26,6 +30,7 @@ export const BODY_CONTRACT = Object.freeze({
 });
 
 export const KNOWLEDGE_CONTRACT = Object.freeze({
+  contractVersion: SCORING_CONTRACT_VERSION,
   axis: 'knowledge',
   signals: ['learning_depth', 'application', 'retention', 'synthesis'],
   explanation: 'Why did this number change?',
@@ -35,6 +40,7 @@ export const KNOWLEDGE_CONTRACT = Object.freeze({
 });
 
 export const SOCIAL_CONTRACT = Object.freeze({
+  contractVersion: SCORING_CONTRACT_VERSION,
   axis: 'social',
   signals: ['connection_frequency', 'quality', 'initiative', 'repair'],
   explanation: 'Why did this number change?',
@@ -44,6 +50,7 @@ export const SOCIAL_CONTRACT = Object.freeze({
 });
 
 export const CREATIVITY_CONTRACT = Object.freeze({
+  contractVersion: SCORING_CONTRACT_VERSION,
   axis: 'creativity',
   signals: ['practice', 'production', 'iteration', 'completion'],
   explanation: 'Why did this number change?',
@@ -53,6 +60,7 @@ export const CREATIVITY_CONTRACT = Object.freeze({
 });
 
 export const STRATEGY_CONTRACT = Object.freeze({
+  contractVersion: SCORING_CONTRACT_VERSION,
   axis: 'strategy',
   signals: ['planning', 'decision_quality', 'review_behavior', 'experiments'],
   explanation: 'Why did this number change?',
