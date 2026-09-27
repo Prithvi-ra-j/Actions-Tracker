@@ -84,6 +84,7 @@ export function createEmptySelfModel() {
     onboardingCompletedAt: null,
     onboardingVersion: 1,
     setupState: 'jarvis_design_pending',
+    onboarding: null,
   };
 }
 
