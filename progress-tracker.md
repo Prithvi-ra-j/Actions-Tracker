@@ -1019,3 +1019,8 @@ The GitHub-connected environment does not expose a local Node runtime for execut
 - Hardened Jarvis mobile composition with `visualViewport` keyboard-inset tracking.
 - Existing safe-area handling, 44px controls, bottom sheets and responsive breakpoints remain in place.
 - Validation remaining: deployed/device validation across target mobile sizes and keyboard implementations.
+
+### 2026-09-28 — Workstream 15 complete
+- Updated `.github/workflows/test.yml` to run `npm run test:roundtrip` alongside unit tests and build smoke test.
+- Existing Android build/release workflows remain separate gates.
+- Validation remaining: CI execution and deployed/device validation confirmation.
