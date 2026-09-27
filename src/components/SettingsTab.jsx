@@ -19,6 +19,7 @@ export default function SettingsTab({ t, onClose, reminders: reminderConfigs = [
   const [sendContext, setSendContext] = useState(true);
   const [memories, setMemories] = useState([]);
   const [preferenceError, setPreferenceError] = useState('');
+  const [clearMemoriesOpen, setClearMemoriesOpen] = useState(false);
 
   // Notifications state
   const [proactive, setProactive] = useState(true);
@@ -76,7 +77,6 @@ export default function SettingsTab({ t, onClose, reminders: reminderConfigs = [
   }, []);
 
   const handleClearMemories = async () => {
-    if (!window.confirm("Delete all memories?")) return;
     const { getSemanticMemories, rejectMemory } = await import('../database/memoryRepository.js');
     const all = await getSemanticMemories();
     for (const mem of all) {
@@ -438,10 +438,18 @@ export default function SettingsTab({ t, onClose, reminders: reminderConfigs = [
       <Button
         variant="secondary"
         style={{ width: '100%', color: 'var(--danger)' }}
-        onClick={handleClearMemories}
+        onClick={() => setClearMemoriesOpen(true)}
       >
         Clear all memories
       </Button>
+      <ConfirmDialog
+        isOpen={clearMemoriesOpen}
+        onClose={() => setClearMemoriesOpen(false)}
+        onConfirm={handleClearMemories}
+        title="Delete all memories?"
+        description="This retracts every saved Jarvis memory. It does not delete your goals, logs, or evidence."
+        destructive
+      />
     </div>
   );
 
