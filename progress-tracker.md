@@ -46,7 +46,7 @@ The product should feel like one coherent system that understands intent, helps 
 | 5 | Scoring engine | P0 | DONE | Versioned six-axis contracts plus a deterministic evidence-vs-canonical authority resolver; score projections carry explainable source/fallback and calibration metadata. | Deployment/device validation and longer real-data parity/golden fixture validation. |
 | 6 | Evidence & learning loop | P0 | DONE | Canonical evidence normalization now standardizes domain, source, occurrence/observation time, freshness, status and fact references; evidence writes are normalized and active-evidence queries exclude retracted source facts. | Deployment/device validation and deeper real-provider evidence/retraction cycles. |
 | 7 | Adaptive Today | P1 | DONE | Added a pure recommendation engine and explainable Today focus cards using scheduled actions, score confidence/coverage, and active goals without mutating data. | Deployment/device validation and tuning against real usage. |
-| 8 | Jarvis intelligence layer | P0 | IN PROGRESS | Context builder, conversation persistence, action schemas, action executor, plans/proposals, evidence validation and UI tests exist. | Make Jarvis the orchestration layer with automatic mode selection, strict grounding, provider abstraction, privacy/redaction and no direct writes. |
+| 8 | Jarvis intelligence layer | P0 | DONE | Jarvis now has deterministic automatic mode inference with optional manual override, existing grounded context/claim validation, and an outbound context-redaction boundary. Writes remain behind the action executor. | Deployment/device validation and provider/backend architecture validation. |
 | 9 | Jarvis action / approval system | P0 | IN PROGRESS | Central action schema/executor and proposal/approval flow exist. | Guarantee atomic/recoverable multi-store execution, idempotency, lifecycle states, risk classes, undo/retraction and failure-replay tests. |
 | 10 | Goals → actions → evidence | P1 | IN PROGRESS | Goals, life objects, habits, quests, facts, evidence and relations exist. | Make relations explicit and progress derived from valid evidence; distinguish measured vs self-reported progress. |
 | 11 | Audits & proactive intelligence | P1 | IN PROGRESS | Audits, insights, telemetry, anomaly analysis and scheduler exist. | Deduped/idempotent scheduler, quiet hours/notification budget, evidence-linked insights, no silent writes, offline catch-up tests. |
@@ -974,3 +974,9 @@ The GitHub-connected environment does not expose a local Node runtime for execut
 - Recommendations do not create, edit, or delete user data.
 - Added recommendation engine tests.
 - Validation remaining: deployed/browser/device validation and real-usage tuning only; automated tests were committed but not executed in this session because no Node runtime was available.
+
+### 2026-09-28 — Workstream 8 complete
+- Added deterministic assistant mode inference with Ask as the default automatic mode and explicit manual overrides.
+- Added outbound LLM context redaction for common email/phone/secret patterns and removed user name from model context.
+- Added mode/redaction boundary tests.
+- Validation remaining: deployed/browser/device and eventual backend/provider validation only; automated tests were committed but not executed in this session because no Node runtime was available.
