@@ -25,6 +25,7 @@ import { bootstrapAnalysisScheduler } from './core/ai/analysisScheduler.js';
 import { installGlobalErrorLogging, markErrorLoggerReady } from './core/errorLogger.js';
 import { checkForUpdate } from './core/updateChecker.js';
 import { applyFreshStartReset } from './core/freshStartReset.js';
+import { markBootStarted, markBootSucceeded, markBootFailed } from './core/recovery/bootRecovery.js';
 
 // ── Helpers ─────────────────────────────────────────────────────────────────────────────
 import { computeAllStats, computeAxisDetails, getThresholdTitle } from './helpers/statsEngine.js';
@@ -222,7 +223,10 @@ export default function App() {
   // ── Initialise DB and load all data ───────────────────────────────────────
   useEffect(() => {
     async function bootstrap() {
+      let restored = false;
+      let migrated = false;
       try {
+        await markBootStarted().catch(() => {});
         await saveTelemetryEvent('app_started', localDateStr(), { type: 'boot' }).catch(() => {});
         await initDB();
 
@@ -231,11 +235,13 @@ export default function App() {
         if (!didFreshStartReset) {
           // Normal recovery/migration path. The fresh-start release has already
           // removed the old local backup and legacy localStorage dataset.
-          await restoreLatestBackupIfDatabaseEmpty();
+          const restoreResult = await restoreLatestBackupIfDatabaseEmpty();
+          restored = Boolean(restoreResult?.restored || restoreResult?.success && restoreResult?.source);
 
           await markErrorLoggerReady();
           installGlobalErrorLogging();
           await runRegisteredMigrations();
+          migrated = true;
           await saveTelemetryEvent('db_migration_success', localDateStr(), {}).catch(() => {});
         } else {
           await markErrorLoggerReady();
@@ -388,6 +394,8 @@ export default function App() {
           }
         }
 
+        await markBootSucceeded({ restored, migrated }).catch(() => {});
+
         // Check GitHub Releases for a newer APK (non-fatal, session-cached)
         checkForUpdate().then(info => { if (info) setUpdateInfo(info); }).catch(() => {});
 
@@ -421,6 +429,7 @@ export default function App() {
           await saveTelemetryEvent('db_migration_failed', localDateStr(), { error: String(err?.message ?? err) });
         } catch (e) { /* ignore if DB is entirely broken */ }
         setDbError(String(err?.message ?? err));
+        await markBootFailed(err).catch(() => {});
         // Fall through — UI still renders, just without persistence
       } finally {
         setDbReady(true);
