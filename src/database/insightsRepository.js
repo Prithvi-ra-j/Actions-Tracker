@@ -5,6 +5,7 @@
  */
 
 import { dbGet, dbPut, dbGetAll, dbDelete } from './db.js';
+import { insightFingerprint } from '../core/ai/insightFingerprint.js';
 
 const STORE = 'insights';
 const SCHEMA_VERSION = 1;
@@ -16,10 +17,15 @@ const SCHEMA_VERSION = 1;
  * @returns {Promise<string>} The generated insight ID
  */
 export async function addInsight(insight) {
+  const fingerprint = insight.fingerprint || insightFingerprint(insight);
+  const existing = (await dbGetAll(STORE)).find(item => item.fingerprint === fingerprint && item.status !== 'dismissed');
+  if (existing) return existing.id;
+
   const record = {
     ...insight,
     id: insight.id || `insight_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
     schemaVersion: SCHEMA_VERSION,
+    fingerprint,
     status: insight.status || 'proposed', // 'proposed', 'confirmed', 'rejected', 'resolved', 'dismissed'
     createdAt: insight.createdAt || new Date().toISOString()
   };
