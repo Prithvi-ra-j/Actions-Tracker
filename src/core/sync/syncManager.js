@@ -107,7 +107,7 @@ export async function runAllSyncs() {
         await markSyncError(id, result.errors?.[0]?.message || 'Unknown sync error');
         summary.errors.push({ id, message: 'Connector reported failure' });
       } else {
-        await markSyncSuccess(id, result.cursor);
+        await markSyncSuccess(id, result.cursor, result.status || 'success');
         summary.totalImported += ingestedCount;
         if (result.status === 'partial') {
           summary.errors.push({ id, message: 'Connector completed with partial results' });
