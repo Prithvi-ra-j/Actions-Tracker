@@ -1,0 +1,905 @@
+# Actions-Tracker 2.0 — Progress Tracker
+
+**Last updated:** 2026-09-27 (Asia/Kolkata)  
+**Repository:** `Prithvi-ra-j/Actions-Tracker`  
+**Branch:** `main`  
+**Program:** Actions-Tracker 2.0 Master Implementation Blueprint
+
+## Product north star
+
+```text
+USER INTENT
+    ↓
+UNDERSTAND
+    ↓
+PLAN
+    ↓
+ACT
+    ↓
+EVIDENCE
+    ↓
+LEARN / MEASURE
+    ↓
+ADAPT
+    └──────────────→ PLAN
+```
+
+The product should feel like one coherent system that understands intent, helps the user act, observes evidence, explains what changed, and adapts recommendations while keeping the user in control.
+
+## Status legend
+
+- **DONE** — implemented and backed by repository evidence/tests.
+- **IN PROGRESS** — implementation exists but acceptance gates remain open.
+- **BLOCKED** — dependent on a decision, environment, provider, or missing release evidence.
+- **NOT STARTED** — planned but no meaningful implementation yet.
+
+---
+
+## Master workstream status
+
+| # | Workstream | Priority | Status | Current implementation | Remaining gate |
+|---|---|---|---|---|---|
+| 1 | Data & persistence foundation | P0 | IN PROGRESS | IndexedDB v11, repositories, appMeta, export/import, backup/migration infrastructure, local-date helpers. **2026-09-27:** fresh-start reset hardened to fail closed using durable `appMeta` installation baseline. | Add restore preview + safety backup, deeper record validation, migration fixtures, interrupted-restore tests, browser key policy, explicit reset semantics. |
+| 2 | Canonical domain/data model | P0 | IN PROGRESS | Canonical domain constructors/events exist in `src/core/domain/domainEvents.js`; tests exist. | Publish authoritative entity/domain registry, ownership matrix, legacy mappings, one-write ownership, schema validation. |
+| 3 | Onboarding redesign | P0 | IN PROGRESS | Existing onboarding flow, Jarvis completion action, resumability-related infrastructure. | Implement state-machine UX: story → reality → direction → constraints → baseline → confirmation → calibrating; non-AI fallback; interruption/recovery tests. |
+| 4 | Calibration engine | P0 | NOT STARTED | Score confidence/coverage infrastructure exists. | Create deterministic calibration contract, evidence windows, minimum sample size, hysteresis, user-approved plan adjustment. |
+| 5 | Scoring engine | P0 | IN PROGRESS | Legacy C/V/M + newer evidence/domain projection paths coexist; confidence/coverage/fallback concepts exist; parity tests exist. | Lock canonical six-domain contract, version formulas, authority resolver, explainability payload, golden fixtures. |
+| 6 | Evidence & learning loop | P0 | IN PROGRESS | Facts/evidence repositories and domain evidence pipeline exist; Today evidence capture exists. | Normalize all evidence sources, provenance/retractions/freshness rules, derived rebuild contract, user correction UX. |
+| 7 | Adaptive Today | P1 | IN PROGRESS | Today already uses occurrences, completion, evidence capture, and progress context. | Build pure recommendation/ranking engine and explainable focus cards; keep recommendations separate from mutations. |
+| 8 | Jarvis intelligence layer | P0 | IN PROGRESS | Context builder, conversation persistence, action schemas, action executor, plans/proposals, evidence validation and UI tests exist. | Make Jarvis the orchestration layer with automatic mode selection, strict grounding, provider abstraction, privacy/redaction and no direct writes. |
+| 9 | Jarvis action / approval system | P0 | IN PROGRESS | Central action schema/executor and proposal/approval flow exist. | Guarantee atomic/recoverable multi-store execution, idempotency, lifecycle states, risk classes, undo/retraction and failure-replay tests. |
+| 10 | Goals → actions → evidence | P1 | IN PROGRESS | Goals, life objects, habits, quests, facts, evidence and relations exist. | Make relations explicit and progress derived from valid evidence; distinguish measured vs self-reported progress. |
+| 11 | Audits & proactive intelligence | P1 | IN PROGRESS | Audits, insights, telemetry, anomaly analysis and scheduler exist. | Deduped/idempotent scheduler, quiet hours/notification budget, evidence-linked insights, no silent writes, offline catch-up tests. |
+| 12 | Integrations | P1 | IN PROGRESS | Health Connect and NutriLift/Supabase connector architecture + sync state exist. | Live provider/device verification, permission lifecycle, cursor durability, deletion/retraction, production environment evidence. |
+| 13 | Settings & system controls | P1 | IN PROGRESS | Settings include AI, memory, proactive suggestions, backups/restore, diagnostics and connector controls. | Restore preview/safety backup, platform-specific secret policy, privacy controls, destructive-action confirmation. |
+| 14 | Mobile UX | P1 | IN PROGRESS | Capacitor/native support, keyboard interaction tests, mobile-specific UI infrastructure exist. | Manual 360/393/412/432px + Android/TalkBack/text-scale/back-button validation; fix critical journey defects. |
+| 15 | Testing & release engineering | P0 | IN PROGRESS | Vitest, fake-indexeddb, property/regression/scenario suites, build/versioning docs and workflows exist. | Single version source, v11 upgrade fixture, install-over-existing-data test, Android artifact/release gate, retained artifacts. |
+| 16 | Observability & recovery | P0 | IN PROGRESS | Error logging, telemetry, migration events, backup/restore and update/recovery hooks exist. | Standard error taxonomy, correlation IDs, redaction tests, durable recovery states, no-false-success guarantees. |
+
+---
+
+## Dependency order
+
+```text
+PRESERVE EXISTING DATA
+        ↓
+DATA / PERSISTENCE
+        ↓
+CANONICAL DOMAIN MODEL
+        ↓
+EVIDENCE + SCORING
+        ↓
+CALIBRATION + ONBOARDING
+        ↓
+JARVIS INTELLIGENCE
+        ↓
+APPROVED ACTIONS
+        ↓
+GOALS / ADAPTIVE TODAY
+        ↓
+AUDITS / INTEGRATIONS / SETTINGS / MOBILE
+        ↓
+RELEASE GATES + OBSERVABILITY
+```
+
+Do not build upper-layer UX that assumes lower-layer semantics are stable.
+
+---
+
+# Gate A — Preserve Existing Data
+
+**Status: IN PROGRESS**
+
+### Completed on 2026-09-27
+
+- Hardened `src/core/freshStartReset.js`.
+- The historical 2026-09-26 fresh-start reset now checks:
+  - release localStorage marker
+  - durable `appMeta` installation baseline
+- Existing installations fail closed if metadata cannot be safely read.
+- Durable installation baseline is written before the localStorage fast-path marker.
+- Commit: `e6ca4ac592201e44e7f59f0cb842997b468f9225`
+- Commit message: `fix(data): make fresh-start reset fail-closed for existing installs`
+
+### Remaining work
+
+- [ ] Add regression test: existing v11 DB + existing `appMeta` must never be reset.
+- [ ] Add regression test: absent marker + absent baseline may reset exactly once.
+- [ ] Add regression test: unavailable localStorage does not cause repeated reset.
+- [ ] Add v11 upgrade fixture with representative user data.
+- [ ] Add install-over-existing-data test.
+- [ ] Add restore preview.
+- [ ] Add pre-restore safety backup.
+- [ ] Add record-level validation.
+- [ ] Add interrupted-restore/fault-injection tests.
+- [ ] Decide browser AI secret policy.
+- [ ] Document/reset semantics and recovery behavior.
+
+**Exit criteria:** Existing user data survives a normal upgrade and no reset path can silently convert an existing installation into a new user.
+
+---
+
+# Workstream 1 — Data & persistence foundation
+
+### Existing enablers
+
+- IndexedDB database layer in `src/database/db.js`
+- Versioned database initialization (currently DB v11)
+- Repository boundary
+- `appMeta` and `migrationRegistry` stores
+- Export/import envelope
+- Backup service
+- Local date helper module
+- fake IndexedDB test infrastructure
+
+### Implementation sequence
+
+1. Preserve/reset gate
+2. Canonical date service audit
+3. Installation metadata completion
+4. Migration registry
+5. Backup schema validation
+6. Restore preview
+7. Safety backup
+8. Atomic restore + verification
+9. Fault injection
+10. Release fixture
+
+### Done when
+
+Fresh install, existing user, reload, migration, backup, restore, restore failure, reset and offline boot have regression tests and recovery behavior.
+
+---
+
+# Workstream 2 — Canonical domain/data model
+
+### Canonical hierarchy
+
+```text
+INTENT
+ ├── desired outcome
+ └── goal
+
+ACTION
+ ├── habit
+ ├── quest
+ └── routine
+
+EVIDENCE
+ ├── manual
+ ├── integration
+ ├── learning
+ ├── observation
+ └── outcome
+
+PATTERN
+ ├── consistency
+ ├── momentum
+ ├── trend
+ └── anomaly
+
+INSIGHT
+ ├── recommendation
+ ├── contradiction
+ └── audit finding
+```
+
+### Existing implementation
+
+Canonical constructors/events exist in `src/core/domain/domainEvents.js`.
+
+### Remaining
+
+- [ ] Create canonical domain registry.
+- [ ] Define authoritative store for every entity.
+- [ ] Define legacy mapping matrix.
+- [ ] Add schema validation for domain entities.
+- [ ] Add immutable fact rules.
+- [ ] Add relation integrity tests.
+- [ ] Add migration provenance.
+
+---
+
+# Workstream 3 — Onboarding redesign
+
+### Target state machine
+
+```NEW
+ ↓
+INTRO
+ ↓
+STORY
+ ↓
+CURRENT_STATE
+ ↓
+DIRECTION
+ ↓
+ROUTINE
+ ↓
+CONSTRAINTS
+ ↓
+BASELINE
+ ↓
+CONFIRMATION
+ ↓
+CALIBRATING
+ ↓
+ACTIVE
+```
+
+### Required product behavior
+
+- Natural conversation first.
+- Avoid demanding architecture knowledge.
+- AI is optional.
+- Every meaningful step persists.
+- User can resume after reload.
+- User can edit or restart.
+- Self-reported answers do not automatically become measured evidence.
+
+### Tests
+
+- [ ] New install
+- [ ] Resume
+- [ ] Back/skip
+- [ ] Reload mid-flow
+- [ ] No AI key
+- [ ] AI timeout
+- [ ] Duplicate completion
+- [ ] Restore completed onboarding
+- [ ] Invalid/partial answer handling
+
+---
+
+# Workstream 4 — Calibration engine
+
+### Target model
+
+```text
+baseline prior
+    +
+observed evidence
+    +
+coverage
+    +
+confidence
+    +
+time window
+    ↓
+calibrated estimate
+    ↓
+bounded recommendation
+    ↓
+optional user approval
+```
+
+### Output contract
+
+```js
+{
+  value,
+  confidence,
+  coverage,
+  stage,
+  sampleSize,
+  window,
+  methodologyVersion,
+  adjustment,
+  reason
+}
+```
+
+### Stages
+
+- Stage 0 — no data
+- Stage 1 — initial estimate
+- Stage 2 — early signal
+- Stage 3 — developing pattern
+- Stage 4 — established
+- Stage 5 — stable
+
+### Remaining
+
+- [ ] Define calibration target(s)
+- [ ] Define minimum evidence threshold
+- [ ] Implement pure update model
+- [ ] Add hysteresis
+- [ ] Add deterministic fixtures
+- [ ] Add user approval boundary
+
+---
+
+# Workstream 5 — Scoring engine
+
+### Target pipeline
+
+```text
+behavior
+  ↓
+evidence
+  ↓
+signal extraction
+  ↓
+C / V / M
+  ↓
+raw domain score
+  ↓
+confidence + coverage
+  ↓
+calibration
+  ↓
+final visible stat
+```
+
+### Required visible explanation
+
+```text
+WHAT
+WHY
+EVIDENCE
+CONFIDENCE
+WHAT NEXT
+```
+
+### Remaining
+
+- [ ] Define six canonical domain contracts:
+  Body / Discipline / Knowledge / Social / Creativity / Strategy
+- [ ] Resolve legacy axis mappings.
+- [ ] Define authority/fallback behavior.
+- [ ] Version methodology.
+- [ ] Add golden score vectors.
+- [ ] Add threshold-edge tests.
+- [ ] Preserve prior valid score on pipeline failure.
+- [ ] Add score-change explanation payload.
+
+---
+
+# Workstream 6 — Evidence & learning loop
+
+### Canonical evidence
+
+```js
+{
+  id,
+  type,
+  domain,
+  source,
+  value,
+  unit,
+  occurredAt,
+  recordedAt,
+  confidence,
+  supportingIds,
+  methodologyVersion,
+  context
+}
+```
+
+### Required invariant
+
+Missing evidence = unknown, not failure.
+
+### Remaining
+
+- [ ] Evidence normalizer.
+- [ ] Provenance chain.
+- [ ] Retraction/superseding fact semantics.
+- [ ] Freshness rules.
+- [ ] Rebuildable evidence projections.
+- [ ] User correction UI.
+- [ ] Learning → practice → application → evidence loop.
+
+---
+
+# Workstream 7 — Adaptive Today
+
+### Target view
+
+```text
+TODAY
+
+Your focus
+1. ...
+2. ...
+3. ...
+
+Why these?
+- ...
+- ...
+- ...
+
+[Complete] [Defer] [Edit]
+```
+
+### Architecture
+
+```text
+todayContext
+ + goals
+ + occurrences
+ + evidence
+ + workload
+ + calibration
+ + time constraints
+        ↓
+TodayRecommendationEngine
+        ↓
+focusItems / reasoning / warnings / suggestions
+        ↓
+user action
+        ↓
+domain executor
+```
+
+### Remaining
+
+- [ ] Pure ranking policy.
+- [ ] Explainable focus cards.
+- [ ] No direct mutations from recommendation engine.
+- [ ] Defer/edit/dismiss semantics.
+- [ ] Capacity-aware suggestions.
+- [ ] Unknown-day handling.
+
+---
+
+# Workstream 8 — Jarvis intelligence layer
+
+### Current architecture to preserve
+
+- Context builder
+- Conversation persistence
+- Prompt/persona layer
+- Structured action schema
+- Action validation
+- Action executor
+- Proposal editing
+- Plans
+- Evidence/claim validation
+
+### Target mental model
+
+Jarvis = orchestration layer, not merely a chat tab.
+
+### Automatic modes
+
+Ask / Plan / Review / Act / Capture / Audit are internal behaviors.
+
+Normal users speak naturally.
+
+Power users can still use `/` commands.
+
+### Remaining
+
+- [ ] Automatic intent/mode selection.
+- [ ] Strict output schema.
+- [ ] Evidence-grounded factual claims.
+- [ ] Prompt-injection boundary.
+- [ ] Provider abstraction.
+- [ ] Browser secret policy.
+- [ ] Redaction/privacy policy.
+- [ ] Offline/non-AI fallback.
+
+---
+
+# Workstream 9 — Jarvis action / approval system
+
+### Lifecycle
+
+```text
+PROPOSED
+ ↓
+VALIDATED
+ ↓
+WAITING_APPROVAL
+ ↓
+APPROVED
+ ↓
+EXECUTING
+ ↓
+COMPLETED
+```
+
+Failure states:
+
+```FAILED
+ ↘
+RECOVERED / ROLLED_BACK / NEEDS_RETRY
+```
+
+### Risk classes
+
+- SAFE
+- CONFIRM
+- DESTRUCTIVE
+
+### Required invariants
+
+- Model output never writes directly.
+- Approval is explicit.
+- Actions have idempotency keys.
+- Stale targets fail safely.
+- Multi-store mutations are atomic or durably journaled.
+- Undo is supported where reversible.
+- Historical evidence uses retraction/supersession rather than destructive deletion.
+
+---
+
+# Workstream 10 — Goals → actions → evidence
+
+### Target loop
+
+```text
+GOAL
+ ↓
+CURRENT STATE
+ ↓
+PLAN
+ ↓
+ACTIONS
+ ↓
+EVIDENCE
+ ↓
+PROGRESS
+ ↓
+STATUS
+ ↓
+RECALIBRATE
+```
+
+### Remaining
+
+- [ ] Explicit goal/action relations.
+- [ ] Domain-specific progress rules.
+- [ ] Measured vs self-reported status.
+- [ ] Pause/archive without deleting history.
+- [ ] Evidence-backed status explanations.
+
+---
+
+# Workstream 11 — Audits & proactive intelligence
+
+### Severity policy
+
+- LOW → store silently
+- MEDIUM → surface in app
+- HIGH → prominent only when justified
+
+### Required behavior
+
+No nagging loops. No silent mutations. No repeated identical insight spam.
+
+### Remaining
+
+- [ ] Deterministic local audit checks.
+- [ ] Optional AI interpretation.
+- [ ] Dedupe keys.
+- [ ] Notification budget.
+- [ ] Quiet hours.
+- [ ] Offline catch-up.
+- [ ] Approval queue integration.
+
+---
+
+# Workstream 12 — Integrations
+
+### Connector lifecycle
+
+```text
+AVAILABLE
+ ↓
+CONNECTING
+ ↓
+CONNECTED
+ ↓
+SYNCING
+ ↓
+SYNCED
+```
+
+Failure:
+
+```SYNC_FAILED → RETRY
+```
+
+### Core rule
+
+```text
+Integration
+   ↓
+Canonical facts/evidence
+   ↓
+Score engine
+```
+
+Never allow:
+
+```text
+Integration → direct score mutation
+```
+
+### Remaining
+
+- [ ] Live Health Connect verification.
+- [ ] Live NutriLift/Supabase verification.
+- [ ] Permission revoke path.
+- [ ] Cursor checkpoint after durable write.
+- [ ] Duplicate replay.
+- [ ] External deletion/retraction.
+- [ ] Provider schema/version failure.
+
+---
+
+# Workstream 13 — Settings & system controls
+
+### Sections
+
+- AI & Jarvis
+- Integrations
+- Notifications
+- Appearance
+- Data & Backup
+- Memory & Privacy
+- About
+
+### Required control contract
+
+Every setting has:
+
+```text
+default
+load
+save
+runtime effect
+reset
+test
+```
+
+### Remaining
+
+- [ ] Restore preview.
+- [ ] Safety backup.
+- [ ] Platform-specific key-storage state.
+- [ ] Privacy/export redaction.
+- [ ] Memory deletion semantics.
+- [ ] Destructive confirmation.
+
+---
+
+# Workstream 14 — Mobile UX
+
+### Supported validation sizes
+
+- 360 px
+- 393 px
+- 412 px
+- 432 px
+
+### Critical surfaces
+
+- Today completion
+- Onboarding
+- Jarvis
+- Approval
+- Undo
+- Restore
+- Settings
+- Audit detail
+
+### Remaining
+
+- [ ] Bottom-sheet interaction audit.
+- [ ] Keyboard-safe Jarvis.
+- [ ] Safe-area audit.
+- [ ] Focus management.
+- [ ] Touch-target audit.
+- [ ] Reduced-motion.
+- [ ] Android device validation.
+- [ ] TalkBack validation.
+- [ ] Text-scale validation.
+
+---
+
+# Workstream 15 — Testing & release engineering
+
+### Existing test foundation
+
+- Vitest
+- fake-indexeddb
+- unit tests
+- property tests
+- regression tests
+- UI journey tests
+- production build
+- Android/Capacitor workflow infrastructure
+
+### Release gates
+
+1. Unit/property tests
+2. Migration/restore fixtures
+3. Production build
+4. Version consistency
+5. Android build
+6. Install-over-existing-data scenario
+7. Connector live evidence
+8. Accessibility/device evidence
+9. Artifact retention
+10. Release approval
+
+### Remaining
+
+- [ ] Make version source consistent across `package.json` and `src/version.js`.
+- [ ] Add v11 upgrade fixture.
+- [ ] Add backup compatibility fixtures.
+- [ ] Add Android artifact gate.
+- [ ] Add existing-install upgrade gate.
+- [ ] Add release evidence checklist.
+
+---
+
+# Workstream 16 — Observability & recovery
+
+### Error classes
+
+- BOOT
+- DATABASE
+- MIGRATION
+- BACKUP
+- RESTORE
+- AI
+- ACTION
+- CONNECTOR
+- SCHEDULER
+- PERMISSION
+- VALIDATION
+
+### Required telemetry properties
+
+- timestamp
+- severity
+- category
+- correlationId
+- operation
+- result
+- recoveryState
+- redacted metadata
+
+### Never log
+
+- API keys
+- raw user conversation
+- unredacted sensitive health data
+- secrets from provider payloads
+
+### Remaining
+
+- [ ] Standard structured error contract.
+- [ ] Correlation IDs end-to-end.
+- [ ] Redaction tests.
+- [ ] Durable recovery states.
+- [ ] Retry classification.
+- [ ] No-false-success tests.
+- [ ] Redacted diagnostic export.
+
+---
+
+# Delivery gates
+
+## Gate A — Preserve
+
+**Current:** IN PROGRESS
+
+- [x] Fresh-start reset hardened on 2026-09-27
+- [ ] Existing-install reset regression test
+- [ ] v11 upgrade fixture
+- [ ] Restore preview/safety backup
+- [ ] Interrupted restore test
+- [ ] Browser key policy
+
+## Gate B — Canonicalize
+
+**Current:** IN PROGRESS
+
+- [x] Canonical domain constructors/events
+- [ ] Entity registry
+- [ ] Domain registry
+- [ ] Legacy mapping matrix
+- [ ] Store ownership matrix
+
+## Gate C — Measure
+
+**Current:** IN PROGRESS
+
+- [ ] Evidence contract
+- [ ] Scoring contract
+- [ ] Calibration contract
+- [ ] Versioned formulas
+- [ ] Golden fixtures
+- [ ] Explainability payload
+
+## Gate D — Understand & Act
+
+**Current:** IN PROGRESS
+
+- [ ] Resumable onboarding
+- [ ] Non-AI fallback
+- [ ] Grounded Jarvis
+- [ ] Validated proposals
+- [ ] Atomic/recoverable actions
+- [ ] Per-action replay tests
+
+## Gate E — Adapt
+
+**Current:** NOT STARTED
+
+- [ ] Goals ↔ actions
+- [ ] Actions ↔ evidence
+- [ ] Calibration ↔ capacity
+- [ ] Adaptive Today
+- [ ] User-approved plan adjustment
+
+## Gate F — Release
+
+**Current:** NOT STARTED
+
+- [ ] Live integrations
+- [ ] Android device evidence
+- [ ] Accessibility evidence
+- [ ] Backup/restore/reset evidence
+- [ ] Telemetry redaction
+- [ ] Version consistency
+- [ ] Retained build artifacts
+
+---
+
+# Current implementation log
+
+## 2026-09-27
+
+### Completed
+- Inspected repository baseline and confirmed main branch is writable.
+- Reviewed the existing 2.0 implementation blueprint already stored in the repository.
+- Confirmed existing IndexedDB v11, appMeta/migrationRegistry stores, repository boundaries, domain constructors/events, evidence/scoring infrastructure, Jarvis action architecture, tests and build foundation.
+- Identified the highest-risk release issue: release-scoped destructive fresh-start reset.
+- Hardened `src/core/freshStartReset.js` so the reset is fail-closed for installations with a durable `appMeta` baseline.
+- Durable baseline is written before localStorage reset marker.
+- LocalStorage marker remains a fast path, not the authoritative installation identity.
+- Commit: `e6ca4ac592201e44e7f59f0cb842997b468f9225`.
+
+### Not yet closed
+- No claim is made that all 16 workstreams are complete.
+- The remaining boxes in this file are acceptance gates for future implementation commits.
+- The next execution slice is still Gate A: regression fixtures + restore safety, then Gate B canonicalization.
+
+---
+
+# Change log format
+
+For every future implementation session, append:
+
+```md
+## YYYY-MM-DD
+
+### Implemented
+- ...
+
+### Files changed
+- ...
+
+### Tests
+- ...
+
+### Validation
+- ...
+
+### Blockers
+- ...
+
+### Next slice
+- ...
+
+### Commit
+- `<sha>`
+```
+
+This file is the single progress view for the Actions-Tracker 2.0 implementation program.
