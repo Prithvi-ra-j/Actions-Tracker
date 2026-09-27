@@ -17,6 +17,10 @@ import JarvisApiSetup from './jarvis/JarvisApiSetup.jsx';
 import { BottomSheet } from './ui/Overlays.jsx';
 import { ActionProposalCard, ImpactDetailSheet, EditProposalSheet } from './ui/ProposalUI.jsx';
 import './JarvisTab.css';
+import { advanceOnboarding } from '../core/onboarding/onboardingEngine.js';
+import { getOnboardingState, saveOnboardingState } from '../core/onboarding/onboardingPersistence.js';
+import { onboardingProgress, STEP_LABELS } from '../core/onboarding/onboardingState.js';
+import { getOnboardingQuestion } from '../core/onboarding/onboardingQuestions.js';
 
 const DEFAULT_CONVERSATION_ID = 'jarvis_default';
 const ONBOARDING_CONVERSATION_ID = 'jarvis_onboarding';
@@ -84,9 +88,19 @@ export default function JarvisTab({ t, isActive = true, onQuestsChanged, onboard
   const [apiConfigured, setApiConfigured] = useState(null);
   const [attachPageContext, setAttachPageContext] = useState(true);
   const [onboardingRetryNonce, setOnboardingRetryNonce] = useState(0);
+  const [onboardingState, setOnboardingState] = useState(null);
   const messagesEndRef = useRef(null);
   const createdAtRef = useRef(null);
   const onboardingStartedRef = useRef(false);
+
+  useEffect(() => {
+    if (!activeOnboardingMode) return undefined;
+    let cancelled = false;
+    getOnboardingState().then(state => {
+      if (!cancelled) setOnboardingState(state);
+    }).catch(err => recordAppError(err, { source: 'jarvis_ui', operation: 'load_onboarding_state' }));
+    return () => { cancelled = true; };
+  }, [activeOnboardingMode]);
 
   // The app keeps Jarvis mounted while switching tabs. Draft text must not
   // leak from a previous visit into the next visible Jarvis session.
@@ -149,11 +163,13 @@ export default function JarvisTab({ t, isActive = true, onQuestsChanged, onboard
           setError(null);
 
           try {
+            const step = onboardingState?.step || 'intro';
+            const question = getOnboardingQuestion(step);
             const response = await chatWithJarvis(
-              'Start the onboarding interview now. Ask the user only the first focused question. Do not ask them to type a command or press send, and do not create or propose any changes yet.',
+              `Start the onboarding interview at step "${step}". Ask only this focused question: ${question.prompt}. Do not ask the user to type a command or press send, and do not create or propose any changes yet.`,
               [],
               null,
-              { onboarding: activeOnboardingMode }
+              { onboarding: activeOnboardingMode, onboardingStep: step }
             );
 
             if (cancelled) return;
@@ -280,12 +296,13 @@ export default function JarvisTab({ t, isActive = true, onQuestsChanged, onboard
     setLoading(true);
     setLoadingPhase('Thinking...');
     setError(null);
+    const onboardingStepBeforeSend = onboardingState?.step || 'intro';
     try {
       const response = await chatWithJarvis(
         msg,
         messages,
         modificationContext,
-        { onboarding: activeOnboardingMode, entryContext: attachPageContext ? jarvisContext : null }
+        { onboarding: activeOnboardingMode, onboardingStep: onboardingStepBeforeSend, entryContext: attachPageContext ? jarvisContext : null }
       );
       const finalMessages = [
         ...newMessages,
@@ -299,6 +316,11 @@ export default function JarvisTab({ t, isActive = true, onQuestsChanged, onboard
         },
       ];
       setMessages(finalMessages);
+      if (activeOnboardingMode) {
+        const nextState = advanceOnboarding(onboardingState, { answer: msg, step: onboardingStepBeforeSend });
+        await saveOnboardingState(nextState);
+        setOnboardingState(nextState);
+      }
       await saveConversation({
         id: conversationId,
         type: 'Jarvis',
@@ -489,6 +511,24 @@ export default function JarvisTab({ t, isActive = true, onQuestsChanged, onboard
         overflow: 'hidden',
       }}
     >
+
+      {activeOnboardingMode && onboardingState && (() => {
+        const progress = onboardingProgress(onboardingState);
+        const question = getOnboardingQuestion(onboardingState.step);
+        const percent = Math.max(4, progress.percent);
+        return (
+          <div aria-label="Onboarding progress" style={{ padding: '0 16px 12px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', gap: '12px', marginBottom: '7px', color: 'var(--mu)', fontSize: '11px', fontFamily: "'Geist Mono', monospace" }}>
+              <span>{STEP_LABELS[onboardingState.step] || question.title}</span>
+              <span>{Math.min(progress.currentIndex + 1, progress.total)} of {progress.total}</span>
+            </div>
+            <div style={{ height: '4px', borderRadius: '999px', background: 'var(--s2)', overflow: 'hidden' }}>
+              <div style={{ width: percent + '%', height: '100%', background: 'var(--ac)', transition: 'width 180ms ease' }} />
+            </div>
+            <p style={{ margin: '9px 0 0', color: 'var(--mu)', fontSize: '12px' }}>You can leave and come back. Your answers are saved as you go.</p>
+          </div>
+        );
+      })()}
 
       {/* ✦ Jarvis header — wordmark left, mode pill right */}
       <div
