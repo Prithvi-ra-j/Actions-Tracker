@@ -16,6 +16,7 @@ import { calculateCapacity } from '../routineEngine.js';
 import { PERSONA } from '../../constants.js';
 import { getAllExperiments } from '../../database/experimentRepository.js';
 import { DOMAIN_PROGRESS_MODELS } from '../domainProgressModels.js';
+import { redactContextForLLM } from './contextRedaction.js';
 
 const MEMORY_WINDOW_DAYS = 90;
 const MAX_SEMANTIC_MEMORIES = 12;
@@ -270,5 +271,6 @@ export async function assembleContext(intent = 'audit', query = '') {
     persona_statements: PERSONA,
   };
 
-  return JSON.stringify(compactContext(contextData, CONTEXT_BUDGETS[intent] || CONTEXT_BUDGETS.chat), null, 2);
+  const safeContext = redactContextForLLM(contextData);
+  return JSON.stringify(compactContext(safeContext, CONTEXT_BUDGETS[intent] || CONTEXT_BUDGETS.chat), null, 2);
 }
