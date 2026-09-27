@@ -1,0 +1,6 @@
+import {CANONICAL_DOMAINS,ENTITY_REGISTRY,canonicalDomain} from './domainRegistry.js';
+const REQUIRED={intent:['id','title'],action:['id','title','type'],evidence:['id','domain','signal','source','observedAt','confidence'],pattern:['id','type','summary'],insight:['id','type','title','confidence']};
+function assertRecord(v,k){if(!v||typeof v!=='object'||Array.isArray(v))throw new Error(`Invalid ${k}: expected an object.`);for(const f of REQUIRED[k]??[]){if(v[f]===undefined||v[f]===null||v[f]==='')throw new Error(`Invalid ${k}: missing ${f}.`);}}
+export function validateDomainEntity(entity){const kind=entity?.kind;if(!ENTITY_REGISTRY[kind])throw new Error(`Unknown canonical entity kind: ${kind??'undefined'}.`);assertRecord(entity,kind);if(entity.domain!==undefined&&!CANONICAL_DOMAINS.includes(canonicalDomain(entity.domain)))throw new Error(`Invalid domain: ${entity.domain}.`);if(entity.confidence!==undefined&&(Number(entity.confidence)<0||Number(entity.confidence)>1))throw new Error(`Invalid confidence for ${kind}: expected 0..1.`);return true;}
+export function normalizeDomainEntity(entity){validateDomainEntity(entity);return {...entity,...(entity.domain!==undefined?{domain:canonicalDomain(entity.domain)}:{})};}
+export function isCanonicalEntity(entity){try{validateDomainEntity(entity);return true;}catch{return false;}}
