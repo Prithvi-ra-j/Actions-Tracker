@@ -19,6 +19,7 @@ import { localDateStr } from '../../helpers/dateHelpers.js';
 import { ActionProposalSchema } from './actionSchemas.js';
 import { addLog, deleteLog } from '../../database/logsRepository.js';
 import { getSetting } from '../../database/settingsRepository.js';
+import { getActionRiskClass } from './actionPolicy.js';
 
 function requireId(payload, actionType) {
   if (!payload.id || typeof payload.id !== 'string') {
@@ -49,7 +50,7 @@ export async function validateActionPreconditions(proposal) {
     if (!(await getExperiment(validatedProposal.payload.id))) throw new Error(`Experiment ${validatedProposal.payload.id} no longer exists; proposal is stale`);
   }
 
-  return validatedProposal;
+  return { ...validatedProposal, riskClass: getActionRiskClass(validatedProposal.actionType), lifecycle: 'validated' };
 }
 
 async function recordActionFact(actionType, payload, result) {
@@ -88,7 +89,7 @@ async function addRoutineSlot(payload, habitId) {
 
 export async function executeAction(proposal) {
   const validatedProposal = await validateActionPreconditions(proposal);
-  const { actionType, payload } = validatedProposal;
+  const { actionType, payload, riskClass } = validatedProposal;
   const executionKey = createExecutionKey(validatedProposal);
   const priorAction = (await getAllFacts()).find(fact => fact.meta?.executionKey === executionKey);
   if (priorAction) return {
@@ -110,7 +111,7 @@ export async function executeAction(proposal) {
       : actionType === 'revise_target'
         ? await getSelfModel()
         : null;
-  let result = { actionType, executionKey, before };
+  let result = { actionType, executionKey, before, riskClass, lifecycle: 'executing' };
   
   switch (actionType) {
     case 'add_habit': {
@@ -435,6 +436,7 @@ export async function executeAction(proposal) {
       throw new Error(`[actionExecutor] Unsupported actionType: ${actionType}`);
   }
 
+  result.lifecycle = 'completed';
   const actionFactId = await recordActionFact(actionType, payload, result);
   return { ...result, actionFactId, idempotent: false };
 }
