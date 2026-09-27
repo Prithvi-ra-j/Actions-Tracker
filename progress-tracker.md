@@ -39,7 +39,7 @@ The product should feel like one coherent system that understands intent, helps 
 
 | # | Workstream | Priority | Status | Current implementation | Remaining gate |
 |---|---|---|---|---|---|
-| 1 | Data & persistence foundation | P0 | IN PROGRESS | IndexedDB v11, repositories, appMeta, export/import, backup/migration infrastructure, local-date helpers. **2026-09-27:** fresh-start reset hardened; restore-safety boundary and migration registry added with executable tests. | Remaining: wire restore-safety boundary into Settings, add v11 upgrade fixture, record-level schema validation, interrupted-restore fault injection, browser key policy, explicit reset semantics. |
+| 1 | Data & persistence foundation | P0 | IN PROGRESS | IndexedDB v11, repositories, appMeta, export/import, backup/migration infrastructure, local-date helpers. **2026-09-27:** fresh-start reset hardened; restore-safety boundary and migration registry added with executable tests. | Remaining: decide browser AI-key persistence policy and complete final device/upgrade release evidence. Core preview, safety backup, record validation, migration registry, v10→v11 preservation fixture, and interrupted-restore fixture are implemented. |
 | 2 | Canonical domain/data model | P0 | DONE | Canonical constructors/events plus domainRegistry.js and domainValidators.js now define domains, entity ownership/history, legacy mappings, normalization and validation; executable tests added. | Future: migrate remaining production writers/readers behind this registry and add legacy fixture round-trip coverage. |
 | 3 | Onboarding redesign | P0 | IN PROGRESS | Existing onboarding flow, Jarvis completion action, resumability-related infrastructure. | Implement state-machine UX: story → reality → direction → constraints → baseline → confirmation → calibrating; non-AI fallback; interruption/recovery tests. |
 | 4 | Calibration engine | P0 | NOT STARTED | Score confidence/coverage infrastructure exists. | Create deterministic calibration contract, evidence windows, minimum sample size, hysteresis, user-approved plan adjustment. |
@@ -909,7 +909,7 @@ This file is the single progress view for the Actions-Tracker 2.0 implementation
 ### Implemented
 - Workstream 1: versioned post-schema migration registry with ordered execution, verification, completion journaling and failure state.
 - Workstream 1: restore preview + safety-backup boundary in src/database/restoreSafety.js.
-- Workstream 1: regression tests for restore preview and migration execution/idempotency/failure verification.
+- Workstream 1: regression tests for restore preview, migration execution/idempotency/failure verification, v10→v11 data preservation, and interrupted restore.
 - Workstream 2: canonical domain/entity registry with explicit ownership and history semantics.
 - Workstream 2: legacy domain/store mappings and normalization.
 - Workstream 2: canonical entity validation and confidence bounds.
@@ -925,3 +925,15 @@ This file is the single progress view for the Actions-Tracker 2.0 implementation
 
 ### Verification note
 The GitHub-connected environment does not expose a local Node runtime for executing the repository Vitest suite in this session. The new tests are committed and designed for the existing Vitest + fake-indexeddb setup; CI should be the execution authority before marking the remaining release gates closed.
+
+
+## 2026-09-27 — Final persistence slice
+
+- Bootstrap now executes legacy migrations through the versioned registry.
+- Settings restore flow now previews record/store counts before confirmation.
+- Restore creates a durable local pre-restore safety snapshot before the import transaction.
+- Backup preview rejects unknown stores, non-array store payloads, and non-object records.
+- Added v10→v11 upgrade fixture proving representative fact data survives schema upgrade.
+- Added interrupted-restore fixture proving the safety snapshot survives a simulated write failure.
+- Workstream 1 is implementation-complete pending browser AI-key policy and real device/release validation.
+- Workstream 2 is implementation-complete; future work is compatibility fixture expansion and migrating every remaining writer behind the registry.
