@@ -16,7 +16,7 @@ import { APP_VERSION, SCHEMA_VERSION } from '../version.js';
 import { addBackupIntegrity, verifyBackupIntegrity } from './backupIntegrity.js';
 
 const DB_NAME = 'actions-tracker';
-const DB_VERSION = 11;
+const DB_VERSION = 12;
 
 /** @type {IDBDatabase|null} */
 let _db = null;
@@ -186,6 +186,14 @@ export function initDB() {
       if (!db.objectStoreNames.contains('jarvisConversations')) {
         const conversationsStore = db.createObjectStore('jarvisConversations', { keyPath: 'id' });
         conversationsStore.createIndex('updatedAt', 'updatedAt', { unique: false });
+      }
+
+      // DB v12 — Intervention learning records
+      if (!db.objectStoreNames.contains('interventions')) {
+        const interventionStore = db.createObjectStore('interventions', { keyPath: 'id' });
+        interventionStore.createIndex('status', 'status', { unique: false });
+        interventionStore.createIndex('proposedAt', 'proposedAt', { unique: false });
+        interventionStore.createIndex('recommendationId', 'recommendationId', { unique: false });
       }
 
       // DB v10 — Architecture Phase 2 (New Entities)
@@ -408,6 +416,7 @@ const ALL_STORES = [
   // DB v10 — Architecture Phase 2
   'decisions', 'experiments', 'creativeWorks', 'observations',
   'jarvisConversations',
+  'interventions',
   // Step 3 — Routine Engine
   'routineConfig'
 ];
