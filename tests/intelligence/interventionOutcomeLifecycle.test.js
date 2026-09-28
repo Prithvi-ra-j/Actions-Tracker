@@ -36,6 +36,34 @@ describe('automatic intervention outcome lifecycle', () => {
       },
     });
 
+
+    await addIntervention({
+      id: 'intervention_lifecycle_2',
+      recommendationId: 'rec_2',
+      hypothesis: 'Earlier sessions improve completion.',
+      context: { interventionType: 'move_earlier', recommendationType: 'action' },
+      expectedOutcome: 0.8,
+      outcomeWindowDays: 14,
+      proposedAt: '2026-09-01T08:00:00Z',
+      measurement: {
+        factType: 'habit_completion', objectId: 'habit_2', aggregation: 'average',
+        baselineValue: 0.4, expectedValue: 0.8, minSamples: 1, higherIsBetter: true,
+      },
+    });
+    await addIntervention({
+      id: 'intervention_lifecycle_3',
+      recommendationId: 'rec_3',
+      hypothesis: 'Earlier sessions improve completion.',
+      context: { interventionType: 'move_earlier', recommendationType: 'action' },
+      expectedOutcome: 0.8,
+      outcomeWindowDays: 14,
+      proposedAt: '2026-09-01T08:00:00Z',
+      measurement: {
+        factType: 'habit_completion', objectId: 'habit_3', aggregation: 'average',
+        baselineValue: 0.4, expectedValue: 0.8, minSamples: 1, higherIsBetter: true,
+      },
+    });
+
     await addFact({
       id: 'outcome_fact_1',
       type: 'habit_completion',
@@ -44,27 +72,30 @@ describe('automatic intervention outcome lifecycle', () => {
       occurredAt: '2026-09-10T08:00:00Z',
       source: { type: 'manual' },
     });
+    await addFact({ id: 'outcome_fact_2', type: 'habit_completion', objectId: 'habit_2', value: 0.9, occurredAt: '2026-09-10T08:00:00Z', source: { type: 'manual' } });
+    await addFact({ id: 'outcome_fact_3', type: 'habit_completion', objectId: 'habit_3', value: 0.9, occurredAt: '2026-09-10T08:00:00Z', source: { type: 'manual' } });
 
     const run = await runInterventionOutcomeScheduler({
       now: new Date('2026-09-16T08:00:00Z'),
     });
 
-    expect(run.dueCount).toBe(1);
-    expect(run.evaluated).toBe(1);
-    expect(run.results[0].status).toBe('completed');
+    expect(run.dueCount).toBe(3);
+    expect(run.evaluated).toBe(3);
+    expect(run.results.every(result => result.status === 'completed')).toBe(true);
 
     const closed = await getIntervention(intervention.id);
     expect(closed.status).toBe('completed');
     expect(closed.evaluation.result).toBe('positive');
     expect(closed.evaluation.effect).toBeCloseTo(0.5);
 
-    const effectiveness = calculateEffectiveness([closed], { minSamples: 1 });
+    const completed = await Promise.all(['intervention_lifecycle_1', 'intervention_lifecycle_2', 'intervention_lifecycle_3'].map(getIntervention));
+    const effectiveness = calculateEffectiveness(completed);
     expect(effectiveness.move_earlier.successRate).toBe(1);
     expect(effectiveness.move_earlier.sampleSize).toBe(1);
 
     const ranked = rankInterventions(
       [{ id: 'candidate', type: 'intervention', recommendationType: 'action', interventionType: 'move_earlier', baseScore: 50 }],
-      [closed],
+      completed,
     );
     expect(ranked[0].interventionLearning.successRate).toBe(1);
     expect(ranked[0].score).toBeGreaterThan(50);
