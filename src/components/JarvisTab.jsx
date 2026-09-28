@@ -1095,7 +1095,6 @@ export default function JarvisTab({ t, isActive = true, onQuestsChanged, onboard
       >
         <button
           aria-label="Attach or add"
-          onClick={() => { setInput('/'); setCommandMenuOpen(true); }}
           onClick={() => {
             setInput('/');
             setCommandQuery('');
