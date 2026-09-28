@@ -14,7 +14,8 @@
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",
     "certify:docs": "node scripts/validate-certification-docs.mjs",
-    "certify:longitudinal": "node scripts/certify-longitudinal.mjs"
+    "certify:longitudinal": "node scripts/certify-longitudinal.mjs",
+    "certify:release": "node scripts/generate-release-evidence.mjs"
   },
   "dependencies": {
     "@capacitor/android": "^6.0.0",
