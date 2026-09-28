@@ -1,3 +1,4 @@
+import { localDateStr } from '../helpers/dateHelpers.js';
 import { dbPut, dbGetAll, getDB } from '../database/db.js';
 import { createStructuredError, createCorrelationId, classifyErrorCategory } from './observability/structuredError.js';
 
@@ -97,7 +98,7 @@ export async function recordAppError(error, context = {}) {
     const record = {
       id: crypto.randomUUID(),
       type: 'error',
-      date: new Date().toISOString().split('T')[0],
+      date: localDateStr(),
       timestamp: new Date().toISOString(),
       severity: structured.severity,
       category: classifyErrorCategory(context.category || 'VALIDATION'),
