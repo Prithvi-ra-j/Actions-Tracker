@@ -101,19 +101,14 @@ Do not build upper-layer UX that assumes lower-layer semantics are stable.
 - Commit: `e6ca4ac592201e44e7f59f0cb842997b468f9225`
 - Commit message: `fix(data): make fresh-start reset fail-closed for existing installs`
 
-### Remaining work
+### Current release gate
 
-- [ ] Add regression test: existing v11 DB + existing `appMeta` must never be reset.
-- [ ] Add regression test: absent marker + absent baseline may reset exactly once.
-- [ ] Add regression test: unavailable localStorage does not cause repeated reset.
-- [ ] Add v11 upgrade fixture with representative user data.
-- [ ] Add install-over-existing-data test.
-- [ ] Add restore preview.
-- [ ] Add pre-restore safety backup.
-- [ ] Add record-level validation.
-- [ ] Add interrupted-restore/fault-injection tests.
-- [ ] Decide browser AI secret policy.
-- [ ] Document/reset semantics and recovery behavior.
+The persistence implementation is substantially complete. The remaining acceptance boundary is real release evidence:
+
+- [ ] Existing-install upgrade on a real browser/Android installation.
+- [ ] Kill/reopen after upgrade with semantic data snapshot comparison.
+- [ ] Restore failure/recovery validation on the target release environment.
+- [ ] Final release evidence retained in the release certificate.
 
 **Exit criteria:** Existing user data survives a normal upgrade and no reset path can silently convert an existing installation into a new user.
 
@@ -188,7 +183,10 @@ INSIGHT
 
 Canonical constructors/events exist in `src/core/domain/domainEvents.js`.
 
-### Remaining
+### Historical blueprint — superseded by master status
+
+> The master workstream table above is authoritative. The checklist below is retained as historical implementation intent and must not be read as current status.
+
 
 - [ ] Create canonical domain registry.
 - [ ] Define authoritative store for every entity.
@@ -298,7 +296,10 @@ optional user approval
 - Stage 4 — established
 - Stage 5 — stable
 
-### Remaining
+### Historical blueprint — superseded by master status
+
+> The master workstream table above is authoritative. The checklist below is retained as historical implementation intent and must not be read as current status.
+
 
 - [ ] Define calibration target(s)
 - [ ] Define minimum evidence threshold
@@ -341,7 +342,10 @@ CONFIDENCE
 WHAT NEXT
 ```
 
-### Remaining
+### Historical blueprint — superseded by master status
+
+> The master workstream table above is authoritative. The checklist below is retained as historical implementation intent and must not be read as current status.
+
 
 - [ ] Define six canonical domain contracts:
   Body / Discipline / Knowledge / Social / Creativity / Strategy
@@ -380,7 +384,10 @@ WHAT NEXT
 
 Missing evidence = unknown, not failure.
 
-### Remaining
+### Historical blueprint — superseded by master status
+
+> The master workstream table above is authoritative. The checklist below is retained as historical implementation intent and must not be read as current status.
+
 
 - [ ] Evidence normalizer.
 - [ ] Provenance chain.
@@ -432,7 +439,10 @@ user action
 domain executor
 ```
 
-### Remaining
+### Historical blueprint — superseded by master status
+
+> The master workstream table above is authoritative. The checklist below is retained as historical implementation intent and must not be read as current status.
+
 
 - [ ] Pure ranking policy.
 - [ ] Explainable focus cards.
@@ -469,7 +479,10 @@ Normal users speak naturally.
 
 Power users can still use `/` commands.
 
-### Remaining
+### Historical blueprint — superseded by master status
+
+> The master workstream table above is authoritative. The checklist below is retained as historical implementation intent and must not be read as current status.
+
 
 - [ ] Automatic intent/mode selection.
 - [ ] Strict output schema.
@@ -547,7 +560,10 @@ STATUS
 RECALIBRATE
 ```
 
-### Remaining
+### Historical blueprint — superseded by master status
+
+> The master workstream table above is authoritative. The checklist below is retained as historical implementation intent and must not be read as current status.
+
 
 - [ ] Explicit goal/action relations.
 - [ ] Domain-specific progress rules.
@@ -569,7 +585,10 @@ RECALIBRATE
 
 No nagging loops. No silent mutations. No repeated identical insight spam.
 
-### Remaining
+### Historical blueprint — superseded by master status
+
+> The master workstream table above is authoritative. The checklist below is retained as historical implementation intent and must not be read as current status.
+
 
 - [ ] Deterministic local audit checks.
 - [ ] Optional AI interpretation.
@@ -618,7 +637,10 @@ Never allow:
 Integration → direct score mutation
 ```
 
-### Remaining
+### Historical blueprint — superseded by master status
+
+> The master workstream table above is authoritative. The checklist below is retained as historical implementation intent and must not be read as current status.
+
 
 - [ ] Live Health Connect verification.
 - [ ] Live NutriLift/Supabase verification.
@@ -655,7 +677,10 @@ reset
 test
 ```
 
-### Remaining
+### Historical blueprint — superseded by master status
+
+> The master workstream table above is authoritative. The checklist below is retained as historical implementation intent and must not be read as current status.
+
 
 - [ ] Restore preview.
 - [ ] Safety backup.
@@ -686,7 +711,10 @@ test
 - Settings
 - Audit detail
 
-### Remaining
+### Historical blueprint — superseded by master status
+
+> The master workstream table above is authoritative. The checklist below is retained as historical implementation intent and must not be read as current status.
+
 
 - [ ] Bottom-sheet interaction audit.
 - [ ] Keyboard-safe Jarvis.
@@ -726,7 +754,10 @@ test
 9. Artifact retention
 10. Release approval
 
-### Remaining
+### Historical blueprint — superseded by master status
+
+> The master workstream table above is authoritative. The checklist below is retained as historical implementation intent and must not be read as current status.
+
 
 - [ ] Make version source consistent across `package.json` and `src/version.js`.
 - [ ] Add v11 upgrade fixture.
@@ -771,7 +802,10 @@ test
 - unredacted sensitive health data
 - secrets from provider payloads
 
-### Remaining
+### Historical blueprint — superseded by master status
+
+> The master workstream table above is authoritative. The checklist below is retained as historical implementation intent and must not be read as current status.
+
 
 - [ ] Standard structured error contract.
 - [ ] Correlation IDs end-to-end.
