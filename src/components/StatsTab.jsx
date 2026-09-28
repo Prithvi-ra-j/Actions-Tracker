@@ -1,3 +1,7 @@
+function statsSampleSize(axisKey, axisDetails) {
+  return Number(axisDetails[axisKey]?.sampleSize ?? axisDetails[axisKey]?.evidenceCount ?? 0);
+}
+
 import React, { useState, useEffect } from 'react';
 import RadarChart from './RadarChart.jsx';
 import { LIFE_DIMENSIONS } from '../constants.js';
@@ -6,6 +10,7 @@ import { Button } from './ui/Buttons.jsx';
 import { EmptyState } from './ui/States.jsx';
 import { SegmentedBar } from './ui/Indicators.jsx';
 import { Sparkle } from '@phosphor-icons/react';
+import { calculateCalibrationProfile } from '../core/scoring/calibrationProfile.js';
 
 // Axis color map for dots only
 const AXIS_COLORS = {
@@ -22,6 +27,14 @@ function AxisSheet({ axisKey, stats, axisDetails, snapshots, onOpenJarvis, onClo
   const val = Math.round(stats[axisKey] || 0);
   const color = AXIS_COLORS[axisKey] || 'var(--mu)';
   const components = axisDetails[axisKey]?.components || [];
+  const profile = calculateCalibrationProfile({
+    sampleSize: statsSampleSize(axisKey, axisDetails),
+    coverage: axisDetails[axisKey]?.coverage ?? 0,
+    confidence: axisDetails[axisKey]?.confidence ?? 0,
+    freshness: axisDetails[axisKey]?.freshness ?? 1,
+    contradictionRate: axisDetails[axisKey]?.contradictionRate ?? 0,
+    baselineAvailable: Boolean(axisDetails[axisKey]?.hasBaseline),
+  });
 
   // 4-week trend from snapshots
   const trend = snapshots
@@ -68,6 +81,20 @@ function AxisSheet({ axisKey, stats, axisDetails, snapshots, onOpenJarvis, onClo
         }}>
           {deltaStr} this month
         </span>
+      </div>
+
+
+      <div style={{ padding: '10px 12px', borderRadius: '12px', background: 'var(--s2)' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12 }}>
+          <span style={{ fontFamily: "'Geist Mono', monospace", fontSize: '11px', color: 'var(--mu)' }}>Calibration</span>
+          <span style={{ fontFamily: "'Geist Mono', monospace", fontSize: '11px', color: profile.sufficientlyCalibrated ? 'var(--strategy)' : 'var(--mu)' }}>{profile.stage}</span>
+        </div>
+        <div style={{ marginTop: 4, fontSize: '12px', color: 'var(--mu)' }}>
+          Confidence {Math.round(profile.confidence * 100)}% · {profile.sampleSize} evidence events · {Math.round(profile.coverage * 100)}% coverage
+        </div>
+        {profile.warning && (
+          <div style={{ marginTop: 5, fontSize: '12px', color: 'var(--mu)' }}>{profile.warning}</div>
+        )}
       </div>
 
       {/* 4-Week trend bars */}
