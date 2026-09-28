@@ -271,7 +271,7 @@ export default function TodayTab({
                           await recordTodayRecommendationFeedback({
                             recommendationId: item.id,
                             action,
-                            metadata: { domain: item.domain, type: item.type },
+                            metadata: { domain: item.domain, type: item.type, title: item.title, hypothesis: item.reason },
                           });
                         } finally {
                           if (action !== 'done') {
