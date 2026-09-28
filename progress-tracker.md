@@ -1099,3 +1099,6 @@ The GitHub-connected environment does not expose a local Node runtime for execut
 - Added docs/release-certificate-v1.md for release evidence collection.
 
 - Added deterministic proactive detectors for goal stagnation, repeated explicit habit misses, and evidence gaps; daily proactive analysis now evaluates these before the LLM summary and subjects them to the same confidence/dedupe/budget/quiet-hour policy.
+
+- Final implementation pass status: code-level 10/10 gaps addressed where repository/runtime evidence is available; current commits require a fresh CI run before certification claims.
+- Real Android/provider/accessibility/performance/longitudinal evidence remains explicitly validation-needed and is not marked complete from source changes alone.
