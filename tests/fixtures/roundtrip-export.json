@@ -1,0 +1,21 @@
+{
+  "_meta": {
+    "exportedAt": "2026-09-28T00:00:00.000Z",
+    "appVersion": "1.5.0",
+    "schemaVersion": 1
+  },
+  "settings": [
+    {
+      "key": "roundtrip_fixture",
+      "value": "ok"
+    }
+  ],
+  "logs": [
+    {
+      "id": "roundtrip-fixture-log",
+      "type": "manual_evidence",
+      "date": "2026-09-28",
+      "value": 1
+    }
+  ]
+}
