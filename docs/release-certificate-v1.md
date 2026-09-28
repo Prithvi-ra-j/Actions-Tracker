@@ -1,0 +1,106 @@
+# Actions-Tracker — Release Certificate
+
+**Version:** 1.5.1.1  
+**Branch:** main  
+**Status:** TEMPLATE — certification evidence must be filled from the release candidate.
+
+## Build identity
+
+- Commit:
+- CI run:
+- Production build:
+- Version contract:
+- Test result:
+- Persistence round-trip:
+
+## Product loops
+
+- [ ] Onboarding → proposal → approval → system
+- [ ] Today → action → evidence
+- [ ] Goal → plan → action → evidence → progress
+- [ ] Calibration baseline evolution
+- [ ] Intervention outcome → future recommendation
+- [ ] Jarvis proposal → approval → executor → undo
+- [ ] Proactive detector → evidence → insight → user decision
+
+## Persistence
+
+- [ ] Fresh install
+- [ ] Existing-install upgrade
+- [ ] Backup
+- [ ] Restore
+- [ ] Corrupt/checksum-invalid backup
+- [ ] Interrupted restore
+- [ ] Kill/reopen
+- [ ] PWA update
+- [ ] Android update
+
+## Security
+
+- [ ] Prompt-injection adversarial tests
+- [ ] Context-poisoning tests
+- [ ] Structured-output rejection
+- [ ] Sensitive-data redaction
+- [ ] Excessive-agency / destructive-action approval
+- [ ] No secret leakage in diagnostics/telemetry
+
+## Integrations
+
+### Health Connect
+- Device:
+- Android version:
+- Permission grant:
+- Permission revoke:
+- Initial sync:
+- Incremental sync:
+- Replay:
+- Disconnect/reconnect:
+
+### NutriLift
+- Initial sync:
+- Incremental sync:
+- Replay:
+- Retraction:
+- Reconnect:
+
+## Android/device
+
+- [ ] 360px layout
+- [ ] 393px layout
+- [ ] 412px layout
+- [ ] 432px layout
+- [ ] Keyboard
+- [ ] Back button
+- [ ] Background/foreground
+- [ ] Kill/reopen
+- [ ] Offline/online
+- [ ] Text scaling
+- [ ] Reduced motion
+- [ ] TalkBack
+
+## Performance
+
+Record measured values from the release candidate:
+
+| Metric | Measured | Threshold | Result |
+|---|---:|---:|---|
+| Cold boot | | | |
+| IndexedDB initialization | | | |
+| Today calculation | | | |
+| Stats calculation | | | |
+| Jarvis context assembly | | | |
+| Sync cycle | | | |
+| Large-data render | | | |
+
+## Known limitations
+
+- Real-device and provider validation must be recorded here before calling the release fully certified.
+- Longitudinal calibration/intervention evidence must be based on actual observation sequences or deterministic fixtures; do not claim user learning from empty history.
+
+## Final approval
+
+- Engineering:
+- Product:
+- Security:
+- Device QA:
+- Release date:
