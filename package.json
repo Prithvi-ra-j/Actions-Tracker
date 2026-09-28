@@ -12,7 +12,9 @@
     "test:roundtrip": "node scripts/test-roundtrip.mjs",
     "test": "vitest run",
     "test:watch": "vitest",
-    "test:coverage": "vitest run --coverage"
+    "test:coverage": "vitest run --coverage",
+    "certify:docs": "node scripts/validate-certification-docs.mjs",
+    "certify:longitudinal": "node scripts/certify-longitudinal.mjs"
   },
   "dependencies": {
     "@capacitor/android": "^6.0.0",
