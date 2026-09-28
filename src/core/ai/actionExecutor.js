@@ -19,6 +19,7 @@ import { localDateStr } from '../../helpers/dateHelpers.js';
 import { ActionProposalSchema } from './actionSchemas.js';
 import { addLog, deleteLog } from '../../database/logsRepository.js';
 import { getSetting } from '../../database/settingsRepository.js';
+import { beginProposalExecution, finishProposalExecution } from '../../database/proposalExecutionRepository.js';
 
 function requireId(payload, actionType) {
   if (!payload.id || typeof payload.id !== 'string') {
@@ -89,13 +90,25 @@ async function addRoutineSlot(payload, habitId) {
 export async function executeAction(proposal) {
   const validatedProposal = await validateActionPreconditions(proposal);
   const { actionType, payload } = validatedProposal;
-  const executionKey = createExecutionKey(validatedProposal);
-  const priorAction = (await getAllFacts()).find(fact => fact.meta?.executionKey === executionKey);
-  if (priorAction) return {
-    ...(priorAction.meta?.result || {}),
-    actionFactId: priorAction.id,
-    idempotent: true,
-  };
+  const executionKey = validatedProposal.id
+    ? `proposal:${validatedProposal.id}:apply`
+    : createExecutionKey(validatedProposal);
+  const executionLedger = await beginProposalExecution({
+    idempotencyKey: executionKey,
+    proposalId: validatedProposal.id || null,
+    actionType,
+  });
+  if (!executionLedger.created) {
+    if (executionLedger.record.status === 'applied' && executionLedger.record.result) {
+      return { ...executionLedger.record.result, idempotent: true };
+    }
+    if (executionLedger.record.status === 'applying') {
+      throw new Error('This proposal is already being applied.');
+    }
+    if (executionLedger.record.status === 'failed') {
+      throw new Error(executionLedger.record.error || 'This proposal previously failed. Review and retry it.');
+    }
+  }
 
   const before = actionType === 'complete_onboarding'
     ? { selfModel: await getSelfModel(), axisConfigs: await getAllAxisConfigs() }
@@ -428,7 +441,9 @@ export async function executeAction(proposal) {
   }
 
   const actionFactId = await recordActionFact(actionType, payload, result);
-  return { ...result, actionFactId, idempotent: false };
+  const finalResult = { ...result, actionFactId, idempotent: false };
+  await finishProposalExecution(executionKey, { status: 'applied', result: finalResult, appliedAt: new Date().toISOString() });
+  return finalResult;
 }
 
 export async function undoAction(actionFactId) {
