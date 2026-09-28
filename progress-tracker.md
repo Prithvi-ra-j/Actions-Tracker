@@ -1112,3 +1112,22 @@ The GitHub-connected environment does not expose a local Node runtime for execut
 - Fresh GitHub Actions run **#636** completed successfully after these fixes. This validates the repository CI workflow (tests, persistence round-trip, and build smoke) at that commit.
 - Browser-only notification warnings remain expected/non-blocking because Capacitor Local Notifications are unavailable in jsdom; they are not workflow failures.
 - Android signing/device/provider/accessibility/longitudinal certification remains a separate real-environment validation boundary.
+
+
+## 12/10 intelligence implementation — 2026-09-28
+
+Implemented the next intelligence layer without creating parallel scoring/data architectures:
+
+- **Personal baseline 2.0:** `src/core/calibration/` now provides recency-weighted baselines, deviation severity, trend analysis, confidence, capacity modeling, durable baseline facts, and continuous observation updates. Today completion events now feed the `action_completion` baseline.
+- **Goal lifecycle:** added measurable goal outcome evaluation, adaptation, and learning engines. Plan changes are recorded as auditable facts with evidence references.
+- **Intervention intelligence:** added outcome collection, effectiveness estimation, reuse prediction, and Decision Outcome Rate metrics. Historical intervention success can influence recommendation ranking only when sample/confidence thresholds are met.
+- **Adaptive Today 3.0:** recommendations now expose recommendationId, confidence, expectedImpact, alternatives, expiry, context, baseline signals, and intervention-learning adjustments.
+- **Evidence/truth layer:** added provenance graph, grounded claims, contradiction detection/reconciliation, and explicit memory truth classes/trust levels.
+- **Integration platform:** added connector contract validation, canonical event normalization, and replay-safe event deduplication; sync manager now enforces them.
+- **Data resilience:** added integrity scanning for missing/duplicate IDs, invalid timestamps, orphan evidence references, and orphan relations, with safe-repair classification.
+- **Performance:** added measurable local performance budgets for boot, Today, search, backup, and sync.
+- **Intelligence evaluation:** added recommendation quality, calibration, intervention effectiveness, goal adaptation, grounding, proactive detection, contradiction, performance, trust, and integration/recovery tests.
+- **Security:** added indirect prompt-injection boundary coverage alongside existing action-schema/redaction tests.
+- **Certification:** added `docs/12-10-certification.md` defining the longitudinal proof metrics and remaining real-world certification gates.
+
+Latest validated GitHub Actions runs for the new intelligence/platform test batches are green. Real Android/provider/accessibility/performance and 30/60/90-day evidence remain validation gates and are not represented as completed merely by CI.
