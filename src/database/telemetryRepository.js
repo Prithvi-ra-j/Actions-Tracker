@@ -1,3 +1,4 @@
+import { localDateStr } from '../helpers/dateHelpers.js';
 import { dbPut, dbGetAll, dbGetAllByIndex } from './db.js';
 import { getLatestSnapshot, getAllSnapshots } from './statSnapshotsRepository.js';
 
@@ -22,7 +23,7 @@ export async function getAllTelemetry() {
 
 export async function saveErrorLog(error, info) {
   try {
-    const todayStr = new Date().toISOString().split('T')[0];
+    const todayStr = localDateStr();
     await saveTelemetryEvent('crash', todayStr, {
       message: error?.message || String(error),
       stack: error?.stack,
