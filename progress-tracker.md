@@ -1087,3 +1087,13 @@ The GitHub-connected environment does not expose a local Node runtime for execut
 - Added integration replay-safety coverage and duplicate provider-fact prevention keyed by connector ID + external ID + external version + fact type.
 - IndexedDB persistence is now documented as v12, including the intervention store.
 - **Not claimed complete:** real Android/device, provider-permission, accessibility, and longitudinal calibration evidence still require execution in their respective environments.
+
+
+## 2026-09-28 — 10/10 execution batch
+- Added docs/10-10-definition-of-done.md with product, engineering, security, persistence, device, integration, E2E and release gates.
+- Closed Today recommendation execution: a Done action recommendation now completes the underlying habit occurrence and emits completion evidence before feedback is recorded.
+- Added longitudinal calibration baseline evolution and attached baseline/comparison metadata to score projections when observations are supplied.
+- Added intervention-learning projection so sufficient historical intervention outcomes can alter future Today recommendation priority.
+- Added Jarvis adversarial trust-boundary tests for destructive-action targeting, malformed onboarding proposals, secret/contact redaction and evidence-grounded claims.
+- Centralized remaining production user-facing local calendar-date derivations found in the audit.
+- Added docs/release-certificate-v1.md for release evidence collection.
