@@ -16,7 +16,7 @@ export async function hasJarvisApiKey() {
 }
 
 export async function getJarvisConfig() {
-  const [apiKey, baseUrl, model] = await Promise.all([
+  const [apiKey, baseUrl, model, gatewayUrl] = await Promise.all([
     getSecureValue(JARVIS_API_KEY_STORAGE_KEY),
     getSetting('aiBaseUrl'),
     getSetting('aiModel'),
