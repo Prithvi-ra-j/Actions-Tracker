@@ -299,27 +299,95 @@ export function ImpactDetailSheet({ proposal, impact, onApply, onEdit, onDismiss
 }
 
 export function EditProposalSheet({ proposal, onSave, onCancel, onDismiss }) {
-  if (!proposal) return null;
-  
-  // Real implementation would parse proposal schema and render inputs dynamically.
-  // For the UI step, we just show a placeholder representation.
+  const [draft, setDraft] = useState(() => proposal || null);
+
+  useEffect(() => {
+    setDraft(proposal || null);
+  }, [proposal]);
+
+  if (!proposal || !draft) return null;
+
+  const payload = draft.payload || {};
+  const titleKey = payload.title !== undefined ? 'title'
+    : payload.label !== undefined ? 'label'
+      : payload.name !== undefined ? 'name'
+        : null;
+  const titleValue = titleKey ? payload[titleKey] : (draft.name || '');
+
+  const updatePayload = (key, value) => {
+    setDraft(current => ({
+      ...current,
+      payload: {
+        ...(current.payload || {}),
+        [key]: value,
+      },
+    }));
+  };
+
+  const handleSave = () => {
+    onSave?.({
+      ...draft,
+      payload,
+      name: titleKey ? undefined : titleValue,
+      proposalStatus: 'pending',
+      lifecycle: 'waiting_approval',
+    });
+  };
+
   return (
     <BottomSheet isOpen={!!proposal} onClose={onDismiss}>
       <h3 className="h3">Edit proposal</h3>
-      <p style={{ fontSize: '13.5px', color: 'var(--mu)' }}>{proposal.name}</p>
-      
-      <div style={{ marginTop: '16px' }}>
-        <div style={{ fontSize: '13px', fontWeight: 500, marginBottom: '8px' }}>Name</div>
-        <div style={{ 
-          minHeight: '48px', display: 'flex', alignItems: 'center', padding: '0 14px', 
-          backgroundColor: 'var(--s2)', borderRadius: '12px', boxShadow: 'inset 0 0 0 1px var(--ln)'
-        }}>
-          {proposal.name}
-        </div>
+      <p style={{ fontSize: '13.5px', color: 'var(--mu)' }}>
+        Change what Jarvis proposed. Nothing is written until you approve it.
+      </p>
+
+      <div style={{ marginTop: '16px', display: 'grid', gap: '12px' }}>
+        <label style={{ display: 'grid', gap: '6px', fontSize: '13px', fontWeight: 500 }}>
+          {titleKey === 'name' ? 'Name' : 'Title'}
+          <input
+            aria-label={titleKey === 'name' ? 'Proposal name' : 'Proposal title'}
+            value={String(titleValue ?? '')}
+            onChange={event => {
+              if (titleKey) updatePayload(titleKey, event.target.value);
+              else setDraft(current => ({ ...current, name: event.target.value }));
+            }}
+            style={{
+              width: '100%',
+              boxSizing: 'border-box',
+              minHeight: '46px',
+              padding: '0 12px',
+              borderRadius: '12px',
+              border: '1px solid var(--hairline)',
+              background: 'var(--s2)',
+              color: 'var(--tx)',
+            }}
+          />
+        </label>
+
+        <label style={{ display: 'grid', gap: '6px', fontSize: '13px', fontWeight: 500 }}>
+          Description
+          <textarea
+            aria-label="Proposal description"
+            value={String(payload.description ?? '')}
+            onChange={event => updatePayload('description', event.target.value)}
+            rows={4}
+            style={{
+              width: '100%',
+              boxSizing: 'border-box',
+              padding: '12px',
+              borderRadius: '12px',
+              border: '1px solid var(--hairline)',
+              background: 'var(--s2)',
+              color: 'var(--tx)',
+              resize: 'vertical',
+              font: 'inherit',
+            }}
+          />
+        </label>
       </div>
-      
-      <div style={{ display: 'flex', gap: '8px', marginTop: '24px' }}>
-        <Button variant="primary" style={{ flex: 1 }} onClick={onSave}>Apply changes</Button>
+
+      <div style={{ display: 'flex', gap: '8px', marginTop: '20px' }}>
+        <Button variant="primary" style={{ flex: 1 }} onClick={handleSave}>Save edit</Button>
         <Button variant="secondary" style={{ flex: 1 }} onClick={onCancel}>Cancel</Button>
       </div>
     </BottomSheet>
