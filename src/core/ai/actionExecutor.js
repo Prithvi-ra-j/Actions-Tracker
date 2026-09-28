@@ -21,6 +21,7 @@ import { addLog, deleteLog } from '../../database/logsRepository.js';
 import { getSetting } from '../../database/settingsRepository.js';
 import { getActionRiskClass } from './actionPolicy.js';
 import { linkEvidenceToGoal, linkActionToGoal } from '../goals/goalProgressEngine.js';
+import { validateSystemProposal } from '../onboarding/systemProposal.js';
 
 function requireId(payload, actionType) {
   if (!payload.id || typeof payload.id !== 'string') {
@@ -100,7 +101,7 @@ export async function executeAction(proposal) {
   };
 
   const before = actionType === 'complete_onboarding'
-    ? { selfModel: await getSelfModel(), axisConfigs: await getAllAxisConfigs() }
+    ? { selfModel: await getSelfModel(), axisConfigs: await getAllAxisConfigs(), routineConfig: await getRoutineConfig() }
     : payload.id
     ? actionType === 'modify_goal'
       ? await getGoal(payload.id)
@@ -302,6 +303,12 @@ export async function executeAction(proposal) {
       // explicitly approved in the UI.
       const now = new Date().toISOString();
       const payloadBaseline = payload.baseline || {};
+      const systemProposal = payload.systemProposal
+        ? validateSystemProposal(payload.systemProposal)
+        : null;
+      const createdGoalIds = [];
+      const createdHabitIds = [];
+      let previousRoutine = null;
       const focusAxes = [...new Set(payload.focusAxes)].filter(Boolean);
       const desiredDimensions = payload.desiredSelf?.dimensions || {};
 
@@ -376,12 +383,75 @@ export async function executeAction(proposal) {
         onboardingLogIds.push(id);
       }
 
+      if (systemProposal?.items?.length) {
+        previousRoutine = before.routineConfig;
+        for (const item of systemProposal.items) {
+          const itemPayload = item.payload || {};
+          if (item.kind === 'goal') {
+            const goal = await addGoal({
+              label: itemPayload.label || item.title,
+              domain: itemPayload.domain || focusAxes[0] || 'general',
+              start: itemPayload.start || '',
+              end: itemPayload.end || item.description || '',
+              proof: itemPayload.proof || '',
+              targets: Array.isArray(itemPayload.targets)
+                ? itemPayload.targets.map(target => typeof target === 'string' ? ({ text: target, metric: '', completed: false }) : target)
+                : [],
+              fear: itemPayload.fear || '',
+              source: { type: 'user', createdBy: 'approved_onboarding_proposal' },
+            });
+            createdGoalIds.push(goal.id);
+          } else if (item.kind === 'habit') {
+            const habitId = await addHabit({
+              name: itemPayload.name || item.title,
+              description: item.description || null,
+              domain: itemPayload.domain || focusAxes[0] || 'general',
+              frequency: itemPayload.frequency || { type: 'daily' },
+              trackingMethod: itemPayload.trackingMethod || 'boolean',
+              completionMode: itemPayload.completionMode || 'manual',
+              target: itemPayload.target || null,
+              implementationIntention: itemPayload.implementationIntention || null,
+              source: { type: 'user' },
+              goalObjectId: itemPayload.goalObjectId || createdGoalIds[0] || null,
+            });
+            createdHabitIds.push(habitId);
+          } else if (item.kind === 'routine') {
+            const currentRoutine = await getRoutineConfig();
+            await updateRoutineConfig({
+              timeSlots: Array.isArray(itemPayload.timeSlots) ? itemPayload.timeSlots : currentRoutine.timeSlots,
+              constraints: Array.isArray(itemPayload.constraints) ? itemPayload.constraints : currentRoutine.constraints,
+              weeklyBudget: itemPayload.weeklyBudget || currentRoutine.weeklyBudget,
+            });
+          } else if (item.kind === 'constraint') {
+            await updateSelfModel({
+              identity: {
+                ...(payload.identity || {}),
+                constraints: [...new Set([...(payload.identity?.constraints || []), item.title])],
+              },
+            });
+          } else if (item.kind === 'measurement') {
+            await updateSelfModel({
+              onboarding: {
+                ...(before.selfModel?.onboarding || {}),
+                measurements: [
+                  ...((before.selfModel?.onboarding?.measurements || [])),
+                  { title: item.title, payload: itemPayload, createdAt: now },
+                ],
+              },
+            });
+          }
+        }
+      }
+
       result = {
         ...result,
         id: 'onboarding',
         completedAt: now,
-        setupState: 'jarvis_design_pending',
+        setupState: systemProposal?.items?.length ? 'active' : 'jarvis_design_pending',
         onboardingLogIds,
+        createdGoalIds,
+        createdHabitIds,
+        previousRoutine,
       };
       break;
     }
@@ -484,6 +554,16 @@ export async function undoAction(actionFactId) {
     for (const logId of result?.onboardingLogIds || []) {
       await deleteLog(logId);
     }
+    for (const habitId of result?.createdHabitIds || []) {
+      const habit = await getHabit(habitId);
+      if (habit) await dbArchiveHabit(habitId);
+    }
+    for (const goalId of result?.createdGoalIds || []) {
+      const goal = await getGoal(goalId);
+      if (goal) await updateGoal(goalId, { status: 'archived', archivedAt: new Date().toISOString() });
+    }
+    if (before?.routineConfig) await updateRoutineConfig(before.routineConfig);
+
   } else if (actionType === 'log_evidence') {
     const evidenceFactId = result?.evidenceFactId || result?.id;
     if (evidenceFactId) {
