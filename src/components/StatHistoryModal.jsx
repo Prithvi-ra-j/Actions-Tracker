@@ -1,3 +1,4 @@
+import { localDateStr } from '../helpers/dateHelpers.js';
 import React, { useState, useEffect, useMemo } from 'react';
 import { ACCENT } from '../constants.js';
 import { getAllSnapshots } from '../database/statSnapshotsRepository.js';
@@ -29,7 +30,7 @@ export default function StatHistoryModal({ t, axisInfo, allLogs, onClose }) {
 
     async function loadExplainability() {
       const { runScoreProjection } = await import('../core/scoring/scoreEngine.js');
-      const today = new Date().toISOString().split('T')[0];
+      const today = localDateStr();
       const projectionData = await runScoreProjection(axis, { start: '1970-01-01', end: today });
       setProjection(projectionData);
       
