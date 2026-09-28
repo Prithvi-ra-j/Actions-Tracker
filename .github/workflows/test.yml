@@ -18,11 +18,25 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: '22'
           cache: 'npm'
 
       - name: Install dependencies
         run: npm ci
+
+      - name: Validate release version contract
+        shell: bash
+        run: |
+          node --input-type=module <<'NODE'
+          import fs from 'node:fs';
+          const pkg = JSON.parse(fs.readFileSync('package.json', 'utf8'));
+          const src = fs.readFileSync('src/version.js', 'utf8');
+          const match = src.match(/export const APP_VERSION\s*=\s*'([^']+)'/);
+          if (!match || match[1] !== pkg.version) {
+            throw new Error(`Version mismatch: package=${pkg.version}, app=${match?.[1] || 'missing'}`);
+          }
+          console.log(`Version contract OK: ${pkg.version}`);
+          NODE
 
       - name: Run tests
         run: npm test
