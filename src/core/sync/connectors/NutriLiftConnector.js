@@ -89,10 +89,11 @@ export class NutriLiftConnector extends BaseConnector {
       );
     }
 
-    const records = await fetchNutriLiftRecords({
+    const page = await fetchNutriLiftRecords({
       cursor: options.full ? null : syncState.cursor,
       limit: options.batchSize || 100,
     });
+    const records = page.records;
     const existingFacts = await getAllFacts();
     const facts = [];
     let ignored = 0;
@@ -124,10 +125,7 @@ export class NutriLiftConnector extends BaseConnector {
       return this.createSyncResult('success', 0, 0, ignored, syncState.cursor || null, [], startedAt, []);
     }
 
-    const cursor = records.reduce((latest, record) => {
-      const candidate = sourceVersion(record);
-      return candidate > latest ? candidate : latest;
-    }, syncState.cursor || '');
+    const cursor = page.nextCursor || syncState.cursor || '';
 
     return this.createSyncResult(
       'success',
