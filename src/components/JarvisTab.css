@@ -1030,3 +1030,23 @@
     padding-right: 1.1rem;
   }
 }
+
+
+/* A52-first, viewport-agnostic Jarvis contract */
+.jarvis-screen{min-height:0;overflow:hidden;padding-bottom:env(safe-area-inset-bottom,0px);}
+.jarvis-screen__messages{scrollbar-gutter:stable both-edges;}
+.jarvis-screen__composer{padding-bottom:max(7px,env(safe-area-inset-bottom,0px));}
+.jarvis-screen__commands{bottom:calc(76px + env(safe-area-inset-bottom,0px)) !important;}
+@media (max-width: 480px){
+  .jarvis-screen__header{padding-left:12px !important;padding-right:12px !important;}
+  .jarvis-screen__header button{max-width:31vw;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .jarvis-screen__composer{margin-left:8px !important;margin-right:8px !important;gap:4px !important;}
+  .jarvis-screen__composer input{font-size:16px !important;} /* avoid mobile browser auto-zoom */
+  .jarvis-screen__messages{padding-left:10px !important;padding-right:10px !important;}
+  .jarvis-screen__commands{left:8px !important;right:8px !important;max-height:55dvh !important;}
+}
+@media (max-width: 360px){
+  .jarvis-screen__composer button{width:42px !important;height:42px !important;}
+  .jarvis-screen__composer{min-height:56px !important;}
+  .jarvis-screen__commands [role="listbox"]{grid-template-columns:1fr !important;}
+}
