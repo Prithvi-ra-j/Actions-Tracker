@@ -9,6 +9,9 @@ describe('contradiction handling', () => {
     ]);
     expect(result.status).toBe('conflicted');
     expect(result.authoritative).toBeNull();
-    expect(detectContradictions(result.contradictions)).toBeDefined();
+    expect(detectContradictions([
+      { id: 'u1', subjectId: 'exercise', polarity: 'positive' },
+      { id: 'i1', subjectId: 'exercise', polarity: 'negative' },
+    ])).toHaveLength(1);
   });
 });
