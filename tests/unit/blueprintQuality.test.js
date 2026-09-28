@@ -22,8 +22,9 @@ describe('Actions-Tracker 9/10 blueprint contracts', () => {
       [proposal.items[0].id]: 'approve',
       [proposal.items[1].id]: 'reject',
     });
-    expect(decided.items).toHaveLength(1);
-    expect(decided.items[0].status).toBe('approved');
+    expect(decided.items).toHaveLength(2);
+    expect(decided.items.find(item => item.id === proposal.items[0].id)?.status).toBe('approved');
+    expect(decided.items.find(item => item.id === proposal.items[1].id)?.status).toBe('rejected');
     expect(decided.status).toBe('approved');
   });
 
