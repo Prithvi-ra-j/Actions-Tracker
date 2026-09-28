@@ -1,6 +1,7 @@
 import { addFact, getAllFacts } from '../../database/factsRepository.js';
 import { buildBaseline } from './baselineEngine.js';
 import { getLatestBaseline, saveBaseline } from './baselineRepository.js';
+import { buildBaselineMetadata, normalizeBaselineMetric } from './baselineContract.js';
 
 export async function recordCalibrationObservation(metric, {
   value,
@@ -8,14 +9,15 @@ export async function recordCalibrationObservation(metric, {
   evidenceId = null,
   context = {},
 } = {}, options = {}) {
-  if (!metric || !Number.isFinite(Number(value))) throw new Error('metric and numeric value are required');
+  const normalizedMetric = normalizeBaselineMetric(metric);
+  if (!Number.isFinite(Number(value))) throw new Error('metric and numeric value are required');
 
   const observationId = await addFact({
     type: 'calibration.observation',
-    objectId: metric,
+    objectId: normalizedMetric,
     value: Number(value),
     occurredAt,
-    meta: { metric, evidenceId, context, version: '2.0' },
+    meta: { ...buildBaselineMetadata({ metric: normalizedMetric, evidenceIds: evidenceId ? [evidenceId] : [], source: options.source || 'system', context }), evidenceId, context, version: '2.1' },
   });
 
   const facts = await getAllFacts();
@@ -27,16 +29,16 @@ export async function recordCalibrationObservation(metric, {
       evidenceId: f.meta?.evidenceId,
     }));
 
-  const previous = await getLatestBaseline(metric);
+  const previous = await getLatestBaseline(normalizedMetric);
   const baseline = buildBaseline(observations, previous, options);
   if (baseline.updated) {
-    await saveBaseline(metric, baseline, {
+    await saveBaseline(normalizedMetric, baseline, {
       evidenceIds: observations.map(o => o.evidenceId).filter(Boolean),
       source: options.source || 'system',
     });
   }
 
-  return { observationId, baseline };
+  return { observationId, metric: normalizedMetric, baseline };
 }
 
 export async function updatePersonalBaseline(metric, observations = [], options = {}) {
