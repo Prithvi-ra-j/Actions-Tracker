@@ -39,7 +39,7 @@ vi.mock('../../src/core/calibration/baselineRepository.js', () => ({
       confidence: 0.9,
       lastObservedAt: '2026-09-08T08:00:00Z',
     },
-  }));
+  })),
 }));
 
 describe('baseline signals', () => {
