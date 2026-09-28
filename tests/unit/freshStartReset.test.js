@@ -38,17 +38,17 @@ describe('fresh-start reset safety', () => {
     expect(second).toBe(false);
   });
 
-  it('fails closed when the durable metadata read cannot safely establish installation state', async () => {
-    await initDB();
-    const original = globalThis.indexedDB;
-    Object.defineProperty(globalThis, 'indexedDB', {
+  it('does not repeat a reset when localStorage is unavailable after the first reset', async () => {
+    const originalStorage = globalThis.localStorage;
+    Object.defineProperty(globalThis, 'localStorage', {
       configurable: true,
-      get() { throw new Error('metadata unavailable'); },
+      get() { throw new Error('storage unavailable'); },
     });
     try {
+      expect(await applyFreshStartReset()).toBe(true);
       expect(await applyFreshStartReset()).toBe(false);
     } finally {
-      Object.defineProperty(globalThis, 'indexedDB', { configurable: true, value: original });
+      Object.defineProperty(globalThis, 'localStorage', { configurable: true, value: originalStorage });
     }
   });
 });
