@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { SystemProposalSchema } from '../onboarding/systemProposal.js';
 
 const ACTION_TYPES = [
   'add_habit', 'modify_habit', 'pause_habit', 'archive_habit',
@@ -59,6 +60,14 @@ export const ActionProposalSchema = z.object({
     context.addIssue({ code: z.ZodIssueCode.custom, path: ['payload', 'content'], message: 'propose_memory requires payload.content' });
   }
   if (proposal.actionType === 'complete_onboarding') {
+    if (proposal.payload.systemProposal !== undefined) {
+      const parsedSystemProposal = SystemProposalSchema.safeParse(proposal.payload.systemProposal);
+      if (!parsedSystemProposal.success) {
+        context.addIssue({ code: z.ZodIssueCode.custom, path: ['payload', 'systemProposal'], message: 'Invalid structured system proposal' });
+      } else if (parsedSystemProposal.data.items.some(item => !['approved', 'edited'].includes(item.status))) {
+        context.addIssue({ code: z.ZodIssueCode.custom, path: ['payload', 'systemProposal'], message: 'Every system proposal item must be explicitly approved or edited before execution' });
+      }
+    }
     if (!proposal.payload.identity || typeof proposal.payload.identity !== 'object') {
       context.addIssue({ code: z.ZodIssueCode.custom, path: ['payload', 'identity'], message: 'complete_onboarding requires identity' });
     }
