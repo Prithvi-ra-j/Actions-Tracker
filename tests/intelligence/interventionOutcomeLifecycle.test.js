@@ -91,7 +91,7 @@ describe('automatic intervention outcome lifecycle', () => {
     const completed = await Promise.all(['intervention_lifecycle_1', 'intervention_lifecycle_2', 'intervention_lifecycle_3'].map(getIntervention));
     const effectiveness = calculateEffectiveness(completed);
     expect(effectiveness.move_earlier.successRate).toBe(1);
-    expect(effectiveness.move_earlier.sampleSize).toBe(1);
+    expect(effectiveness.move_earlier.sampleSize).toBe(3);
 
     const ranked = rankInterventions(
       [{ id: 'candidate', type: 'intervention', recommendationType: 'action', interventionType: 'move_earlier', baseScore: 50 }],
