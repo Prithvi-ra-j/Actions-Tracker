@@ -11,6 +11,8 @@ import { addFact, getAllFacts } from '../../database/factsRepository.js';
 import { deriveConnectorLifecycle } from './connectorLifecycle.js';
 import { withRetry } from '../recovery/retryPolicy.js';
 import { createCorrelationId } from '../observability/structuredError.js';
+import { validateConnector, normalizeConnectorEvent } from './connectorContract.js';
+import { deduplicateConnectorEvents } from './eventDeduplicator.js';
 
 const registry = new Map();
 
@@ -30,9 +32,7 @@ function externalFactKey(fact) {
  * @param {import('./BaseConnector.js').BaseConnector} connector
  */
 export function registerConnector(connector) {
-  if (!connector?.id || typeof connector.getStatus !== 'function' || typeof connector.sync !== 'function') {
-    throw new Error('[syncManager] Connector must provide id, getStatus(), and sync().');
-  }
+  validateConnector(connector);
   registry.set(connector.id, connector);
 }
 
@@ -128,15 +128,12 @@ export async function runAllSyncs() {
             .filter(Boolean)
         );
 
-        for (const fact of result.facts) {
-          const key = externalFactKey(fact);
-          if (key && seenExternalFacts.has(key)) {
-            ignoredCount++;
-            continue;
-          }
+        const normalized = result.facts.map(fact => normalizeConnectorEvent(fact, id));
+        const deduped = deduplicateConnectorEvents(normalized, seenExternalFacts);
+        ignoredCount += deduped.duplicates.length;
+        for (const fact of deduped.accepted) {
           // Facts must be validated by their schema prior to returning from connector.
           await addFact(fact);
-          if (key) seenExternalFacts.add(key);
           ingestedCount++;
         }
       }
