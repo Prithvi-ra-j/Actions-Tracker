@@ -1,3 +1,4 @@
+import { localDateStr } from '../../helpers/dateHelpers.js';
 /**
  * Generic LLM Client (§30 AI Write Boundary).
  *
@@ -103,7 +104,7 @@ export async function queryLLM(messages, options = {}) {
 
 async function recordAICallTelemetry(options, model, startedAt, output, success, usage = {}) {
   try {
-    await saveTelemetryEvent('ai_call', new Date().toISOString().split('T')[0], {
+    await saveTelemetryEvent('ai_call', localDateStr(), {
       intent: options.intent || 'unknown',
       model,
       inputTokens: usage.prompt_tokens ?? usage.input_tokens ?? Math.ceil(JSON.stringify(options.messages || []).length / 4),
