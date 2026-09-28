@@ -473,7 +473,8 @@ export default function App() {
       setStats(newStats);
       setAxisDetails(newDetails);
 
-      // ── Level-up detection (spec §11) ────────────────────────────────     const savedTitlesRaw = await getSetting('lastStatTitles');
+      // ── Level-up detection (spec §11) ────────────────────────────────
+      const savedTitlesRaw = await getSetting('lastStatTitles');
       const savedTitles = savedTitlesRaw ? JSON.parse(savedTitlesRaw) : {};
       const newLevelUps = detectLevelUps(savedTitles, newStats);
       if (newLevelUps.length > 0) {
