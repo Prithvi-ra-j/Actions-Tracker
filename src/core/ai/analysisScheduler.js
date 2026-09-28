@@ -204,11 +204,6 @@ export function bootstrapAnalysisScheduler() {
 }
 
 async function runScheduledAnalysis() {
-  if ((await getSetting('jarvisProactiveSuggestions')) === 'false') {
-    console.log('[AnalysisScheduler] Skipping passive analysis: disabled in Settings.');
-    return;
-  }
-
   const [userDataExists, apiConfigured] = await Promise.all([
     hasUserData(),
     hasJarvisApiKey(),
@@ -229,6 +224,11 @@ async function runScheduledAnalysis() {
     await saveTelemetryEvent('intervention_outcome_scheduler_failed', today, {
       error: error?.message || 'unknown_error',
     });
+  }
+
+  if ((await getSetting('jarvisProactiveSuggestions')) === 'false') {
+    console.log('[AnalysisScheduler] Skipping proactive analysis: disabled in Settings.');
+    return;
   }
 
   const lastDailyDate = await getSetting('lastDailyAnalysisDate');
