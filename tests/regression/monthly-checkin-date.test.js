@@ -29,9 +29,9 @@ describe('Monthly check-in date validation regression', () => {
     await setSecureValue('aiApiKey', 'test-api-key');
     Object.defineProperty(navigator, 'onLine', { value: true, writable: true });
     
-    Element.prototype.getBoundingClientRect = vi.fn(() => (
-      { width: 120, height: 120, top: 0, left: 0, bottom: 0, right: 0 }
-    ));
+    Element.prototype.getBoundingClientRect = vi.fn(() => ({
+      width: 120, height: 120, top: 0, left: 0, bottom: 120, right: 120,
+    }));
   });
 
   afterEach(() => {
