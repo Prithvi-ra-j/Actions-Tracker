@@ -158,7 +158,7 @@ export default function SettingsTab({ t, onClose, reminders: reminderConfigs = [
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `actions-tracker-backup-${new Date().toISOString().slice(0, 10)}.json`;
+    a.download = `actions-tracker-backup-${localDateStr()}.json`;
     a.click();
     URL.revokeObjectURL(url);
   };
