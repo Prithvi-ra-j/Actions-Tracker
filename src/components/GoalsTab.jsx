@@ -18,6 +18,14 @@ const AXIS_COLORS = {
   strategy:   'var(--strategy)',
 };
 
+const HEALTH_META = {
+  'ON TRACK': { label: 'On track', tone: 'var(--strategy)' },
+  'AT RISK': { label: 'At risk', tone: 'var(--ac)' },
+  'STALLED': { label: 'Stalled', tone: 'var(--danger)' },
+  'INSUFFICIENT EVIDENCE': { label: 'Insufficient evidence', tone: 'var(--mu)' },
+  'COMPLETED': { label: 'Completed', tone: 'var(--strategy)' },
+};
+
 function GoalCard({ goal, onClick }) {
   const totalTargets = goal.targets?.length || 0;
   const doneTargets = goal.targets?.filter(t => t.completed)?.length || 0;
@@ -70,6 +78,12 @@ function GoalCard({ goal, onClick }) {
         {goal.label}
       </h3>
 
+      {goal.health && (
+        <div style={{ marginTop: '6px', fontFamily: "'Geist Mono', monospace", fontSize: '11px', color: HEALTH_META[goal.health]?.tone || 'var(--mu)' }}>
+          {HEALTH_META[goal.health]?.label || goal.health}
+        </div>
+      )}
+
       {/* Meta line */}
       <p style={{
         margin: 0,
@@ -91,6 +105,7 @@ function GoalCard({ goal, onClick }) {
 export default function GoalsTab({ t, onOpenJarvis }) {
   const [goals, setGoals] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [goalProgress, setGoalProgress] = useState({});
   const [selectedGoal, setSelectedGoal] = useState(null);
   const [isEditing, setIsEditing] = useState(false);
   const [showConfirmDelete, setShowConfirmDelete] = useState(false);
@@ -109,7 +124,14 @@ export default function GoalsTab({ t, onOpenJarvis }) {
     try {
       const { getAllGoals } = await import('../database/goalsRepository.js');
       const data = await getAllGoals();
-      setGoals(data);
+      const { getGoalProgress } = await import('../core/goals/goalProgressEngine.js');
+      const progressEntries = await Promise.all(data.map(async goal => {
+        try { return [goal.id, await getGoalProgress(goal.id)]; } catch { return [goal.id, null]; }
+      }));
+      const progressMap = Object.fromEntries(progressEntries.filter(([, value]) => value));
+      setGoalProgress(progressMap);
+      setGoals(data.map(goal => ({ ...goal, health: progressMap[goal.id]?.health || null })));
+
     } catch (err) {
       console.error(err);
     } finally {
@@ -147,8 +169,8 @@ export default function GoalsTab({ t, onOpenJarvis }) {
     setShowConfirmDelete(false);
     setGoals(prev => prev.filter(g => g.id !== id));
     try {
-      const { deleteGoal } = await import('../database/goalsRepository.js');
-      await deleteGoal(id);
+      const { updateGoal } = await import('../database/goalsRepository.js');
+      await updateGoal(id, { status: 'archived', archivedAt: new Date().toISOString() });
     } catch (err) {
       console.error(err);
       loadGoals();
@@ -174,6 +196,7 @@ export default function GoalsTab({ t, onOpenJarvis }) {
           .map(text => ({ text, metric: '', completed: false })),
       });
       setGoals(prev => [...prev, created]);
+      setGoalProgress(prev => ({ ...prev, [created.id]: { health: 'INSUFFICIENT EVIDENCE', healthExplanation: 'There is not enough evidence to judge progress.' } }));
       setGoalDraft({ label: '', domain: 'body', start: '', end: '', proof: '', targets: '' });
       setShowCreate(false);
     } catch (err) {
@@ -205,8 +228,15 @@ export default function GoalsTab({ t, onOpenJarvis }) {
             return { text, metric: existing?.metric || '', completed: !!existing?.completed };
           }),
       });
-      setGoals(prev => prev.map(goal => goal.id === updated.id ? updated : goal));
-      setSelectedGoal(updated);
+      let enriched = updated;
+      try {
+        const { getGoalProgress } = await import('../core/goals/goalProgressEngine.js');
+        const progress = await getGoalProgress(updated.id);
+        setGoalProgress(prev => ({ ...prev, [updated.id]: progress }));
+        enriched = { ...updated, health: progress.health, healthExplanation: progress.healthExplanation };
+      } catch {}
+      setGoals(prev => prev.map(goal => goal.id === enriched.id ? enriched : goal));
+      setSelectedGoal(enriched);
       setIsEditing(false);
     } catch (err) {
       console.error('[GoalsTab] Failed to update goal:', err);
@@ -349,6 +379,17 @@ export default function GoalsTab({ t, onOpenJarvis }) {
                 {selectedGoal.label}
               </div>
             </div>
+
+            {selectedGoal.health && (
+              <div style={{ padding: '10px 12px', borderRadius: '12px', background: 'var(--s2)' }}>
+                <div style={{ fontFamily: "'Geist Mono', monospace", fontSize: '11.5px', color: HEALTH_META[selectedGoal.health]?.tone || 'var(--mu)', marginBottom: '4px' }}>
+                  {HEALTH_META[selectedGoal.health]?.label || selectedGoal.health}
+                </div>
+                <div style={{ fontSize: '13px', lineHeight: 1.45, color: 'var(--mu)' }}>
+                  {selectedGoal.healthExplanation || 'Evidence-backed goal health.'}
+                </div>
+              </div>
+            )}
 
             {/* Why it matters */}
             {selectedGoal.fear && (
@@ -515,8 +556,8 @@ export default function GoalsTab({ t, onOpenJarvis }) {
         isOpen={showConfirmDelete}
         onClose={() => setShowConfirmDelete(false)}
         onConfirm={handleDeleteGoal}
-        title="Delete Goal"
-        description="This will permanently remove this goal and its milestones."
+        title="Archive Goal"
+        description="This archives the goal and preserves its history, evidence, and relationships."
       />
 
       <EvidenceSheet
