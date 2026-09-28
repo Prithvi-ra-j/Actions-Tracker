@@ -1,12 +1,13 @@
 import { saveTelemetryEvent } from '../../database/telemetryRepository.js';
 import { addIntervention } from '../../database/interventionRepository.js';
+import { localDateStr } from '../../helpers/dateHelpers.js';
 
 export const TODAY_FEEDBACK_ACTIONS = Object.freeze(['done', 'defer', 'dismiss', 'not_relevant', 'snooze']);
 
 export async function recordTodayRecommendationFeedback({
   recommendationId,
   action,
-  date = new Date().toISOString().slice(0, 10),
+  date = localDateStr(),
   metadata = {},
 } = {}) {
   if (!recommendationId) throw new Error('recommendationId is required');
