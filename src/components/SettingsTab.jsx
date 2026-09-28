@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { BottomSheet, ConfirmDialog } from './ui/Overlays.jsx';
 import { Button } from './ui/Buttons.jsx';
+import { APP_VERSION } from '../version.js';
 
 export default function SettingsTab({ t, onClose, reminders: reminderConfigs = [], onSaveReminders }) {
   const [activeSection, setActiveSection] = useState(null);
@@ -36,6 +37,12 @@ export default function SettingsTab({ t, onClose, reminders: reminderConfigs = [
     model: '',
     hasKey: false,
   });
+  const [secretPolicy, setSecretPolicy] = useState(null);
+  const [connectorStatuses, setConnectorStatuses] = useState({});
+  const [connectorBusy, setConnectorBusy] = useState('');
+  const [quietStart, setQuietStart] = useState('22');
+  const [quietEnd, setQuietEnd] = useState('7');
+  const [notificationBudget, setNotificationBudget] = useState('2');
 
   useEffect(() => {
     import('../database/memoryRepository.js').then(m => {
@@ -62,9 +69,25 @@ export default function SettingsTab({ t, onClose, reminders: reminderConfigs = [
     setReminders(!!reminderConfigs.find(reminder => reminder.id === 3)?.enabled);
     
     // Load AI settings
-    import('../core/ai/jarvisConfig.js').then(async ({ getJarvisConfig }) => {
+    import('../core/ai/jarvisConfig.js').then(async ({ getJarvisConfig, getJarvisSecretPolicy }) => {
       const config = await getJarvisConfig();
       setAiSettings({ baseUrl: config.baseUrl, model: config.model, hasKey: config.hasApiKey });
+      setSecretPolicy(getJarvisSecretPolicy());
+    });
+
+    import('../core/sync/syncManager.js').then(async ({ getConnectorLifecycleStatuses }) => {
+      setConnectorStatuses(await getConnectorLifecycleStatuses());
+    });
+
+    import('../database/settingsRepository.js').then(async ({ getSetting }) => {
+      const [quietStartSetting, quietEndSetting, budgetSetting] = await Promise.all([
+        getSetting('jarvisQuietStart'),
+        getSetting('jarvisQuietEnd'),
+        getSetting('jarvisNotificationBudget'),
+      ]);
+      if (quietStartSetting !== null) setQuietStart(String(quietStartSetting));
+      if (quietEndSetting !== null) setQuietEnd(String(quietEndSetting));
+      if (budgetSetting !== null) setNotificationBudget(String(budgetSetting));
     });
 
     // Load storage estimate
@@ -162,10 +185,53 @@ export default function SettingsTab({ t, onClose, reminders: reminderConfigs = [
   };
 
   const handleCopyDiagnostics = async () => {
-    const { getErrorLogs } = await import('../core/errorLogger.js');
-    const logs = getErrorLogs();
-    await navigator.clipboard.writeText(JSON.stringify(logs, null, 2));
-    alert("Copied diagnostics to clipboard.");
+    const [{ getErrorLogs }, { getBootRecoveryState }, { getConnectorLifecycleStatuses }] = await Promise.all([
+      import('../core/errorLogger.js'),
+      import('../core/recovery/bootRecovery.js'),
+      import('../core/sync/syncManager.js'),
+    ]);
+    const [logs, bootRecovery, connectors] = await Promise.all([
+      getErrorLogs(),
+      getBootRecoveryState(),
+      getConnectorLifecycleStatuses(),
+    ]);
+    const diagnosticExport = {
+      exportedAt: new Date().toISOString(),
+      appVersion: APP_VERSION,
+      bootRecovery,
+      connectors,
+      errors: logs,
+    };
+    await navigator.clipboard.writeText(JSON.stringify(diagnosticExport, null, 2));
+    setVerifyResult({ success: true, message: 'Redacted diagnostics copied.' });
+  };
+
+  const handleConnectorAction = async (id, action) => {
+    setConnectorBusy(`${id}:${action}`);
+    try {
+      const { getRegisteredConnectors, getConnectorLifecycleStatuses, runAllSyncs } = await import('../core/sync/syncManager.js');
+      const connector = getRegisteredConnectors().find(item => item.id === id);
+      if (!connector) throw new Error('Connector is not registered.');
+      if (action === 'connect') await connector.connect();
+      else if (action === 'disconnect') await connector.disconnect();
+      else if (action === 'revoke') await connector.revoke();
+      else if (action === 'sync') await runAllSyncs();
+      setConnectorStatuses(await getConnectorLifecycleStatuses());
+    } catch (error) {
+      setVerifyResult({ success: false, message: `${id}: ${error.message || 'operation failed'}` });
+    } finally {
+      setConnectorBusy('');
+    }
+  };
+
+  const saveNotificationPolicy = async (next = {}) => {
+    const { setSetting } = await import('../database/settingsRepository.js');
+    const values = {
+      jarvisQuietStart: String(next.quietStart ?? quietStart),
+      jarvisQuietEnd: String(next.quietEnd ?? quietEnd),
+      jarvisNotificationBudget: String(next.budget ?? notificationBudget),
+    };
+    await Promise.all(Object.entries(values).map(([key, value]) => setSetting(key, value)));
   };
 
   const handleVerifyAI = async () => {
@@ -301,6 +367,11 @@ export default function SettingsTab({ t, onClose, reminders: reminderConfigs = [
         </label>
       </div>
 
+      {secretPolicy && (
+        <div style={{ marginBottom: '12px', padding: '10px 12px', borderRadius: '12px', background: 'var(--s2)', color: 'var(--mu)', fontSize: '12px', lineHeight: 1.45 }}>
+          {secretPolicy.message}
+        </div>
+      )}
       {aiSaveError && <p role="alert" style={{ color: 'var(--danger)', fontSize: '13px' }}>{aiSaveError}</p>}
       <Button variant="secondary" style={{ width: '100%', marginBottom: '10px' }} onClick={handleSaveAISettings} disabled={savingAISettings}>
         {savingAISettings ? 'Saving...' : 'Save AI settings'}
@@ -453,30 +524,56 @@ export default function SettingsTab({ t, onClose, reminders: reminderConfigs = [
     </div>
   );
 
-  const renderIntegrationsSection = () => (
-    <div style={{ padding: '0 14px', flex: 1, overflowY: 'auto' }}>
-      <div style={groupStyle}>
-        <div style={{ padding: '14px', borderBottom: '1px solid var(--hairline)' }}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-            <b style={{ fontSize: '14.5px', fontWeight: 500 }}>Health Connect</b>
-            <span style={rowRightStyle}>Not connected</span>
-          </div>
-          <p style={{ fontSize: '13px', color: 'var(--mu)', margin: '4px 0 0', lineHeight: 1.4 }}>Steps, workouts and sleep feed Body evidence.</p>
+  const renderIntegrationsSection = () => {
+    const entries = [
+      ['health-connect', 'Health Connect', 'Steps and health records'],
+      ['nutrilift', 'NutriLift', 'Workout sessions and nutrition'],
+    ];
+    return (
+      <div style={{ padding: '0 14px', flex: 1, overflowY: 'auto' }}>
+        <div style={groupStyle}>
+          {entries.map(([id, label, description], index) => {
+            const status = connectorStatuses[id] || {};
+            const lifecycle = status.lifecycle || 'disconnected';
+            const busyConnect = connectorBusy === `${id}:connect`;
+            const busySync = connectorBusy === `${id}:sync`;
+            const busyDisconnect = connectorBusy === `${id}:disconnect`;
+            return (
+              <div key={id} style={{ padding: '14px', borderBottom: index === entries.length - 1 ? 'none' : '1px solid var(--hairline)' }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10 }}>
+                  <b style={{ fontSize: '14.5px', fontWeight: 500 }}>{label}</b>
+                  <span style={rowRightStyle}>{lifecycle.replaceAll('_', ' ')}</span>
+                </div>
+                <p style={{ fontSize: '13px', color: 'var(--mu)', margin: '4px 0 10px', lineHeight: 1.4 }}>{description}</p>
+                <div style={{ display: 'flex', gap: '8px' }}>
+                  {lifecycle === 'connected' || lifecycle === 'synced' || lifecycle === 'sync_failed' ? (
+                    <>
+                      <Button variant="secondary" disabled={busySync} onClick={() => handleConnectorAction(id, 'sync')}>
+                        {busySync ? 'Syncing…' : 'Sync now'}
+                      </Button>
+                      <Button variant="secondary" disabled={busyDisconnect} onClick={() => handleConnectorAction(id, 'disconnect')}>
+                        {busyDisconnect ? 'Disconnecting…' : 'Disconnect'}
+                      </Button>
+                    </>
+                  ) : (
+                    <Button variant="primary" disabled={busyConnect} onClick={() => handleConnectorAction(id, 'connect')}>
+                      {busyConnect ? 'Connecting…' : 'Connect'}
+                    </Button>
+                  )}
+                </div>
+                {status.syncState?.lastSuccessfulSync && (
+                  <div style={{ marginTop: 8, fontSize: 11.5, color: 'var(--mu)', fontFamily: "'Geist Mono', monospace" }}>
+                    Last sync: {new Date(status.syncState.lastSuccessfulSync).toLocaleString()}
+                  </div>
+                )}
+              </div>
+            );
+          })}
         </div>
-        <div style={{ padding: '14px' }}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-            <b style={{ fontSize: '14.5px', fontWeight: 500 }}>NutriLift</b>
-            <span style={rowRightStyle}>Not connected</span>
-          </div>
-          <p style={{ fontSize: '13px', color: 'var(--mu)', margin: '4px 0 0', lineHeight: 1.4 }}>Workout sessions and nutrition.</p>
-        </div>
+        <p style={{ fontSize: '13px', color: 'var(--mu)', marginTop: '12px', lineHeight: 1.5 }}>Imported records retain provider provenance and corrections are represented as retractions.</p>
       </div>
-      <Button variant="primary" style={{ width: '100%' }}>
-        Connect Integration
-      </Button>
-      <p style={{ fontSize: '13px', color: 'var(--mu)', marginTop: '12px', lineHeight: 1.5 }}>Evidence from an integration always shows its source.</p>
-    </div>
-  );
+    );
+  };
 
   const renderNotificationsSection = () => (
     <div style={{ padding: '0 14px', flex: 1, overflowY: 'auto' }}>
@@ -489,10 +586,18 @@ export default function SettingsTab({ t, onClose, reminders: reminderConfigs = [
           Review reminders
           <button type="button" role="switch" aria-checked={reminders} aria-label="Review reminders" onClick={handleReviewReminderToggle} style={{ marginLeft: 'auto', minWidth: '44px', minHeight: '32px', border: 0, borderRadius: 'var(--r-control)', background: reminders ? 'var(--ac)' : 'var(--s2)', color: reminders ? 'var(--on-ac)' : 'var(--tx)', cursor: 'pointer' }}>{reminders ? 'On' : 'Off'}</button>
         </div>
-        <div style={rowStyle(true)}>
-          Quiet hours
-          <span style={rowRightStyle}>10 pm to 7 am</span>
-        </div>
+        <label style={rowStyle(false)}>
+          Quiet start
+          <input type="number" min="0" max="23" value={quietStart} onChange={event => setQuietStart(event.target.value)} onBlur={() => saveNotificationPolicy()} style={{ marginLeft: 'auto', width: 64 }} aria-label="Quiet hours start" />
+        </label>
+        <label style={rowStyle(false)}>
+          Quiet end
+          <input type="number" min="0" max="23" value={quietEnd} onChange={event => setQuietEnd(event.target.value)} onBlur={() => saveNotificationPolicy()} style={{ marginLeft: 'auto', width: 64 }} aria-label="Quiet hours end" />
+        </label>
+        <label style={rowStyle(true)}>
+          Daily proactive budget
+          <input type="number" min="0" max="10" value={notificationBudget} onChange={event => setNotificationBudget(event.target.value)} onBlur={() => saveNotificationPolicy()} style={{ marginLeft: 'auto', width: 64 }} aria-label="Daily proactive notification budget" />
+        </label>
       </div>
 
       <div style={headerLabelStyle}>Preview</div>
@@ -536,7 +641,7 @@ export default function SettingsTab({ t, onClose, reminders: reminderConfigs = [
       <div style={groupStyle}>
         <div style={rowStyle(false)}>
           Version
-          <span style={rowRightStyle}>1.5.0</span>
+          <span style={rowRightStyle}>{APP_VERSION}</span>
         </div>
         <div style={rowStyle(true)}>
           Check for updates
