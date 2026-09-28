@@ -1,4 +1,5 @@
 import { saveTelemetryEvent } from '../../database/telemetryRepository.js';
+import { addIntervention } from '../../database/interventionRepository.js';
 
 export const TODAY_FEEDBACK_ACTIONS = Object.freeze(['done', 'defer', 'dismiss', 'not_relevant', 'snooze']);
 
@@ -15,5 +16,20 @@ export async function recordTodayRecommendationFeedback({
     action,
     ...metadata,
   });
-  return { recommendationId, action, recordedAt: new Date().toISOString() };
+  let intervention = null;
+  if (action === 'done' || action === 'defer') {
+    intervention = await addIntervention({
+      recommendationId,
+      hypothesis: metadata.hypothesis || `The recommended action "${metadata.title || recommendationId}" is feasible in the current context.`,
+      context: {
+        domain: metadata.domain || null,
+        recommendationType: metadata.type || null,
+        action,
+      },
+      expectedOutcome: metadata.expectedOutcome || null,
+      measurement: metadata.measurement || null,
+      outcomeWindowDays: metadata.outcomeWindowDays || 14,
+    });
+  }
+  return { recommendationId, action, intervention, recordedAt: new Date().toISOString() };
 }
