@@ -15,7 +15,7 @@
 import { APP_VERSION, SCHEMA_VERSION } from '../version.js';
 
 const DB_NAME = 'actions-tracker';
-const DB_VERSION = 11;
+const DB_VERSION = 12;
 
 /** @type {IDBDatabase|null} */
 let _db = null;
@@ -179,6 +179,16 @@ export function initDB() {
       }
       if (!db.objectStoreNames.contains('migrationRegistry')) {
         db.createObjectStore('migrationRegistry', { keyPath: 'version' });
+      }
+
+      // DB v12 — cross-app source projections + idempotency ledger
+      if (!db.objectStoreNames.contains('nutriLiftProjections')) {
+        db.createObjectStore('nutriLiftProjections', { keyPath: 'id' });
+        const projectionStore = db.transaction?.objectStore ? null : null;
+      }
+      if (!db.objectStoreNames.contains('proposalExecutions')) {
+        const proposalStore = db.createObjectStore('proposalExecutions', { keyPath: 'idempotencyKey' });
+        proposalStore.createIndex('proposalId', 'proposalId', { unique: false });
       }
 
       // DB v11 — Jarvis persistent conversations
@@ -407,6 +417,7 @@ const ALL_STORES = [
   // DB v10 — Architecture Phase 2
   'decisions', 'experiments', 'creativeWorks', 'observations',
   'jarvisConversations',
+  'nutriLiftProjections', 'proposalExecutions',
   // Step 3 — Routine Engine
   'routineConfig'
 ];
