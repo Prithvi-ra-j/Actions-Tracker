@@ -5,6 +5,7 @@ import { getSetting, setSetting } from './settingsRepository.js';
 
 const LATEST_BACKUP_FILE = 'ActionsTracker_Latest_Backup.json';
 const USER_DATA_STORES = [
+  'settings', 'syncState',
   'goals', 'milestones', 'logs', 'axis_config', 'books', 'gymSessions',
   'questBoard', 'statSnapshots', 'facts', 'lifeObjects', 'selfModel',
   'habits', 'habitOccurrences', 'learnings', 'evidence', 'relations',
