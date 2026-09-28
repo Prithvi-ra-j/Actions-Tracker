@@ -1,36 +1,77 @@
-import { describe, expect, it } from 'vitest';
-import { factId, toFact } from '../../src/core/sync/connectors/NutriLiftConnector.js';
-import { validateNutriLiftRecord } from '../../src/core/sync/syncSchemas.js';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-describe('NutriLift connector mapping', () => {
-  const record = {
-    external_id: 'nutrilift:workout:123',
-    record_type: 'body.training.session',
-    occurred_at: '2026-09-20T18:30:00.000Z',
-    source_updated_at: '2026-09-20T19:00:00.000Z',
-    payload: { durationMinutes: 60, totalVolumeKg: 8200 },
-    schema_version: 1,
-    deleted_at: null,
-  };
+const records = vi.hoisted(() => ({ current: [] }));
 
-  it('validates supported records and produces deterministic IDs', () => {
-    expect(validateNutriLiftRecord(record).external_id).toBe(record.external_id);
-    expect(factId(record)).toBe('fact:nutrilift:body.training.session:nutrilift:workout:123');
+vi.mock('../../src/integrations/supabase/supabaseClient.js', () => ({ isSupabaseConfigured: true }));
+vi.mock('../../src/integrations/supabase/supabaseAuth.js', () => ({
+  getCurrentSupabaseUser: vi.fn(async () => ({ id: 'user-a' })),
+}));
+vi.mock('../../src/database/supabaseSyncRepository.js', () => ({
+  fetchNutriLiftRecords: vi.fn(async () => records.current),
+}));
+vi.mock('../../src/database/factsRepository.js', () => ({
+  getFact: vi.fn(async id => records.currentFacts?.find(f => f.id === id) || null),
+  getAllFacts: vi.fn(async () => records.currentFacts || []),
+  addFact: vi.fn(),
+}));
+
+import { factId, NutriLiftConnector } from '../../src/core/sync/connectors/NutriLiftConnector.js';
+
+const base = {
+  external_id: 'nutrilift:workout_session:123',
+  record_type: 'body.training.session',
+  occurred_at: '2026-09-28T08:00:00.000Z',
+  source_updated_at: '2026-09-28T08:01:00.000Z',
+  payload: { durationMin: 60 },
+  schema_version: 1,
+  deleted_at: null,
+};
+
+describe('NutriLiftConnector', () => {
+  beforeEach(() => {
+    records.current = [];
+    records.currentFacts = [];
   });
 
-  it('maps records to source-attributed immutable facts', () => {
-    expect(toFact(record, '2026-09-20T20:00:00.000Z')).toEqual(expect.objectContaining({
-      id: factId(record),
-      type: 'body.training.session',
-      objectId: record.external_id,
-      value: record.payload,
-      source: { type: 'integration', integrationId: 'nutrilift' },
-    }));
+  it('creates a deterministic fact on first sync', async () => {
+    records.current = [base];
+    const result = await new NutriLiftConnector().sync({}, {});
+    expect(result.facts).toHaveLength(1);
+    expect(result.facts[0].id).toBe(factId(base));
   });
 
-  it('maps source deletions to retraction facts', () => {
-    const fact = toFact({ ...record, deleted_at: '2026-09-21T00:00:00.000Z' }, '2026-09-21T00:00:00.000Z');
-    expect(fact.type).toBe('correction');
-    expect(fact.meta.correctionType).toBe('retraction');
+  it('ignores identical replays', async () => {
+    records.current = [base];
+    records.currentFacts = [{ id: factId(base), type: base.record_type, meta: { sourceUpdatedAt: base.source_updated_at } }];
+    const result = await new NutriLiftConnector().sync({}, { cursor: base.source_updated_at });
+    expect(result.facts).toHaveLength(0);
+    expect(result.ignored).toBe(1);
+  });
+
+  it('emits an updated source projection when the source version changes', async () => {
+    const newer = { ...base, source_updated_at: '2026-09-28T09:01:00.000Z', payload: { durationMin: 75 } };
+    records.current = [newer];
+    records.currentFacts = [{ id: factId(base), type: base.record_type, meta: { sourceUpdatedAt: base.source_updated_at } }];
+    const result = await new NutriLiftConnector().sync({}, {});
+    expect(result.facts[0].id).toBe(factId(newer));
+    expect(result.updated).toBe(1);
+  });
+
+  it('turns a deletion into an immutable retraction fact', async () => {
+    const deleted = { ...base, deleted_at: '2026-09-28T10:00:00.000Z', source_updated_at: '2026-09-28T10:00:00.000Z' };
+    records.current = [deleted];
+    records.currentFacts = [{ id: factId(base), type: base.record_type, meta: { sourceUpdatedAt: base.source_updated_at } }];
+    const result = await new NutriLiftConnector().sync({}, {});
+    expect(result.facts[0].type).toBe('retraction');
+    expect(result.facts[0].objectId).toBe(factId(base));
+  });
+
+  it('advances the cursor to the newest source version in the fetched batch', async () => {
+    records.current = [
+      base,
+      { ...base, external_id: 'nutrilift:workout_session:124', source_updated_at: '2026-09-28T09:00:00.000Z' },
+    ];
+    const result = await new NutriLiftConnector().sync({}, {});
+    expect(result.cursor).toBe('2026-09-28T09:00:00.000Z');
   });
 });
