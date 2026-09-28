@@ -3,6 +3,7 @@ import {
   getSecureValue,
   setSecureValue,
   clearSecureValue,
+  getSecretStoragePolicy,
 } from '../../native/secureStorage.js';
 
 export const DEFAULT_JARVIS_BASE_URL = 'https://api.groq.com/openai/v1';
@@ -12,6 +13,10 @@ export const JARVIS_API_KEY_STORAGE_KEY = 'aiApiKey';
 export async function hasJarvisApiKey() {
   const key = await getSecureValue(JARVIS_API_KEY_STORAGE_KEY);
   return Boolean(key);
+}
+
+export function getJarvisSecretPolicy() {
+  return getSecretStoragePolicy();
 }
 
 export async function getJarvisConfig() {
