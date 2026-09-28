@@ -1050,3 +1050,9 @@
   .jarvis-screen__composer{min-height:56px !important;}
   .jarvis-screen__commands [role="listbox"]{grid-template-columns:1fr !important;}
 }
+
+@media (max-width:480px){
+  .jarvis-screen__header-actions{margin-left:auto !important;max-width:48vw;overflow:hidden;}
+  .jarvis-screen__header-actions button{min-width:0 !important;}
+  .jarvis-screen__mode{flex-shrink:0;}
+}
