@@ -1,4 +1,4 @@
-import { localDateStr } from '../../helpers/dateHelpers.js';
+import { localDateStr, subtractDays } from '../../helpers/dateHelpers.js';
 /**
  * Scheduled Analysis Pipeline (§33).
  *
@@ -13,6 +13,7 @@ import { saveTelemetryEvent } from '../../database/telemetryRepository.js';
 import { hasUserData } from '../../database/bootstrapState.js';
 import { hasJarvisApiKey } from './jarvisConfig.js';
 import { getAllLogs } from '../../database/logsRepository.js';
+import { getAllFacts } from '../../database/factsRepository.js';
 import { getAllGoals } from '../../database/goalsRepository.js';
 import { getOccurrencesByDateRange } from '../../database/habitOccurrenceRepository.js';
 import { detectProactiveSignals } from './proactiveDetectors.js';
@@ -53,7 +54,7 @@ async function runScheduledAnalysis() {
     // intelligence an evidence-backed fallback when the model is unavailable.
     const [goals, facts, recentOccurrences] = await Promise.all([
       getAllGoals(),
-      getAllLogs(),
+      getAllFacts(),
       getOccurrencesByDateRange(subtractDays(today, 7), today),
     ]);
     const deterministicSignals = detectProactiveSignals({
