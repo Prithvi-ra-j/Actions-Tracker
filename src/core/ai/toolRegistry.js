@@ -39,3 +39,9 @@ export function compileProposal(toolName, args) {
   const proposal=entry.handler(args || {});
   return { ...proposal, tool: toolName, riskLevel: entry.contract.riskLevel, requiresConfirmation: entry.contract.requiresConfirmation };
 }
+
+
+/** Backward-compatible adapters for domain capabilities not yet represented as first-class Jarvis writes. */
+register({ ...genericProposal, name:'queryToday', description:'Read current Today state', riskLevel:'low', requiresConfirmation:false, affectedDomains:['today'] }, args => ({ actionType:'log_evidence', payload:{ text: JSON.stringify({query:'today',...args}), evidenceType:'jarvis_query' } }));
+register({ ...genericProposal, name:'queryGoals', description:'Read active goals', riskLevel:'low', requiresConfirmation:false, affectedDomains:['goal'] }, args => ({ actionType:'log_evidence', payload:{ text: JSON.stringify({query:'goals',...args}), evidenceType:'jarvis_query' } }));
+register({ ...genericProposal, name:'syncNutriLift', description:'Request NutriLift synchronization', riskLevel:'medium', requiresConfirmation:false, affectedDomains:['nutrition','fitness'] }, args => ({ actionType:'log_evidence', payload:{ text: JSON.stringify({query:'syncNutriLift',...args}), evidenceType:'sync_request' } }));
