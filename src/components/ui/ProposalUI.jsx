@@ -120,9 +120,22 @@ export function ActionProposalCard({ proposal, onApply, onEdit, onDismiss, statu
           Proposal
         </span>
         <h3 style={{ fontSize: '17px', margin: '6px 0 2px' }}>{proposalName}</h3>
-        <p style={{ fontSize: '13.5px', color: 'var(--mu)', marginBottom: '14px' }}>
+        <p style={{ fontSize: '13.5px', color: 'var(--mu)', marginBottom: '10px' }}>
           {proposalDescription}
         </p>
+        <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', marginBottom: '14px' }}>
+          <span style={{ padding: '4px 7px', borderRadius: '999px', background: 'var(--s2)', color: 'var(--mu)', fontSize: '10.5px', fontFamily: "'Geist Mono', monospace", textTransform: 'uppercase' }}>
+            Risk: {proposal.riskClass || 'confirm'}
+          </span>
+          <span style={{ padding: '4px 7px', borderRadius: '999px', background: 'var(--s2)', color: 'var(--mu)', fontSize: '10.5px', fontFamily: "'Geist Mono', monospace", textTransform: 'uppercase' }}>
+            {proposal.lifecycle || (status === 'pending' ? 'waiting approval' : status || 'proposed')}
+          </span>
+          {Array.isArray(payload?.systemProposal?.items) && (
+            <span style={{ padding: '4px 7px', borderRadius: '999px', background: 'var(--s2)', color: 'var(--mu)', fontSize: '10.5px', fontFamily: "'Geist Mono', monospace" }}>
+              {payload.systemProposal.items.length} proposed items
+            </span>
+          )}
+        </div>
 
         {status === 'pending' && (
           <div style={{ display: 'flex', gap: '8px' }}>
