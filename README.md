@@ -46,3 +46,12 @@ npm run cap:android
 ## Data Safety
 Since Actions-Tracker stores all your data on your phone, you are responsible for it. 
 The app runs a background task to safely back up your IndexedDB data to a JSON file in your local Documents folder on Android. You can import this JSON file back into the app if you ever need to restore it.
+
+
+## Current validation status
+
+- GitHub Actions test workflow: passing on the latest validated run.
+- Unit, property, and scenario tests: passing.
+- Persistence round-trip validator: passing with the versioned export fixture.
+- Production build smoke test: passing.
+- Android/device/deployment validation: still required before release sign-off.
