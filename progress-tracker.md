@@ -1030,3 +1030,11 @@ The GitHub-connected environment does not expose a local Node runtime for execut
 - App bootstrap now records recovery state without blocking startup if metadata writes fail.
 - Existing telemetry, global error logging, backup recovery, restore safety, and migration failure paths remain intact.
 - Validation remaining: deployed/device recovery validation and recovery-state UI validation.
+
+
+## CI blocker fixes — 2026-09-28
+- Fixed the monthly check-in regression fixture: JSX test extension, bootstrap installation baseline, and the malformed savedTitlesRaw comment in App.jsx that caused recompute errors.
+- Removed the empty jarvis-advanced-flows.test.jsx placeholder that Vitest rejected as a zero-test suite.
+- Updated the onboarding journey test to match the guided no-AI first-run flow.
+- Updated persistence upgrade/recovery fixtures to run under jsdom, providing the required browser localStorage environment.
+- Latest GitHub Actions validation: **success** for the Unit + Property + Scenario Tests job. Deployment/device validation remains separate.
