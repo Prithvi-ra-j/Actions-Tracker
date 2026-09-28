@@ -367,21 +367,17 @@ export default function JarvisTab({ t, isActive = true, onQuestsChanged, onboard
       const text = String(transcript?.text || '').trim();
       if (!text) throw new Error('No speech was detected.');
       setInput(text);
-      setVoiceState('UNDERSTANDING');
-      setLoadingPhase('Understanding…');
+      setVoiceState('IDLE');
       setLoading(false);
-      await handleSend();
+      // Keep the transcript visible in the same text composer; the user can edit it before sending.
     } catch (err) {
       recordAppError(err, { source: 'jarvis_voice', operation: 'transcribe' });
       setVoiceState('FAILED');
       setError(err?.message || 'Voice input failed.');
       setLoading(false);
       setLoadingPhase('');
-    } finally {
-      if (voiceState !== 'FAILED') setVoiceState('IDLE');
     }
   };
-
 
   const openConversationHistory = async () => {
     try {
