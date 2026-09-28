@@ -1,23 +1,16 @@
 // @vitest-environment jsdom
 import 'fake-indexeddb/auto';
 import { beforeEach, describe, expect, it } from 'vitest';
-import { closeDB, dbGet, initDB } from '../../src/database/db.js';
+import { clearAllDatabaseData, closeDB, dbGet, initDB } from '../../src/database/db.js';
 import { setAppMeta } from '../../src/database/appMetaRepository.js';
 import { applyFreshStartReset } from '../../src/core/freshStartReset.js';
 
-function deleteDatabase(name) {
-  return new Promise((resolve, reject) => {
-    const request = indexedDB.deleteDatabase(name);
-    request.onsuccess = () => resolve();
-    request.onerror = () => reject(request.error);
-    request.onblocked = () => resolve();
-  });
-}
 
 describe('fresh-start reset safety', () => {
   beforeEach(async () => {
     try { closeDB(); } catch {}
-    await deleteDatabase('actions-tracker');
+    await initDB();
+    await clearAllDatabaseData();
     localStorage.clear();
   });
 
