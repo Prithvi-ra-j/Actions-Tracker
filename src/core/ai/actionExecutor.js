@@ -89,10 +89,17 @@ async function addRoutineSlot(payload, habitId) {
 
 export async function executeAction(proposal) {
   const validatedProposal = await validateActionPreconditions(proposal);
+  let executionKey = null;
+  let executionLedger = null;
   const { actionType, payload } = validatedProposal;
-  const executionKey = validatedProposal.id
+  executionKey = validatedProposal.id
     ? `proposal:${validatedProposal.id}:apply`
     : createExecutionKey(validatedProposal);
+  executionLedger = await beginProposalExecution({
+    idempotencyKey: executionKey,
+    proposalId: validatedProposal.id || null,
+    actionType,
+  });
   const executionLedger = await beginProposalExecution({
     idempotencyKey: executionKey,
     proposalId: validatedProposal.id || null,
