@@ -34,6 +34,16 @@ async function isDatabaseEmpty() {
  * This file is deliberately separate from the dated history so the app can
  * restore itself after a reinstall or a debug → release transition.
  */
+export async function clearAllBackups() {
+  try {
+    const listing = await Filesystem.readdir({ path: '', directory: Directory.Documents });
+    const files = (listing.files || [])
+      .map(file => file.name)
+      .filter(name => name === LATEST_BACKUP_FILE || /^ActionsTracker_Backup_\d{4}-\d{2}-\d{2}\.json$/.test(name));
+    await Promise.all(files.map(name => Filesystem.deleteFile({ path: name, directory: Directory.Documents }).catch(() => {})));
+  } catch {}
+}
+
 async function writeLatestBackup(backupData) {
   await Filesystem.writeFile({
     path: LATEST_BACKUP_FILE,
