@@ -1,4 +1,5 @@
 import { dbPut, dbGetAll, getDB } from '../database/db.js';
+import { createStructuredError, createCorrelationId, classifyErrorCategory } from './observability/structuredError.js';
 
 const MAX_TEXT = 2000;
 const recentErrors = new Map();
@@ -63,6 +64,7 @@ export async function recordAppError(error, context = {}) {
     const normalized = normalizeError(error);
     const source = context.source || 'unknown';
     const operation = context.operation || 'unknown';
+    const correlationId = context.correlationId || createCorrelationId('app');
     const fingerprint = [
       normalized.name,
       normalized.message,
@@ -81,19 +83,33 @@ export async function recordAppError(error, context = {}) {
       if (now - timestamp > 10000) recentErrors.delete(key);
     }
 
+    const structured = createStructuredError({
+      error: normalized,
+      category: context.category || 'VALIDATION',
+      operation,
+      severity: context.severity || 'error',
+      correlationId,
+      causationId: context.causationId || null,
+      recoveryState: context.recoveryState || 'none',
+      metadata: context.metadata || {},
+    });
+
     const record = {
       id: crypto.randomUUID(),
       type: 'error',
       date: new Date().toISOString().split('T')[0],
       timestamp: new Date().toISOString(),
-      severity: context.severity || 'error',
+      severity: structured.severity,
+      category: classifyErrorCategory(context.category || 'VALIDATION'),
+      correlationId,
       source,
       operation,
       message: redactString(normalized.message || String(normalized)),
       name: normalized.name || 'Error',
       stack: redactString(normalized.stack || ''),
       component: context.component || null,
-      metadata: redact(context.metadata || {}),
+      metadata: redact({ ...(context.metadata || {}), structuredErrorId: structured.id }),
+      recoveryState: context.recoveryState || 'none',
       url: typeof window !== 'undefined' ? redactString(window.location?.href || '') : null,
       userAgent: typeof navigator !== 'undefined' ? redactString(navigator.userAgent || '') : null,
     };
