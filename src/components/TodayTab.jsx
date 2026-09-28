@@ -8,6 +8,8 @@ import { SegmentedBar } from './ui/Indicators.jsx';
 import { Sparkle, Warning, PencilSimple } from '@phosphor-icons/react';
 import { buildTodayRecommendations } from '../core/today/todayRecommendationEngine.js';
 import { executeTodayRecommendation } from '../core/today/recommendationExecutor.js';
+import { summarizeInterventionLearning } from '../core/ai/interventionLearning.js';
+import { getAllInterventions } from '../database/interventionRepository.js';
 
 // Axis color map — only used as small dots per design rules
 const AXIS_COLORS = {
@@ -181,6 +183,17 @@ export default function TodayTab({
   const [savingEvidence, setSavingEvidence] = useState(false);
   const [evidenceError, setEvidenceError] = useState('');
   const [dismissedFocus, setDismissedFocus] = useState(new Set());
+  const [interventionLearning, setInterventionLearning] = useState(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    getAllInterventions()
+      .then(items => {
+        if (!cancelled) setInterventionLearning(summarizeInterventionLearning(items));
+      })
+      .catch(() => {});
+    return () => { cancelled = true; };
+  }, []);
 
   const mainQuest = allQuests?.find(q => q.status === 'active' && q.priority === 'main')
     || allQuests?.find(q => q.status === 'active');
@@ -193,6 +206,7 @@ export default function TodayTab({
     axisDetails,
     goals: lifeGoals,
     recentFeedback: [...dismissedFocus].map(id => ({ recommendationId: id, action: 'dismiss' })),
+    interventionLearning,
   });
 
   const handleComplete = useCallback((id) => {
