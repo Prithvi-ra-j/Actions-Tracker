@@ -1,8 +1,9 @@
 /**
  * Generic LLM Client (§30 AI Write Boundary).
  *
- * Uses `fetch` to talk to an OpenAI-compatible endpoint (like Groq).
- * Configuration (API Key, Base URL, Model) is pulled from settingsRepository.
+ * Browser-safe provider client. Production deployments should point this at
+ * a same-origin/server gateway; direct browser-provider calls are retained
+ * only for local development/backward compatibility.
  */
 
 import { getSetting, setSetting } from '../../database/settingsRepository.js';
@@ -14,53 +15,48 @@ function normalizeApiKey(value) {
     .normalize('NFKC')
     .replace(/[\u200B-\u200D\uFEFF]/g, '')
     .trim();
-
-  // Users sometimes paste the key together with smart/curly quotes or
-  // Markdown code fences. Strip only a wrapping pair.
-  key = key.replace(/^(?:[\"'\x60\u2018\u2019\u201C\u201D])(.+)(?:[\"'\x60\u2018\u2019\u201C\u201D])$/s, '$1').trim();
-
-  return key;
+  return key.replace(/^(?:["'\x60\u2018\u2019\u201C\u201D])(.+)(?:["'\x60\u2018\u2019\u201C\u201D])$/s, '$1').trim();
 }
 
 function assertHeaderSafeApiKey(value) {
   const key = normalizeApiKey(value);
-
-  if (!key) {
-    throw new Error('API key is empty.');
-  }
-
-  // Fetch request-header values must be ByteString-safe. API keys are expected
-  // to be ASCII, so provide a useful validation error instead of the opaque
-  // browser ByteString exception.
-  const invalid = [...key].find(char => char.charCodeAt(0) > 0x7F);
-  if (invalid) {
+  if (!key) throw new Error('API key is empty.');
+  if ([...key].some(char => char.charCodeAt(0) > 0x7F)) {
     throw new Error('API key contains an invalid character. Paste the raw API key without smart quotes, spaces, or formatting.');
   }
-
   return key;
 }
-export async function queryLLM(messages, options = {}) {
+
+async function resolveEndpoint() {
+  const gateway = await getSetting('aiGatewayUrl');
+  if (gateway) {
+    return { endpoint: gateway, provider: 'server-gateway', apiKey: null };
+  }
+
   const storedApiKey = await getSecureValue('aiApiKey');
   const apiKey = normalizeApiKey(storedApiKey);
   const baseUrl = await getSetting('aiBaseUrl') || 'https://api.groq.com/openai/v1';
   let model = await getSetting('aiModel') || 'openai/gpt-oss-20b';
 
-  // Groq retired gemma2-9b-it on 2025-10-08. Keep existing installations
-  // working by transparently moving that legacy default to a current
-  // production model. User-selected models are otherwise left untouched.
-  if (/api\\.groq\\.com/i.test(baseUrl) && model === 'gemma2-9b-it') {
+  if (/api\.groq\.com/i.test(baseUrl) && model === 'gemma2-9b-it') {
     model = 'openai/gpt-oss-20b';
     await setSetting('aiModel', model).catch(() => {});
   }
+
+  return {
+    endpoint: baseUrl.endsWith('/chat/completions')
+      ? baseUrl
+      : `${baseUrl.replace(/\/$/, '')}/chat/completions`,
+    provider: 'direct',
+    apiKey: assertHeaderSafeApiKey(apiKey),
+    model,
+  };
+}
+
+export async function queryLLM(messages, options = {}) {
+  const config = await resolveEndpoint();
+  const model = config.model || await getSetting('aiModel') || 'openai/gpt-oss-20b';
   const startedAt = Date.now();
-
-  if (!apiKey) {
-    throw new Error('AI API Key is not configured. Please set it in Settings.');
-  }
-
-  assertHeaderSafeApiKey(apiKey);
-
-  const endpoint = baseUrl.endsWith('/chat/completions') ? baseUrl : `${baseUrl.replace(/\/$/, '')}/chat/completions`;
 
   const payload = {
     model,
@@ -68,34 +64,28 @@ export async function queryLLM(messages, options = {}) {
     temperature: options.temperature ?? 0.3,
     max_tokens: options.maxTokens ?? 1024,
   };
+  if (options.jsonMode) payload.response_format = { type: 'json_object' };
 
-  // If we require JSON output, some providers support response_format
-  if (options.jsonMode) {
-    payload.response_format = { type: 'json_object' };
-  }
+  const headers = { 'Content-Type': 'application/json' };
+  if (config.apiKey) headers.Authorization = `Bearer ${config.apiKey}`;
 
-  const response = await fetch(endpoint, {
+  const response = await fetch(config.endpoint, {
     method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${apiKey}`,
-    },
+    headers,
     body: JSON.stringify(payload),
-    signal: options.signal
+    signal: options.signal,
   });
 
   if (!response.ok) {
     const errorText = await response.text();
     await recordAICallTelemetry(options, model, startedAt, null, false);
-    throw new Error(`LLM API Error (${response.status}): ${errorText}`);
+    const safeDetail = errorText.slice(0, 500);
+    throw new Error(`LLM API Error (${response.status}): ${safeDetail}`);
   }
 
   const data = await response.json();
   const content = data.choices?.[0]?.message?.content;
-
-  if (!content) {
-    throw new Error('LLM returned an empty response.');
-  }
+  if (!content) throw new Error('LLM returned an empty response.');
 
   await recordAICallTelemetry(options, model, startedAt, content, true, data.usage);
   return content;
@@ -104,7 +94,11 @@ export async function queryLLM(messages, options = {}) {
 async function recordAICallTelemetry(options, model, startedAt, output, success, usage = {}) {
   try {
     await saveTelemetryEvent('ai_call', new Date().toISOString().split('T')[0], {
+      requestId: options.requestId || crypto.randomUUID?.() || `ai_${Date.now()}`,
       intent: options.intent || 'unknown',
+      conversationId: options.conversationId || null,
+      proposalId: options.proposalId || null,
+      mode: options.mode || null,
       model,
       inputTokens: usage.prompt_tokens ?? usage.input_tokens ?? Math.ceil(JSON.stringify(options.messages || []).length / 4),
       outputTokens: usage.completion_tokens ?? usage.output_tokens ?? (output ? Math.ceil(output.length / 4) : 0),
@@ -116,97 +110,46 @@ async function recordAICallTelemetry(options, model, startedAt, output, success,
   }
 }
 
-/**
- * Convenience wrapper for structured JSON requests.
- * @param {string} prompt The user prompt.
- * @param {import('zod').ZodSchema} schema The Zod schema to validate against.
- * @param {object} options Additional options (system prompt, temperature).
- */
 export async function queryLlmJson(prompt, schema, options = {}) {
   const messages = [];
   if (options.system) messages.push({ role: 'system', content: options.system });
   messages.push({ role: 'user', content: prompt });
-  
-  const rawResponse = await queryLLM(messages, { 
-    ...options, 
-    jsonMode: true 
-  });
 
-  try {
-    const parsed = JSON.parse(rawResponse);
-    return schema.parse(parsed);
-  } catch (err) {
-    console.error('Failed to parse or validate LLM JSON output:', err);
-    throw err;
-  }
+  const rawResponse = await queryLLM(messages, { ...options, jsonMode: true, messages });
+  const parsed = JSON.parse(rawResponse);
+  return schema.parse(parsed);
 }
 
-/**
- * Verify an LLM connection using explicit credentials (not persisted settings).
- * Sends a minimal prompt to check the API key and model are valid.
- * Returns { ok: true, model, latencyMs } on success or { ok: false, error } on failure.
- */
 export async function verifyLLMConnection(apiKey, baseUrl, model) {
   let safeApiKey;
-  try {
-    safeApiKey = assertHeaderSafeApiKey(apiKey);
-  } catch (err) {
-    return { ok: false, error: err.message };
-  }
+  try { safeApiKey = assertHeaderSafeApiKey(apiKey); }
+  catch (err) { return { ok: false, error: err.message }; }
 
-  if (!safeApiKey) {
-    return { ok: false, error: 'API key is empty.' };
-  }
-  if (!baseUrl) {
-    return { ok: false, error: 'Base URL is empty.' };
-  }
-  if (!model) {
-    return { ok: false, error: 'Model name is empty.' };
-  }
+  if (!baseUrl || !model) return { ok: false, error: 'Base URL and model are required.' };
 
   const endpoint = baseUrl.endsWith('/chat/completions')
     ? baseUrl
     : `${baseUrl.replace(/\/$/, '')}/chat/completions`;
 
   const startedAt = Date.now();
-
   try {
     const response = await fetch(endpoint, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${safeApiKey}`,
-      },
-      body: JSON.stringify({
-        model,
-        messages: [{ role: 'user', content: 'Reply with OK' }],
-        temperature: 0,
-        max_tokens: 4,
-      }),
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${safeApiKey}` },
+      body: JSON.stringify({ model, messages: [{ role: 'user', content: 'Reply with OK' }], temperature: 0, max_tokens: 4 }),
     });
 
     const latencyMs = Date.now() - startedAt;
-
     if (!response.ok) {
-      const errorText = await response.text();
-      let userMessage;
-      if (response.status === 401) {
-        userMessage = 'Invalid API key.';
-      } else if (response.status === 404) {
-        userMessage = `Model "${model}" not found at this endpoint.`;
-      } else if (response.status === 429) {
-        userMessage = 'Rate limited — try again in a moment.';
-      } else {
-        userMessage = `API error (${response.status}): ${errorText.slice(0, 150)}`;
-      }
+      let userMessage = `API error (${response.status}).`;
+      if (response.status === 401) userMessage = 'Invalid API key.';
+      else if (response.status === 404) userMessage = `Model "${model}" not found at this endpoint.`;
+      else if (response.status === 429) userMessage = 'Rate limited — try again in a moment.';
       return { ok: false, error: userMessage };
     }
 
     const data = await response.json();
-    const content = data.choices?.[0]?.message?.content;
-    const actualModel = data.model || model;
-
-    return { ok: true, model: actualModel, latencyMs, response: content };
+    return { ok: true, model: data.model || model, latencyMs, response: data.choices?.[0]?.message?.content };
   } catch (err) {
     return { ok: false, error: `Connection failed: ${err.message}` };
   }
