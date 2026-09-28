@@ -13,6 +13,7 @@ import { hasUserData } from '../../database/bootstrapState.js';
 import { hasJarvisApiKey } from './jarvisConfig.js';
 import { getAllLogs } from '../../database/logsRepository.js';
 import { runMonthlyAudit } from './auditEngine.js';
+import { createInsightFingerprint, shouldSurfaceInsight } from './proactivePolicy.js';
 
 export async function bootstrapAnalysisScheduler() {
   // Prevent blocking the main thread during boot.
@@ -52,11 +53,48 @@ async function runScheduledAnalysis() {
     try {
       const insight = await generateInsight("Perform a daily summary. Identify today's anomalies, incomplete intentions, and any quick patterns. Keep it brief.");
       
-      // Save it to the inbox
-      await addInsight({
-        ...insight,
-        title: `Daily Summary: ${today}`,
+      const title = `Daily Summary: ${today}`;
+      const fingerprint = createInsightFingerprint({
+        type: insight.type || 'daily_summary',
+        domain: insight.domain || 'general',
+        period: today,
+        title,
       });
+      const emittedDate = await getSetting('proactiveEmissionDate');
+      const emittedToday = emittedDate === today ? Number(await getSetting('proactiveEmissionCount') || 0) : 0;
+      const quietStart = Number(await getSetting('jarvisQuietStart') || 22);
+      const quietEnd = Number(await getSetting('jarvisQuietEnd') || 7);
+      const budget = Number(await getSetting('jarvisNotificationBudget') || 2);
+      const decision = shouldSurfaceInsight({
+        severity: String(insight.severity || 'LOW').toUpperCase(),
+        confidence: Number(insight.confidence ?? 0.9),
+        fingerprint,
+        recentFingerprints: [],
+        emittedToday,
+        budget,
+        quietHours: { start: quietStart, end: quietEnd },
+      });
+
+      if (decision.allowed) {
+        await addInsight({
+          ...insight,
+          title,
+          fingerprint,
+          deliveryPolicy: {
+            budget,
+            quietHours: { start: quietStart, end: quietEnd },
+            reason: decision.reason,
+          },
+        });
+        await setSetting('proactiveEmissionDate', today);
+        await setSetting('proactiveEmissionCount', String(emittedToday + 1));
+      } else {
+        await saveTelemetryEvent('insight_suppressed', today, {
+          reason: decision.reason,
+          fingerprint,
+          analysisType: 'daily',
+        });
+      }
       
       await setSetting('lastDailyAnalysisDate', today);
       await saveTelemetryEvent('analysis_completed', today, { analysisType: 'daily', durationMs: Date.now() - startTime });
