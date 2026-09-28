@@ -41,8 +41,8 @@ async function runScheduledAnalysis() {
     hasJarvisApiKey(),
   ]);
 
-  if (!userDataExists || !apiConfigured) {
-    console.log('[AnalysisScheduler] Skipping passive analysis: user data/API setup incomplete.');
+  if (!userDataExists) {
+    console.log('[AnalysisScheduler] Skipping passive analysis: user data setup incomplete.');
     return;
   }
 
@@ -106,7 +106,14 @@ async function runScheduledAnalysis() {
       await setSetting('proactiveEmissionDate', today);
       await setSetting('proactiveEmissionCount', String(signalCount));
     }
-    console.log(`[AnalysisScheduler] Running passive daily analysis for ${today}...`);
+    if (!apiConfigured) {
+      await setSetting('lastDailyAnalysisDate', today);
+      await saveTelemetryEvent('analysis_completed', today, {
+        analysisType: 'deterministic_daily',
+        durationMs: 0,
+      });
+    } else {
+      console.log(`[AnalysisScheduler] Running passive daily analysis for ${today}...`);
     const startTime = Date.now();
     // Privacy boundary: Telemetry only records metadata, never content.
     await saveTelemetryEvent('analysis_started', today, { analysisType: 'daily', durationMs: 0 });
@@ -174,6 +181,9 @@ async function runScheduledAnalysis() {
       // We do NOT set lastDailyAnalysisDate, meaning it will naturally retry on next boot.
     }
   }
+
+      }
+    }
 
   // Monthly Audit Trigger (§32)
   // Do not generate an audit for a fresh install. The user must have
