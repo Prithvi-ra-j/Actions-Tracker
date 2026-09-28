@@ -6,7 +6,7 @@
  */
 
 import { generateInsight } from './jarvisEngine.js';
-import { addInsight } from '../../database/insightsRepository.js';
+import { addInsight, getAllInsights } from '../../database/insightsRepository.js';
 import { getSetting, setSetting } from '../../database/settingsRepository.js';
 import { saveTelemetryEvent } from '../../database/telemetryRepository.js';
 import { hasUserData } from '../../database/bootstrapState.js';
@@ -69,7 +69,7 @@ async function runScheduledAnalysis() {
         severity: String(insight.severity || 'LOW').toUpperCase(),
         confidence: Number(insight.confidence ?? 0.9),
         fingerprint,
-        recentFingerprints: [],
+        recentFingerprints: (await getAllInsights()).slice(0, 50).map(item => item.fingerprint).filter(Boolean),
         emittedToday,
         budget,
         quietHours: { start: quietStart, end: quietEnd },
