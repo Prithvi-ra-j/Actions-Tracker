@@ -21,6 +21,7 @@ export default function SettingsTab({ t, onClose, reminders: reminderConfigs = [
   const [memories, setMemories] = useState([]);
   const [preferenceError, setPreferenceError] = useState('');
   const [clearMemoriesOpen, setClearMemoriesOpen] = useState(false);
+  const [resetDataOpen, setResetDataOpen] = useState(false);
 
   // Notifications state
   const [proactive, setProactive] = useState(true);
@@ -136,6 +137,17 @@ export default function SettingsTab({ t, onClose, reminders: reminderConfigs = [
     } catch (error) {
       setReminders(!nextEnabled);
       setPreferenceError('Reminder preference could not be saved. Try again.');
+    }
+  };
+
+  const handleExplicitReset = async () => {
+    try {
+      const { explicitResetAllData } = await import('../core/recovery/explicitReset.js');
+      const { clearAllBackups } = await import('../database/backupService.js');
+      await explicitResetAllData({ clearBackups: clearAllBackups });
+      window.location.reload();
+    } catch (error) {
+      setRestoreStatus({ success: false, message: `Reset failed: ${error.message || 'unknown error'}` });
     }
   };
 
@@ -467,6 +479,13 @@ export default function SettingsTab({ t, onClose, reminders: reminderConfigs = [
         />
       </div>
 
+      <ConfirmDialog
+        isOpen={resetDataOpen}
+        onClose={() => setResetDataOpen(false)}
+        onConfirm={handleExplicitReset}
+        title="Reset all local data?"
+        description="This permanently clears the local Actions-Tracker dataset and returns the app to a fresh-user state. Make a backup first if you may need this data later."
+      />
       <div style={headerLabelStyle}>Storage</div>
       <div style={{ ...groupStyle, padding: '14px' }}>
         <span style={{ fontFamily: "'Geist Mono', monospace", fontSize: '11.5px', color: 'var(--mu)' }}>Used on this device</span>
@@ -475,6 +494,20 @@ export default function SettingsTab({ t, onClose, reminders: reminderConfigs = [
         </div>
       </div>
       <p style={{ fontSize: '13px', color: 'var(--mu)' }}>Restoring replaces current data after you confirm.</p>
+      <div style={headerLabelStyle}>Reset</div>
+      <div style={groupStyle}>
+        <button
+          type="button"
+          style={{ ...rowStyle(true), width: '100%', border: 0, background: 'transparent', color: 'var(--danger)', textAlign: 'left' }}
+          onClick={() => setResetDataOpen(true)}
+        >
+          Reset all local data
+        </button>
+      </div>
+      <p style={{ fontSize: '12px', color: 'var(--mu)', lineHeight: 1.45 }}>
+        This clears local goals, habits, evidence, memories, conversations, settings, backups and the AI key. It does not affect remote provider data.
+      </p>
+
     </div>
   );
 
