@@ -220,7 +220,8 @@ export async function chatWithJarvis(userMessage, history = [], modificationCont
   ];
   
   try {
-    const rawResponse = await queryLLM(messages, { jsonMode: true, temperature: 0.2, intent: 'jarvis_chat', messages });
+    const requestId = globalThis.crypto?.randomUUID?.() || `jarvis_${Date.now()}`;
+    const rawResponse = await queryLLM(messages, { jsonMode: true, temperature: 0.2, intent: 'jarvis_chat', mode: options.mode || 'ask', conversationId: options.conversationId || null, proposalId: modificationContext?.id || null, requestId, messages });
     let responseObj;
     try {
       responseObj = JSON.parse(rawResponse);
