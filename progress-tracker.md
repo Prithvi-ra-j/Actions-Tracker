@@ -1131,3 +1131,31 @@ Implemented the next intelligence layer without creating parallel scoring/data a
 - **Certification:** added `docs/12-10-certification.md` defining the longitudinal proof metrics and remaining real-world certification gates.
 
 Latest validated GitHub Actions runs for the new intelligence/platform test batches are green. Real Android/provider/accessibility/performance and 30/60/90-day evidence remain validation gates and are not represented as completed merely by CI.
+
+
+## 2026-09-28 — Certification/integration phase: intervention lifecycle + provenance
+
+### Implemented
+- Added automatic intervention outcome-window scheduling under `src/core/interventions/interventionOutcomeScheduler.js`.
+- Interventions now persist explicit outcome-window start/due timestamps and schema version 2.
+- Scheduler evaluates only expired active interventions, collects deterministic evidence from the fact ledger, requires sufficient evidence, and leaves insufficient-evidence interventions active for a later retry.
+- Integrated intervention outcome evaluation into the existing passive analysis scheduler independently of proactive-notification settings.
+- Added deterministic lifecycle coverage: intervention → expired window → evidence collection → evaluation → persisted completion → effectiveness → future recommendation ranking.
+- Added canonical entity ownership metadata covering store, constructor, validator, lifecycle events and relations for the core intelligence entities.
+- Extended provenance to represent source → evidence → derived signal → claim → recommendation → outcome.
+- Added certification evidence records with explicit environment, expected/observed result, evidence references, commit and certification status.
+- Added provenance graph certification tests.
+
+### Validation
+- CI is the execution authority for the newly committed lifecycle/provenance tests.
+- Real Android/provider/accessibility/performance/30-60-90-day gates remain intentionally uncertified.
+
+### Next slice
+- Jarvis adversarial certification matrix.
+- Persistence/restore certification journey.
+- Health Connect/NutriLift real-provider certification.
+- Android + accessibility + performance certification.
+- Start the longitudinal evidence ledger.
+
+### Commits
+- Automatic lifecycle, certification evidence, provenance and registry changes are present on `main`; final certification status depends on the fresh CI run.
