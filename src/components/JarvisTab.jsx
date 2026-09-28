@@ -483,6 +483,23 @@ export default function JarvisTab({ t, isActive = true, onQuestsChanged, onboard
     if (event.key === 'Enter') handleSend();
   };
 
+  const saveEditedProposal = async editedProposal => {
+    if (!editedProposal) return;
+    const updatedMessages = messages.map(item =>
+      item.proposal === selectedProposalForEdit
+        ? { ...item, proposal: editedProposal, proposalStatus: 'pending' }
+        : item
+    );
+    setMessages(updatedMessages);
+    setSelectedProposalForEdit(null);
+    await saveConversation({
+      id: conversationId,
+      type: 'Jarvis',
+      messages: updatedMessages,
+      createdAt: createdAtRef.current,
+    });
+  };
+
   const executeApprovedProposal = async (proposal) => {
     if (executing) return;
     setExecuting(true);
@@ -1315,7 +1332,7 @@ export default function JarvisTab({ t, isActive = true, onQuestsChanged, onboard
 
       <EditProposalSheet
         proposal={selectedProposalForEdit}
-        onSave={() => setSelectedProposalForEdit(null)}
+        onSave={saveEditedProposal}
         onCancel={() => setSelectedProposalForEdit(null)}
         onDismiss={() => setSelectedProposalForEdit(null)}
       />
