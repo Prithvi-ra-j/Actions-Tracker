@@ -1,4 +1,5 @@
 import { composeCalibratedScore } from '../core/scoring/calibration.js';
+import { calculateCalibrationProfile } from '../core/scoring/calibrationProfile.js';
 
 /**
  * ScoreProjection schema factory (§22 Scoring Architecture).
@@ -65,6 +66,15 @@ export function createScoreProjection(fields) {
     hasBaseline: Boolean(fields.hasBaseline),
     previousStage: fields.previousCalibrationStage,
   });
+  const calibrationProfile = calculateCalibrationProfile({
+    sampleSize,
+    coverage: fields.coverage ?? 0,
+    confidence: fields.confidence ?? 0,
+    freshness: fields.freshness ?? 1,
+    contradictionRate: fields.contradictionRate ?? 0,
+    sourceDiversity: fields.sourceDiversity ?? 1,
+    baselineAvailable: Boolean(fields.hasBaseline),
+  });
 
   return {
     id:                   fields.id ?? generateId(),
@@ -79,6 +89,7 @@ export function createScoreProjection(fields) {
     supportingEvidenceIds: fields.supportingEvidenceIds ?? [],
     sampleSize,
     calibration: calibrated.calibration,
+    calibrationProfile,
     scoreSource:          fields.scoreSource         ?? 'canonical',
     fallbackReason:       fields.fallbackReason      ?? null,
     warnings:             fields.warnings            ?? [],
