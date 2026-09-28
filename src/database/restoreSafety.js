@@ -73,6 +73,16 @@ export async function restoreWithSafetyBackup(jsonString, { createBackup = creat
   const preview = parseRestorePreview(jsonString);
   const safetyBackup = await createBackup();
 
+  // The default creator persists the snapshot itself. Persist injected/custom
+  // snapshots too so the restore boundary remains durable under fault tests.
+  if (safetyBackup && typeof localStorage !== 'undefined') {
+    try {
+      localStorage.setItem(SAFETY_KEY, JSON.stringify(safetyBackup));
+    } catch {
+      // Storage unavailability must not turn a valid restore attempt into a new failure.
+    }
+  }
+
   try {
     const result = await importer(jsonString);
     return { preview, safetyBackup, result };
