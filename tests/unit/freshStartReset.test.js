@@ -2,7 +2,7 @@
 import 'fake-indexeddb/auto';
 import { beforeEach, describe, expect, it } from 'vitest';
 import { clearAllDatabaseData, closeDB, dbDelete, dbGet, initDB } from '../../src/database/db.js';
-import { setAppMeta } from '../../src/database/appMetaRepository.js';
+import { getAppMeta, setAppMeta } from '../../src/database/appMetaRepository.js';
 import { applyFreshStartReset } from '../../src/core/freshStartReset.js';
 
 
@@ -26,7 +26,7 @@ describe('fresh-start reset safety', () => {
   it('allows the historical reset exactly once on a genuinely fresh installation', async () => {
     const first = await applyFreshStartReset();
     expect(first).toBe(true);
-    expect(await dbGet('appMeta', 'installationBaseline')).toMatchObject({ resetApplied: true });
+    expect(await getAppMeta('installationBaseline')).toMatchObject({ resetApplied: true });
 
     const second = await applyFreshStartReset();
     expect(second).toBe(false);
