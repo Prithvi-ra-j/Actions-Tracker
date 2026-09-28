@@ -15,6 +15,7 @@
  */
 
 import { dbGet, dbPut, dbGetAll, dbGetAllByIndex } from './db.js';
+import { classifyMemoryTruth, trustLevel } from '../core/ai/trustModel.js';
 
 const STORE = 'memories';
 const SCHEMA_VERSION = 1;
@@ -58,6 +59,8 @@ export async function addMemory(fields) {
     supportingFactIds: fields.supportingFactIds ?? [],
     source:            fields.source            ?? 'user',
     tags:              fields.tags              ?? [],
+    truthClass:        fields.truthClass || classifyMemoryTruth({ type: fields.truthClass || fields.type, status: fields.status || 'proposed', source: fields.source || 'user' }),
+    trustLevel:        fields.trustLevel || trustLevel({ truthClass: fields.truthClass || fields.type, confidence: fields.confidence || 0, supportingEvidence: (fields.supportingFactIds || []).length }),
     lastReviewedAt:    fields.lastReviewedAt    ?? null,
     createdAt:         ts,
     updatedAt:         ts,
