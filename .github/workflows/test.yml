@@ -28,7 +28,7 @@ jobs:
         run: npm test
 
       - name: Persistence round-trip regression
-        run: npm run test:roundtrip
+        run: npm run test:roundtrip -- tests/fixtures/roundtrip-export.json
 
       - name: Build (smoke test — ensure no import errors)
         run: npm run build
