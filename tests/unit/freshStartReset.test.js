@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import 'fake-indexeddb/auto';
 import { beforeEach, describe, expect, it } from 'vitest';
-import { clearAllDatabaseData, closeDB, dbGet, initDB } from '../../src/database/db.js';
+import { clearAllDatabaseData, closeDB, dbDelete, dbGet, initDB } from '../../src/database/db.js';
 import { setAppMeta } from '../../src/database/appMetaRepository.js';
 import { applyFreshStartReset } from '../../src/core/freshStartReset.js';
 
@@ -11,6 +11,7 @@ describe('fresh-start reset safety', () => {
     try { closeDB(); } catch {}
     await initDB();
     await clearAllDatabaseData();
+    await dbDelete('appMeta', 'installationBaseline');
     localStorage.clear();
   });
 
