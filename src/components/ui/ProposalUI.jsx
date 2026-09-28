@@ -13,7 +13,7 @@ export function ActionProposalCard({ proposal, onApply, onEdit, onDismiss, statu
   // A real swipe-to-apply gesture using pointer events without re-renders.
   useEffect(() => {
     const el = swipeRef.current;
-    if (!el || status !== 'pending') return;
+    if (!el || !['pending','awaiting_approval'].includes(status)) return;
     
     let startX = 0;
     let currentX = 0;
@@ -259,10 +259,16 @@ export function ImpactDetailSheet({ proposal, impact, onApply, onEdit, onDismiss
       {impact && (
         <div style={{ marginTop: '16px' }}>
           <div style={{ fontSize: '12.5px', color: 'var(--mu)', marginBottom: '8px', fontWeight: 500 }}>Weekly capacity</div>
-          <SegmentedBar fill={Math.min(10, Math.ceil((impact.capacityAfter || 0) / 10))} total={10} />
-          <p style={{ fontSize: '13px', color: 'var(--mu)', marginTop: '8px' }}>
-            {impact.capacityBefore}% now, {impact.capacityAfter}% after
-          </p>
+          {Number.isFinite(impact.capacityBefore) && Number.isFinite(impact.capacityAfter) ? (
+            <>
+              <SegmentedBar fill={Math.min(10, Math.ceil(impact.capacityAfter / 10))} total={10} />
+              <p style={{ fontSize: '13px', color: 'var(--mu)', marginTop: '8px' }}>
+                {impact.capacityBefore}% now, {impact.capacityAfter}% after
+              </p>
+            </>
+          ) : (
+            <p role="status" style={{ fontSize: '13px', color: 'var(--mu)', margin: 0 }}>No estimate available.</p>
+          )}
         </div>
       )}
       
