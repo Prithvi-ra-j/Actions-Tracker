@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import 'fake-indexeddb/auto';
 import { beforeEach, describe, expect, it } from 'vitest';
-import { closeDB, dbGet, initDB } from '../../src/database/db.js';
+import { closeDB, dbGet, dbPut, initDB } from '../../src/database/db.js';
 import {
   getSafetyBackup,
   parseRestorePreview,
@@ -46,6 +46,35 @@ describe('persistence upgrade and recovery fixtures', () => {
     const preserved = await dbGet('facts', 'legacy-fact-1');
     expect(preserved).toMatchObject({ id: 'legacy-fact-1', value: 1 });
     expect((await dbGet('facts', 'legacy-fact-1')).localDate).toBe('2026-09-27');
+  });
+
+  it('upgrades v11 to v12 without losing existing facts and exposes intervention storage', async () => {
+    await new Promise((resolve, reject) => {
+      const request = indexedDB.open('actions-tracker', 11);
+      request.onupgradeneeded = () => {
+        const db = request.result;
+        const facts = db.createObjectStore('facts', { keyPath: 'id' });
+        facts.put({ id: 'v11-fact', type: 'goal_progress', value: 3 });
+      };
+      request.onsuccess = () => { request.result.close(); resolve(); };
+      request.onerror = () => reject(request.error);
+    });
+
+    await initDB();
+
+    expect(await dbGet('facts', 'v11-fact')).toMatchObject({ id: 'v11-fact', value: 3 });
+
+    await dbPut('interventions', {
+      id: 'intervention_upgrade_1',
+      status: 'active',
+      proposedAt: new Date().toISOString(),
+      recommendationId: 'today:test',
+    });
+
+    expect(await dbGet('interventions', 'intervention_upgrade_1')).toMatchObject({
+      id: 'intervention_upgrade_1',
+      status: 'active',
+    });
   });
 
   it('keeps a durable safety snapshot when restore fails after preview', async () => {
