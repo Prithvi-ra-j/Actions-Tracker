@@ -73,6 +73,7 @@ function normalizeActionProposal(proposal) {
   const confidenceNumber = Number(proposal.confidence);
   return {
     ...proposal,
+    id: typeof proposal.id === 'string' && proposal.id ? proposal.id : `proposal_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
     payload,
     impact,
     reasoning: typeof proposal.reasoning === 'string' ? proposal.reasoning : '',
