@@ -38,8 +38,21 @@ jobs:
           console.log(`Version contract OK: ${pkg.version}`);
           NODE
 
+      - name: Validate certification documentation
+        run: npm run certify:docs
+
       - name: Run tests
         run: npm test
+
+      - name: Run deterministic 90-day certification fixture
+        run: npm run certify:longitudinal -- artifacts/certification/longitudinal-90d.json
+
+      - name: Upload certification evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: actions-tracker-certification-evidence
+          path: artifacts/certification/longitudinal-90d.json
+          if-no-files-found: error
 
       - name: Persistence round-trip regression
         run: npm run test:roundtrip -- tests/fixtures/roundtrip-export.json
