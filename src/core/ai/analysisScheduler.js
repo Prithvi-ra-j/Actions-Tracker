@@ -180,6 +180,7 @@ async function runScheduledAnalysis() {
       });
       // We do NOT set lastDailyAnalysisDate, meaning it will naturally retry on next boot.
     }
+    }
   }
 
   // Monthly Audit Trigger (§32)
