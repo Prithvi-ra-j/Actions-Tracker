@@ -10,9 +10,9 @@
 |---|---|---|
 | Continuous personal baselines | `src/core/calibration/` | Baseline, deviation, trend and confidence modules + tests |
 | Goal adaptation | `src/core/goals/goalOutcomeEngine.js`, `goalAdaptationEngine.js`, `goalLearningEngine.js` | Outcome/adaptation tests |
-| Intervention learning | `src/core/interventions/` | Effectiveness, predictor, outcome collector and decision outcome metrics |
+| Intervention learning | `src/core/interventions/` | Effectiveness, predictor, outcome collector and **automatic outcome-window scheduler** |
 | Adaptive Today | `todayRecommendationEngine.js` | Baseline signals, intervention history, confidence, impact and expiry fields |
-| Evidence provenance | `src/core/evidence/` | Claims, provenance graph and contradiction handling |
+| Evidence provenance | `src/core/evidence/` | Facts → evidence → signals → claims → recommendations → outcomes graph, provenance and contradiction handling |
 | Memory trust model | `src/core/ai/trustModel.js` | Explicit truth classes and trust levels |
 | Connector platform | `src/core/sync/` | Contract validation, normalization and replay-safe deduplication |
 | Data recovery | `src/core/recovery/dataIntegrity.js` | Integrity scan and recovery classification |
@@ -27,6 +27,9 @@
 - [x] Security adversarial tests are part of CI.
 - [x] Integration contract tests are part of CI.
 - [x] Data-integrity tests are part of CI.
+- [x] Automatic intervention outcome lifecycle is covered by deterministic intelligence tests.
+- [x] Certification evidence records are available for repeatable gate/scenario reporting.
+- [x] Canonical entity registry declares store ownership, constructors, validators, events and relations.
 - [ ] Real Android device certification.
 - [ ] Health Connect / NutriLift provider certification.
 - [ ] TalkBack/accessibility certification.
@@ -64,7 +67,7 @@ Repeated patterns can become learned patterns only when evidence and confidence 
 Interventions record a hypothesis, baseline, outcome window and measured result. Effectiveness is stored without claiming causation.
 
 ### Day 60+
-Successful intervention types can receive evidence-backed ranking adjustments. Failed interventions reduce reuse.
+Successful intervention types can receive evidence-backed ranking adjustments. Expired outcome windows are evaluated automatically by the scheduled analysis lifecycle when sufficient evidence exists. Failed interventions reduce reuse.
 
 ### Day 90
 The evaluation layer can compare recommendation and intervention outcomes over time.
