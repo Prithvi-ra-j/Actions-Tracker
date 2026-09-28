@@ -28,7 +28,7 @@ export class HealthConnectConnector extends BaseConnector {
     }
     if (typeof this.provider.checkHealthPermissions === 'function') {
       const status = await this.provider.checkHealthPermissions({ read: READ_TYPES, write: [] });
-      return status?.hasAllPermissions ? 'connected' : 'disconnected';
+      return status?.hasAllPermissions ? 'connected' : 'permission_required';
     }
     return 'disconnected';
   }
