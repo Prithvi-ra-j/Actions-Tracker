@@ -182,9 +182,6 @@ async function runScheduledAnalysis() {
     }
   }
 
-      }
-    }
-
   // Monthly Audit Trigger (§32)
   // Do not generate an audit for a fresh install. The user must have
   // completed onboarding, accumulated real evidence, and had the system
