@@ -2,7 +2,7 @@ import { BaseConnector } from '../BaseConnector.js';
 import { isSupabaseConfigured } from '../../../integrations/supabase/supabaseClient.js';
 import { getCurrentSupabaseUser } from '../../../integrations/supabase/supabaseAuth.js';
 import { fetchNutriLiftRecords } from '../../../database/supabaseSyncRepository.js';
-import { addFact, getFact, getAllFacts } from '../../../database/factsRepository.js';
+import { getAllFacts } from '../../../database/factsRepository.js';
 
 function factId(record) {
   return `fact:nutrilift:${record.record_type}:${record.external_id}`;
