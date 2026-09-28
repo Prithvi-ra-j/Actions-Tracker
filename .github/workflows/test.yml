@@ -59,3 +59,13 @@ jobs:
 
       - name: Build (smoke test — ensure no import errors)
         run: npm run build
+
+      - name: Generate release evidence
+        run: npm run certify:release
+
+      - name: Upload release certification evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: actions-tracker-release-evidence
+          path: artifacts/certification/release-evidence.json
+          if-no-files-found: error
