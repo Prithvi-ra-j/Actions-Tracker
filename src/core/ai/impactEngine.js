@@ -194,6 +194,10 @@ export function computeImpact(proposal, currentState) {
 
     case 'complete_onboarding':
       impact.affectedDomains.push(...(Array.isArray(payload.focusAxes) ? payload.focusAxes : []));
+      if (payload.systemProposal?.items?.length) {
+        impact.scoringImpact = `Seeds a reviewable initial system with ${payload.systemProposal.items.length} approved item(s); evidence still determines later measurement.`;
+        impact.routineImpact = 'Only the explicitly approved routine proposal items will change capacity.';
+      }
       impact.scoringImpact = 'Seeds the starting score from Jarvis baseline assessments; those baseline values fade as real activity accumulates. It does not create habits, quests, or a schedule.';
       impact.identityAlignment = 'Stores the user-defined identity and desired direction.';
       impact.routineImpact = 'No routine is invented during onboarding; Jarvis designs execution later through conversation.';
