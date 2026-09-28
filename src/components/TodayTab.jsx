@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import { formatDisplayDate } from '../helpers/dateHelpers.js';
 import { getGracePrompt } from '../core/occurrenceEngine.js';
 import { BottomSheet } from './ui/Overlays.jsx';
