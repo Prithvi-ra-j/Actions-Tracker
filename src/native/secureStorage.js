@@ -46,3 +46,19 @@ export async function clearSecureValue(key) {
 export function isBrowserFallback() {
   return !isCapacitor;
 }
+
+export function getSecretStoragePolicy() {
+  return isCapacitor
+    ? {
+        mode: 'native_secure_storage',
+        persistent: true,
+        safeForLongLivedSecrets: true,
+        message: 'Secrets are stored using the native secure-storage plugin.',
+      }
+    : {
+        mode: 'session_memory',
+        persistent: false,
+        safeForLongLivedSecrets: false,
+        message: 'Browser secrets live only in memory and are cleared on reload. Use a server-side proxy for production browser deployments.',
+      };
+}
