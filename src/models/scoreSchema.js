@@ -59,18 +59,19 @@ export function createScoreProjection(fields) {
   const clampedValue = Math.min(100, Math.max(0, Math.round(fields.value)));
 
   const sampleSize = Math.max(0, Number.isFinite(fields.sampleSize) ? Math.floor(fields.sampleSize) : fields.supportingEvidenceIds?.length ?? 0);
+  const baseline = fields.observations
+    ? updateCalibrationBaseline(fields.previousBaseline || null, fields.observations)
+    : (fields.previousBaseline || null);
+  const baselineComparison = baseline ? compareToBaseline(clampedValue, baseline) : null;
+  const hasBaseline = Boolean(fields.hasBaseline || baseline?.value !== null);
   const calibrated = composeCalibratedScore({
     score: clampedValue,
     coverage: fields.coverage ?? 0,
     confidence: fields.confidence ?? 0,
     sampleSize,
-    hasBaseline: Boolean(fields.hasBaseline),
+    hasBaseline,
     previousStage: fields.previousCalibrationStage,
   });
-  const baseline = fields.observations
-    ? updateCalibrationBaseline(fields.previousBaseline || null, fields.observations)
-    : (fields.previousBaseline || null);
-  const baselineComparison = baseline ? compareToBaseline(clampedValue, baseline) : null;
 
   const calibrationProfile = calculateCalibrationProfile({
     sampleSize,
@@ -79,7 +80,7 @@ export function createScoreProjection(fields) {
     freshness: fields.freshness ?? 1,
     contradictionRate: fields.contradictionRate ?? 0,
     sourceDiversity: fields.sourceDiversity ?? 1,
-    baselineAvailable: Boolean(fields.hasBaseline),
+    baselineAvailable: hasBaseline,
   });
 
   return {
