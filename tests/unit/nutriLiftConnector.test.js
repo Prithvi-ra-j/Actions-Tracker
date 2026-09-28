@@ -7,7 +7,13 @@ vi.mock('../../src/integrations/supabase/supabaseAuth.js', () => ({
   getCurrentSupabaseUser: vi.fn(async () => ({ id: 'user-a' })),
 }));
 vi.mock('../../src/database/supabaseSyncRepository.js', () => ({
-  fetchNutriLiftRecords: vi.fn(async () => records.current),
+  fetchNutriLiftRecords: vi.fn(async () => ({
+    records: records.current,
+    nextCursor: records.current.length ? JSON.stringify({
+      sourceUpdatedAt: records.current.at(-1).source_updated_at,
+      externalId: records.current.at(-1).external_id,
+    }) : null,
+  })),
 }));
 vi.mock('../../src/database/factsRepository.js', () => ({
   getFact: vi.fn(async id => records.currentFacts?.find(f => f.id === id) || null),
@@ -43,7 +49,8 @@ describe('NutriLiftConnector', () => {
   it('ignores identical replays', async () => {
     records.current = [base];
     records.currentFacts = [{ id: factId(base), type: base.record_type, meta: { sourceUpdatedAt: base.source_updated_at } }];
-    const result = await new NutriLiftConnector().sync({}, { cursor: base.source_updated_at });
+    const cursor = JSON.stringify({ sourceUpdatedAt: base.source_updated_at, externalId: base.external_id });
+    const result = await new NutriLiftConnector().sync({}, { cursor });
     expect(result.facts).toHaveLength(0);
     expect(result.ignored).toBe(1);
   });
@@ -72,6 +79,9 @@ describe('NutriLiftConnector', () => {
       { ...base, external_id: 'nutrilift:workout_session:124', source_updated_at: '2026-09-28T09:00:00.000Z' },
     ];
     const result = await new NutriLiftConnector().sync({}, {});
-    expect(result.cursor).toBe('2026-09-28T09:00:00.000Z');
+    expect(result.cursor).toBe(JSON.stringify({
+      sourceUpdatedAt: '2026-09-28T09:00:00.000Z',
+      externalId: 'nutrilift:workout_session:124',
+    }));
   });
 });
