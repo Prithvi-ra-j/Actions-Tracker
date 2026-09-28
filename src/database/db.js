@@ -13,6 +13,7 @@
  */
 
 import { APP_VERSION, SCHEMA_VERSION } from '../version.js';
+import { addBackupIntegrity, verifyBackupIntegrity } from './backupIntegrity.js';
 
 const DB_NAME = 'actions-tracker';
 const DB_VERSION = 11;
@@ -426,15 +427,19 @@ export async function exportDatabase() {
       data[store] = [];
     }
   }
-  return JSON.stringify({
+  const payload = {
     _meta: {
       exportedAt:    new Date().toISOString(),
       appVersion:    APP_VERSION,
       schemaVersion: SCHEMA_VERSION,
+      dbVersion:     DB_VERSION,
+      recordCounts:  Object.fromEntries(ALL_STORES.map(store => [store, data[store]?.length || 0])),
       stores:        ALL_STORES,
     },
     ...data,
-  });
+  };
+  const withIntegrity = await addBackupIntegrity(payload);
+  return JSON.stringify(withIntegrity);
 }
 
 /**
@@ -488,6 +493,13 @@ export async function importDatabase(jsonString) {
   } else {
     // No _meta: this is a pre-v1.5 export. Accept it but warn.
     console.warn('[Import] Backup has no _meta envelope — treating as legacy schema v1. Proceeding.');
+  }
+
+  if (meta?.integrity) {
+    const integrity = await verifyBackupIntegrity(parsed);
+    if (!integrity.verified) {
+      throw new Error(`[Import] Backup integrity check failed: ${integrity.reason || 'unknown'}`);
+    }
   }
 
   // Strip _meta — it's informational, not a store
