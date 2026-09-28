@@ -6,13 +6,14 @@
  * does not have to reason about raw backup envelopes.
  */
 import { exportDatabase, importDatabase } from './db.js';
+import { verifyBackupIntegrity } from './backupIntegrity.js';
 
 const SAFETY_KEY = 'actions_tracker_pre_restore_safety_backup';
 const KNOWN_STORES = new Set([
   'goals','milestones','settings','logs','axis_config','books','gymSessions','questBoard','statSnapshots',
   'facts','lifeObjects','selfModel','telemetry','appMeta','migrationRegistry','habits','habitOccurrences',
   'learnings','evidence','relations','memories','syncState','audits','insights','decisions','experiments',
-  'creativeWorks','observations','jarvisConversations','routineConfig'
+  'creativeWorks','observations','jarvisConversations','routineConfig','interventions'
 ]);
 
 export function parseRestorePreview(jsonString) {
@@ -26,11 +27,13 @@ export function parseRestorePreview(jsonString) {
 
   const meta = parsed._meta ?? {};
   const stores = {};
+  const unknownStores = [];
   let totalRecords = 0;
 
   for (const [name, value] of Object.entries(parsed)) {
     if (name === '_meta') continue;
     if (!Array.isArray(value)) throw new Error(`Backup store "${name}" must be an array.`);
+    if (!KNOWN_STORES.has(name)) unknownStores.push(name);
     stores[name] = value.length;
     totalRecords += value.length;
   }
@@ -40,7 +43,9 @@ export function parseRestorePreview(jsonString) {
     schemaVersion: Number(meta.schemaVersion ?? 1),
     exportedAt: meta.exportedAt ?? null,
     stores,
+    unknownStores,
     totalRecords,
+    integrity: meta.integrity ? 'sha256-present' : 'legacy',
   };
 }
 
