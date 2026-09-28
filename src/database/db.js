@@ -184,7 +184,6 @@ export function initDB() {
       // DB v12 — cross-app source projections + idempotency ledger
       if (!db.objectStoreNames.contains('nutriLiftProjections')) {
         db.createObjectStore('nutriLiftProjections', { keyPath: 'id' });
-        const projectionStore = db.transaction?.objectStore ? null : null;
       }
       if (!db.objectStoreNames.contains('proposalExecutions')) {
         const proposalStore = db.createObjectStore('proposalExecutions', { keyPath: 'idempotencyKey' });
