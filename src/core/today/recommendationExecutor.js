@@ -1,6 +1,7 @@
 import { completeOccurrence, getOccurrence } from '../../database/habitOccurrenceRepository.js';
 import { addFact } from '../../database/factsRepository.js';
 import { recordTodayRecommendationFeedback } from './recommendationFeedback.js';
+import { recordCalibrationObservation } from '../calibration/baselineUpdater.js';
 
 export const RECOMMENDATION_EXECUTION_RESULTS = Object.freeze([
   'completed',
@@ -50,6 +51,12 @@ export async function executeTodayRecommendation({
         },
       });
       result.factId = factId;
+      await recordCalibrationObservation('action_completion', {
+        value: 1,
+        occurredAt: new Date().toISOString(),
+        evidenceId: factId,
+        context: { recommendationId: recommendation.id, domain: recommendation.domain },
+      });
       result.execution = 'completed';
       result.executed = true;
     }
