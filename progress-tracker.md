@@ -1069,3 +1069,13 @@ The GitHub-connected environment does not expose a local Node runtime for execut
 - TalkBack/text-scale/back-button/background/kill/reopen validation.
 - Browser production secret strategy: current browser mode is session-memory; long-lived production browser secrets should use a server-side proxy.
 - Longitudinal validation of calibration/intervention learning against real user data.
+
+
+## 2026-09-28 — CI certification update
+- Latest GitHub Actions run #585 (36388506301) is **success**.
+- Unit + Property + Scenario Tests: success.
+- Persistence round-trip regression: success.
+- Production build smoke test: success.
+- Release version contract: success.
+- Earlier transient failures in the onboarding/proposal batch were fixed and the subsequent validation run is green.
+- Real Android/device/provider/accessibility certification remains **validation needed** and is not claimed from CI.
