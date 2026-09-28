@@ -274,7 +274,6 @@ export default function JarvisTab({ t, isActive = true, onQuestsChanged, onboard
   const handleSend = async () => {
     if (!input.trim() || loading || !conversationReady) return;
     const msg = input.trim();
-    setInput('');
     const newMessages = [...messages, { role: 'user', content: msg }];
     setMessages(newMessages);
     setLoading(true);
@@ -307,6 +306,8 @@ export default function JarvisTab({ t, isActive = true, onQuestsChanged, onboard
       });
     } catch (err) {
       recordAppError(err, { source: 'jarvis_ui', operation: 'send_message' });
+      // Preserve the exact prompt so retry cannot silently erase user intent.
+      setInput(msg);
       const detail = err?.message ? String(err.message).slice(0, 320) : 'Unknown AI connection error.';
       setError(activeOnboardingMode
         ? `Jarvis encountered an error processing your onboarding answer: ${detail}`
