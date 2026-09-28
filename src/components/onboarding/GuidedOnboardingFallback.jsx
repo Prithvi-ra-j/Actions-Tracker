@@ -133,7 +133,7 @@ export default function GuidedOnboardingFallback({ onComplete }) {
         await saveOnboardingState(active);
         onComplete?.();
         return;
-      }}
+      }
 
       const next = advanceOnboarding(state, { answer, step });
       await saveOnboardingState(next);
