@@ -20,13 +20,13 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with:
           # Fetch full history so the changelog step can compare tags
           fetch-depth: 0
 
       - name: Setup Node
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v5
         with:
           node-version: 22
           cache: npm
@@ -58,8 +58,15 @@ jobs:
             VERSION="${GITHUB_REF_NAME#v}"
           fi
 
+          # Accept canonical four-part versions and normalize shorthand releases.
+          if [[ "$VERSION" =~ ^[0-9]+\.[0-9]+$ ]]; then
+            VERSION="${VERSION}.0.0"
+          elif [[ "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            VERSION="${VERSION}.0"
+          fi
+
           if [[ ! "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
-            echo "Version must look like 1.5.1.1"
+            echo "Version must look like 1.5.1.1 (or shorthand 1.6 / 1.6.0)"
             exit 1
           fi
 
@@ -141,7 +148,7 @@ jobs:
 
       - name: Set up JDK 17 (Temurin)
         # AGP 8.2.1 + Gradle 8.2.1 require JDK 17 (matches android-build.yml)
-        uses: actions/setup-java@v4
+        uses: actions/setup-java@v5
         with:
           distribution: temurin
           java-version: "17"
