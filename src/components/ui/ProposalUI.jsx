@@ -204,7 +204,7 @@ export function ActionProposalCard({ proposal, onApply, onEdit, onDismiss, statu
               <line x1="12" y1="8" x2="12" y2="12"></line>
               <line x1="12" y1="16" x2="12.01" y2="16"></line>
             </svg>
-            Failed to apply. Data is unchanged.
+            {proposal.proposalError || 'Failed to apply. Data is unchanged.'}
           </div>
         )}
       </div>
@@ -318,3 +318,7 @@ export function EditProposalSheet({ proposal, onSave, onCancel, onDismiss }) {
     </BottomSheet>
   );
 }
+
+
+// Proposal states are intentionally explicit: draft -> awaiting_approval -> applying -> applied/dismissed/failed.
+// No proposal action should be inferred from a generic "latest proposal" reference.
