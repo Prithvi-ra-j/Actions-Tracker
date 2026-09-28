@@ -13,6 +13,9 @@ import { saveTelemetryEvent } from '../../database/telemetryRepository.js';
 import { hasUserData } from '../../database/bootstrapState.js';
 import { hasJarvisApiKey } from './jarvisConfig.js';
 import { getAllLogs } from '../../database/logsRepository.js';
+import { getAllGoals } from '../../database/goalsRepository.js';
+import { getOccurrencesByDateRange } from '../../database/habitOccurrenceRepository.js';
+import { detectProactiveSignals } from './proactiveDetectors.js';
 import { runMonthlyAudit } from './auditEngine.js';
 import { createInsightFingerprint, shouldSurfaceInsight } from './proactivePolicy.js';
 
@@ -46,6 +49,62 @@ async function runScheduledAnalysis() {
   const lastDailyDate = await getSetting('lastDailyAnalysisDate');
 
   if (lastDailyDate !== today) {
+    // Deterministic signals run before the LLM summary. This gives proactive
+    // intelligence an evidence-backed fallback when the model is unavailable.
+    const [goals, facts, recentOccurrences] = await Promise.all([
+      getAllGoals(),
+      getAllLogs(),
+      getOccurrencesByDateRange(subtractDays(today, 7), today),
+    ]);
+    const deterministicSignals = detectProactiveSignals({
+      goals,
+      facts,
+      occurrences: recentOccurrences,
+    });
+
+    let deterministicEmitted = 0;
+    const emittedDateForSignals = await getSetting('proactiveEmissionDate');
+    let signalCount = emittedDateForSignals === today ? Number(await getSetting('proactiveEmissionCount') || 0) : 0;
+    const quietStartForSignals = Number(await getSetting('jarvisQuietStart') || 22);
+    const quietEndForSignals = Number(await getSetting('jarvisQuietEnd') || 7);
+    const budgetForSignals = Number(await getSetting('jarvisNotificationBudget') || 2);
+
+    for (const signal of deterministicSignals.slice(0, 5)) {
+      const fingerprint = createInsightFingerprint({
+        type: signal.type,
+        domain: signal.domain,
+        period: today,
+        title: signal.title,
+      });
+      const decision = shouldSurfaceInsight({
+        severity: signal.severity,
+        confidence: signal.confidence,
+        fingerprint,
+        recentFingerprints: (await getAllInsights()).slice(0, 50).map(item => item.fingerprint).filter(Boolean),
+        emittedToday: signalCount,
+        budget: budgetForSignals,
+        quietHours: { start: quietStartForSignals, end: quietEndForSignals },
+      });
+      if (!decision.allowed) continue;
+      await addInsight({
+        ...signal,
+        fingerprint,
+        status: 'proposed',
+        createdAt: new Date().toISOString(),
+        deliveryPolicy: {
+          budget: budgetForSignals,
+          quietHours: { start: quietStartForSignals, end: quietEndForSignals },
+          reason: decision.reason,
+        },
+      });
+      signalCount += 1;
+      deterministicEmitted += 1;
+    }
+
+    if (deterministicEmitted > 0) {
+      await setSetting('proactiveEmissionDate', today);
+      await setSetting('proactiveEmissionCount', String(signalCount));
+    }
     console.log(`[AnalysisScheduler] Running passive daily analysis for ${today}...`);
     const startTime = Date.now();
     // Privacy boundary: Telemetry only records metadata, never content.
