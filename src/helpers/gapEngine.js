@@ -1,3 +1,4 @@
+import { localDateStr } from './dateHelpers.js';
 /**
  * Gap engine — pure functions for §6 Gap Model and §9 Baseline Priors & Evidence Decay.
  *
@@ -61,7 +62,7 @@ export function computeGaps(currentState, desiredDims, historicalState = null) {
         const monthsToTarget = delta / trajectory;
         const d = new Date();
         d.setMonth(d.getMonth() + Math.ceil(monthsToTarget));
-        estimatedTargetDate = d.toISOString().split('T')[0];
+        estimatedTargetDate = localDateStr(d);
       }
     }
 
