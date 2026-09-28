@@ -28,13 +28,25 @@ jobs:
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 22
           cache: npm
 
       - name: Install dependencies
         # Health Connect 0.7 declares a Capacitor 5 peer while this app uses
         # Capacitor 6; use the tested compatibility override (matches android-build.yml).
         run: npm install --legacy-peer-deps
+
+      - name: Validate repository version
+        shell: bash
+        run: |
+          node --input-type=module <<'NODE'
+          import fs from 'node:fs';
+          const pkg = JSON.parse(fs.readFileSync('package.json', 'utf8'));
+          const src = fs.readFileSync('src/version.js', 'utf8');
+          const match = src.match(/export const APP_VERSION\s*=\s*'([^']+)'/);
+          if (!match || match[1] !== pkg.version) throw new Error('package.json and src/version.js versions must match');
+          console.log(`Repository version: ${pkg.version}`);
+          NODE
 
       - name: Determine Android version
         id: version
