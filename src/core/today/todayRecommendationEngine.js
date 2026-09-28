@@ -1,5 +1,6 @@
 import { scoreRecommendation, applyCapacityFilter, diversifyRecommendations, explainRecommendation } from './recommendationPolicy.js';
 import { applyInterventionLearning } from '../ai/interventionLearning.js';
+import { rankInterventions } from '../interventions/interventionPredictor.js';
 
 const AXES = ['body', 'discipline', 'knowledge', 'social', 'creativity', 'strategy'];
 
@@ -16,9 +17,29 @@ export function buildTodayRecommendations({
   capacity = {},
   recentFeedback = [],
   interventionLearning = null,
+  interventionHistory = [],
+  baselineSignals = [],
+  context = {},
   now = new Date(),
 } = {}) {
   const candidates = [];
+  const baselineCandidateSignals = (baselineSignals || []).map(signal => ({
+    id: 'baseline:' + signal.metric,
+    type: 'intervention',
+    title: signal.title || 'Review a baseline change',
+    reason: signal.summary || 'Your recent behavior differs from your personal baseline.',
+    priority: signal.severity === 'high' ? 80 : 60,
+    urgency: signal.severity === 'high' ? 80 : 50,
+    goalRelevance: 40,
+    evidenceGap: 0,
+    effort: 10,
+    domain: signal.domain || null,
+    evidence: signal.evidence ? [signal.evidence] : ['personal baseline'],
+    impact: 'Responds to a measurable change in your recent behavior.',
+    interventionType: signal.interventionType || 'baseline_response',
+    confidence: Number(signal.confidence || 0),
+  }));
+  candidates.push(...baselineCandidateSignals);
   const feedbackMap = new Map((recentFeedback || []).map(item => [item.recommendationId, item]));
   const pending = occurrences.filter(item => !['completed', 'excused'].includes(item.status));
 
@@ -101,14 +122,21 @@ export function buildTodayRecommendations({
       learningAdjustment: learnedScore - baseScore,
     };
   });
-  const capacityFiltered = applyCapacityFilter(scored, {
+  const learnedInterventions = rankInterventions(scored, interventionHistory);
+  const capacityFiltered = applyCapacityFilter(learnedInterventions, {
     capacityUsed: Number(capacity.used || capacity.usedPercent || 0),
     capacityLimit: Number(capacity.limit || capacity.weeklyBudget || 100),
     reserve: Number(capacity.reserve || 10),
   });
   const items = diversifyRecommendations(capacityFiltered, 3).map(item => ({
     ...item,
+    recommendationId: item.id,
     priority: item.score,
+    confidence: Number(item.confidence ?? 0.7),
+    expectedImpact: item.impact,
+    alternatives: [],
+    expiresAt: new Date(now.getTime() + 24 * 60 * 60 * 1000).toISOString(),
+    context,
     ...explainRecommendation(item),
   }));
 
@@ -120,6 +148,7 @@ export function buildTodayRecommendations({
       pending: pending.length,
       completed: occurrences.filter(item => item.status === 'completed').length,
     },
-    policyVersion: '1.0',
+    policyVersion: '2.0',
+    decisionSurface: 'adaptive_today',
   };
 }
