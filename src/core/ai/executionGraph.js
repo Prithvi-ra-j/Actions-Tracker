@@ -4,6 +4,29 @@ import { executeAction } from './actionExecutor.js';
 
 function makeId(prefix='node') { return globalThis.crypto?.randomUUID?.() || `${prefix}_${Date.now()}_${Math.random().toString(36).slice(2,7)}`; }
 
+export function validatePlanDependencies(plan) {
+  const ids = new Set(plan.actions.map(a => a.id));
+  for (const action of plan.actions) {
+    for (const dep of action.dependsOn) if (!ids.has(dep)) throw new Error(`Unknown dependency ${dep} for ${action.id}`);
+    if (action.dependsOn.includes(action.id)) throw new Error(`Action ${action.id} cannot depend on itself`);
+  }
+  // Kahn cycle check.
+  const remaining = new Map(plan.actions.map(a => [a.id, new Set(a.dependsOn)]));
+  let progressed = true;
+  let seen = 0;
+  while (progressed) {
+    progressed = false;
+    for (const [id,deps] of remaining) {
+      if (deps.size===0) {
+        remaining.delete(id); seen++; progressed=true;
+        for (const other of remaining.values()) other.delete(id);
+      }
+    }
+  }
+  if (seen !== plan.actions.length) throw new Error('Execution plan contains a dependency cycle.');
+  return plan;
+}
+
 export function buildExecutionPlan({ inputId, actions }) {
   const planned = actions.map((action,index)=> {
     const tool = getTool(action.tool);
