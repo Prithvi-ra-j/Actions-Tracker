@@ -8,6 +8,7 @@ import { closeDB, initDB } from '../../src/database/db.js';
 import { addLog } from '../../src/database/logsRepository.js';
 import * as dateHelpers from '../../src/helpers/dateHelpers.js';
 import { clearSecureValue, setSecureValue } from '../../src/native/secureStorage.js';
+import { setAppMeta } from '../../src/database/appMetaRepository.js';
 
 vi.spyOn(dateHelpers, 'localDateStr').mockReturnValue('2026-09-27');
 
@@ -25,6 +26,7 @@ describe('Monthly check-in date validation regression', () => {
       });
     }
     await initDB();
+    await setAppMeta('installationBaseline', { release: 'test', createdAt: new Date().toISOString(), resetApplied: true });
     await clearSecureValue('aiApiKey');
     await setSecureValue('aiApiKey', 'test-api-key');
     Object.defineProperty(navigator, 'onLine', { value: true, writable: true });
