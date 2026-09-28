@@ -55,7 +55,7 @@ describe('baseline signals', () => {
     expect(result[0]).toMatchObject({
       type: 'baseline_deviation',
       metric: 'action_completion',
-      severity: 'medium',
+      severity: 'high',
     });
     expect(result[0].evidence.supportingEvidenceId).toBe('e3');
     expect(result[0].trend.direction).toBe('down');
