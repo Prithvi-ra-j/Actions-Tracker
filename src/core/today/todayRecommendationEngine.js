@@ -1,4 +1,5 @@
 import { scoreRecommendation, applyCapacityFilter, diversifyRecommendations, explainRecommendation } from './recommendationPolicy.js';
+import { applyInterventionLearning } from '../ai/interventionLearning.js';
 
 const AXES = ['body', 'discipline', 'knowledge', 'social', 'creativity', 'strategy'];
 
@@ -14,6 +15,7 @@ export function buildTodayRecommendations({
   goals = [],
   capacity = {},
   recentFeedback = [],
+  interventionLearning = null,
   now = new Date(),
 } = {}) {
   const candidates = [];
@@ -89,10 +91,16 @@ export function buildTodayRecommendations({
     });
   }
 
-  const scored = candidates.map(item => ({
-    ...item,
-    score: scoreRecommendation(item),
-  }));
+  const scored = candidates.map(item => {
+    const baseScore = scoreRecommendation(item);
+    const learnedScore = applyInterventionLearning(baseScore, item.type, interventionLearning);
+    return {
+      ...item,
+      score: learnedScore,
+      baseScore,
+      learningAdjustment: learnedScore - baseScore,
+    };
+  });
   const capacityFiltered = applyCapacityFilter(scored, {
     capacityUsed: Number(capacity.used || capacity.usedPercent || 0),
     capacityLimit: Number(capacity.limit || capacity.weeklyBudget || 100),
