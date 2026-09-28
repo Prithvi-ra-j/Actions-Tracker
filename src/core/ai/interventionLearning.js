@@ -64,3 +64,46 @@ export function closeIntervention(intervention, evaluation, completedAt = new Da
     },
   };
 }
+
+
+export function summarizeInterventionLearning(interventions = []) {
+  const completed = interventions.filter(item => item?.status === 'completed' && item?.evaluation);
+  const positive = completed.filter(item => item.evaluation.result === 'positive');
+  const negative = completed.filter(item => item.evaluation.result === 'negative');
+  const byRecommendationType = new Map();
+
+  for (const item of completed) {
+    const key = item.context?.recommendationType || 'unknown';
+    const entry = byRecommendationType.get(key) || { completed: 0, positive: 0, negative: 0, neutral: 0, inconclusive: 0, effects: [] };
+    entry.completed += 1;
+    entry[item.evaluation.result] = (entry[item.evaluation.result] || 0) + 1;
+    if (Number.isFinite(item.evaluation.effect)) entry.effects.push(Number(item.evaluation.effect));
+    byRecommendationType.set(key, entry);
+  }
+
+  const typeLearning = Object.fromEntries([...byRecommendationType.entries()].map(([type, entry]) => [
+    type,
+    {
+      ...entry,
+      positiveRate: entry.completed ? entry.positive / entry.completed : 0,
+      averageEffect: entry.effects.length
+        ? entry.effects.reduce((sum, value) => sum + value, 0) / entry.effects.length
+        : null,
+    },
+  ]));
+
+  return {
+    totalCompleted: completed.length,
+    positiveCount: positive.length,
+    negativeCount: negative.length,
+    overallPositiveRate: completed.length ? positive.length / completed.length : 0,
+    typeLearning,
+  };
+}
+
+export function applyInterventionLearning(score, recommendationType, learning = {}) {
+  const entry = learning?.typeLearning?.[recommendationType];
+  if (!entry || entry.completed < 2) return score;
+  const adjustment = (entry.positiveRate - entry.negative / Math.max(1, entry.completed)) * 10;
+  return Math.max(0, Math.min(100, Number(score || 0) + adjustment));
+}
