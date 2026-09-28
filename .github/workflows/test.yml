@@ -48,7 +48,7 @@ jobs:
         run: npm run certify:longitudinal -- artifacts/certification/longitudinal-90d.json
 
       - name: Upload certification evidence
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: actions-tracker-certification-evidence
           path: artifacts/certification/longitudinal-90d.json
@@ -64,7 +64,7 @@ jobs:
         run: npm run certify:release
 
       - name: Upload release certification evidence
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: actions-tracker-release-evidence
           path: artifacts/certification/release-evidence.json
