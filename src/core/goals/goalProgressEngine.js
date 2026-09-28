@@ -50,6 +50,7 @@ export async function getGoalProgress(goalId) {
   const daysSinceEvidence = latestEvidenceAt
     ? Math.max(0, Math.floor((Date.now() - new Date(latestEvidenceAt).getTime()) / 86400000))
     : null;
+  const supportingActions = outgoing.filter(relation => relation.type === 'supports');
   const health = classifyGoalHealth({
     status: goal.status,
     recentEvidenceCount: evidence.length,
@@ -74,7 +75,7 @@ export async function getGoalProgress(goalId) {
       evidenceCount: selfReported.length,
       latestAt: selfReported.map(item => item.fact.occurredAt).sort().at(-1) || null,
     },
-    supportingActions: outgoing.filter(relation => relation.type === 'supports'),
+    supportingActions,
     evidenceCount: evidence.length,
     hasEvidence: evidence.length > 0,
     evidenceQuality: measured.length > 0 ? 'measured' : selfReported.length > 0 ? 'self_reported' : 'none',
