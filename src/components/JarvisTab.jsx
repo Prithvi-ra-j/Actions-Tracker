@@ -466,8 +466,12 @@ export default function JarvisTab({ t, isActive = true, onQuestsChanged, onboard
       }
     } catch (err) {
       recordAppError(err, { source: 'jarvis_ui', operation: 'execute_proposal' });
-      const updatedMessages = messages.map(m => m.proposal && m.proposal.id === proposal.id ? { ...m, proposalStatus: 'failed' } : m);
+      const updatedMessages = messages.map(m => m.proposal && m.proposal.id === proposal.id
+        ? { ...m, proposalStatus: 'failed', proposalError: err?.message || 'The proposal could not be applied.' }
+        : m
+      );
       setMessages(updatedMessages);
+      setError(err?.message || 'The proposal could not be applied. Your data was not changed.');
     } finally {
       setExecuting(false);
     }
