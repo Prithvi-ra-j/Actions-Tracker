@@ -440,10 +440,23 @@ export async function executeAction(proposal) {
       throw new Error(`[actionExecutor] Unsupported actionType: ${actionType}`);
   }
 
-  const actionFactId = await recordActionFact(actionType, payload, result);
-  const finalResult = { ...result, actionFactId, idempotent: false };
-  await finishProposalExecution(executionKey, { status: 'applied', result: finalResult, appliedAt: new Date().toISOString() });
-  return finalResult;
+  try {
+    const actionFactId = await recordActionFact(actionType, payload, result);
+    const finalResult = { ...result, actionFactId, idempotent: false };
+    await finishProposalExecution(executionKey, {
+      status: 'applied',
+      result: finalResult,
+      appliedAt: new Date().toISOString(),
+    });
+    return finalResult;
+  } catch (error) {
+    await finishProposalExecution(executionKey, {
+      status: 'failed',
+      error: error?.message || 'Proposal execution failed.',
+      failedAt: new Date().toISOString(),
+    }).catch(() => {});
+    throw error;
+  }
 }
 
 export async function undoAction(actionFactId) {
