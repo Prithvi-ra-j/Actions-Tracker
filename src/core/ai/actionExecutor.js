@@ -21,6 +21,7 @@ import { addLog, deleteLog } from '../../database/logsRepository.js';
 import { getSetting } from '../../database/settingsRepository.js';
 import { getActionRiskClass } from './actionPolicy.js';
 import { linkEvidenceToGoal, linkActionToGoal } from '../goals/goalProgressEngine.js';
+import { createGoalPlan } from '../goals/goalPlanEngine.js';
 import { validateSystemProposal } from '../onboarding/systemProposal.js';
 
 function requireId(payload, actionType) {
@@ -486,7 +487,21 @@ export async function executeAction(proposal) {
         }
         throw new Error(`Plan failed and completed steps were rolled back: ${error.message}`);
       }
-      result = { ...result, id: `plan_${Date.now()}`, childActionFactIds, childResults };
+      let goalPlan = null;
+      if (payload.goalId) {
+        goalPlan = await createGoalPlan(payload.goalId, {
+          steps: payload.steps.map((step, index) => ({
+            index,
+            actionType: step.actionType,
+            actionId: childResults[index]?.id || null,
+            confidence: childResults[index] ? 1 : 0,
+            payload: step.payload,
+          })),
+          rationale: payload.rationale || 'Approved Jarvis plan.',
+          createdBy: 'jarvis_approved_plan',
+        });
+      }
+      result = { ...result, id: `plan_${Date.now()}`, childActionFactIds, childResults, goalPlan };
       break;
     }
 
