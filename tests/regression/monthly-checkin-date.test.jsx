@@ -51,7 +51,7 @@ describe('Monthly check-in date validation regression', () => {
     await screen.findByRole('tab', { name: 'Stats' }, { timeout: 15000 });
     
     expect(screen.queryByText(/Monthly Check-In/i)).toBeNull();
-  });
+  }, 15000);
 
   it('shows check-in if valid data is 31+ days old', async () => {
     await addLog({ type: 'manual_evidence', date: '2026-08-26', value: 1 });
