@@ -3,11 +3,13 @@ import { verifyLLMConnection } from '../../core/ai/llmClient.js';
 import {
   DEFAULT_JARVIS_BASE_URL,
   DEFAULT_JARVIS_MODEL,
+  DEFAULT_JARVIS_GATEWAY_URL,
   saveJarvisConfig,
 } from '../../core/ai/jarvisConfig.js';
 
 export default function JarvisApiSetup({ onConfigured }) {
   const [apiKey, setApiKey] = useState('');
+  const [gatewayUrl, setGatewayUrl] = useState(DEFAULT_JARVIS_GATEWAY_URL);
   const [baseUrl, setBaseUrl] = useState(DEFAULT_JARVIS_BASE_URL);
   const [model, setModel] = useState(DEFAULT_JARVIS_MODEL);
   const [showKey, setShowKey] = useState(false);
@@ -22,13 +24,30 @@ export default function JarvisApiSetup({ onConfigured }) {
   }, []);
 
   const handleTestConnection = async () => {
-    if (!apiKey.trim()) {
-      setError('Enter your API key first.');
-      setStatus('error');
+    setStatus('testing');
+    setError('');
+    setLatencyMs(null);
+
+    if (gatewayUrl.trim()) {
+      try {
+        await saveJarvisConfig({
+          gatewayUrl: gatewayUrl.trim(),
+          baseUrl: baseUrl.trim(),
+          model: model.trim(),
+        });
+        setStatus('success');
+      } catch (err) {
+        setStatus('error');
+        setError(err?.message || 'Could not save server gateway configuration.');
+      }
       return;
     }
 
-    setStatus('testing');
+    if (!apiKey.trim()) {
+      setError('Enter your API key or configure a server gateway.');
+      setStatus('error');
+      return;
+    }
     setError('');
     setLatencyMs(null);
 
@@ -125,7 +144,7 @@ export default function JarvisApiSetup({ onConfigured }) {
         }}
       >
         <p style={{ margin: 0, fontSize: '15px', lineHeight: 1.6, color: 'var(--mu)' }}>
-          Add your AI provider key first. Jarvis will test the connection before anything is saved, then take you through the onboarding interview.
+          Use the server gateway in production, or enter a provider key for local development. Jarvis verifies the connection before onboarding.
         </p>
 
         <div style={{ marginTop: '26px' }}>
@@ -138,7 +157,7 @@ export default function JarvisApiSetup({ onConfigured }) {
               fontWeight: 600,
             }}
           >
-            API key
+            API key (local development)
           </label>
 
           <div
@@ -200,7 +219,22 @@ export default function JarvisApiSetup({ onConfigured }) {
 
         <div style={{ marginTop: '14px', display: 'grid', gap: '12px' }}>
           <label style={{ display: 'grid', gap: '8px' }}>
-            <span style={{ fontSize: '12px', color: 'var(--mu)', fontWeight: 600 }}>Provider endpoint</span>
+            <span style={{ fontSize: '12px', color: 'var(--mu)', fontWeight: 600 }}>Server gateway (production)</span>
+            <input
+              aria-label="Jarvis server gateway URL"
+              value={gatewayUrl}
+              onChange={e => setGatewayUrl(e.target.value)}
+              placeholder="/api/jarvis"
+              style={{
+                width: '100%', boxSizing: 'border-box', minHeight: '46px', border: 0, outline: 0,
+                borderRadius: '12px', padding: '0 12px', background: 'var(--s1)', color: 'var(--tx)',
+                boxShadow: 'inset 0 0 0 1px var(--hairline)', font: 'inherit', fontSize: '13px',
+              }}
+            />
+          </label>
+
+          <label style={{ display: 'grid', gap: '8px' }}>
+            <span style={{ fontSize: '12px', color: 'var(--mu)', fontWeight: 600 }}>Provider endpoint (local)</span>
             <input
               aria-label="Jarvis provider endpoint"
               value={baseUrl}
@@ -319,7 +353,7 @@ export default function JarvisApiSetup({ onConfigured }) {
             lineHeight: 1.45,
           }}
         >
-          Your key is stored through the app's secure-storage layer.
+          Production gateway mode keeps provider credentials server-side. Local key mode stores the key through secure storage.
         </p>
       </div>
     </main>
