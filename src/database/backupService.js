@@ -1,3 +1,4 @@
+import { localDateStr } from '../helpers/dateHelpers.js';
 import { Filesystem, Directory, Encoding } from '@capacitor/filesystem';
 import { dbGetAll, exportDatabase, importDatabase } from './db.js';
 import { getSetting, setSetting } from './settingsRepository.js';
@@ -62,7 +63,7 @@ async function writeLatestBackup(backupData) {
  */
 export async function runAutoBackup({ force = false } = {}) {
   try {
-    const todayStr = new Date().toISOString().split('T')[0];
+    const todayStr = localDateStr();
     const lastBackupDate = await getSetting('lastAutoBackupDate');
     const backupData = await exportDatabase();
 
