@@ -9,6 +9,8 @@
 import { getSyncState, markSyncStarted, markSyncSuccess, markSyncError } from '../../database/syncStateRepository.js';
 import { addFact } from '../../database/factsRepository.js';
 import { deriveConnectorLifecycle } from './connectorLifecycle.js';
+import { withRetry } from '../recovery/retryPolicy.js';
+import { createCorrelationId } from '../observability/structuredError.js';
 
 const registry = new Map();
 
@@ -91,7 +93,16 @@ export async function runAllSyncs() {
       summary.connectorsRun++;
 
       // Run the sync
-      const result = await connector.sync({}, state);
+      const correlationId = createCorrelationId(`sync_${id}`);
+      const result = await withRetry(
+        () => connector.sync({}, state),
+        {
+          maxAttempts: 3,
+          onRetry: async (decision, error) => {
+            console.warn(`[syncManager] Retrying ${id} (${correlationId}) after transient failure:`, error.message);
+          },
+        }
+      );
 
       // Ingest the facts
       let ingestedCount = 0;
