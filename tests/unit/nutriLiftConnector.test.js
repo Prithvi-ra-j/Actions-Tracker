@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-const records = vi.hoisted(() => ({ current: [] }));
+const records = vi.hoisted(() => ({ current: [], currentFacts: [] }));
 
 vi.mock('../../src/integrations/supabase/supabaseClient.js', () => ({ isSupabaseConfigured: true }));
 vi.mock('../../src/integrations/supabase/supabaseAuth.js', () => ({
@@ -16,9 +16,11 @@ vi.mock('../../src/database/supabaseSyncRepository.js', () => ({
   })),
 }));
 vi.mock('../../src/database/factsRepository.js', () => ({
-  getFact: vi.fn(async id => records.currentFacts?.find(f => f.id === id) || null),
   getAllFacts: vi.fn(async () => records.currentFacts || []),
-  addFact: vi.fn(),
+}));
+vi.mock('../../src/database/nutriLiftProjectionRepository.js', () => ({
+  upsertNutriLiftProjection: vi.fn(async () => undefined),
+  markNutriLiftProjectionRetracted: vi.fn(async () => undefined),
 }));
 
 import { factId, NutriLiftConnector } from '../../src/core/sync/connectors/NutriLiftConnector.js';
@@ -73,7 +75,7 @@ describe('NutriLiftConnector', () => {
     expect(result.facts[0].objectId).toBe(factId(base));
   });
 
-  it('advances the cursor to the newest source version in the fetched batch', async () => {
+  it('uses a deterministic composite cursor for the final record in a page', async () => {
     records.current = [
       base,
       { ...base, external_id: 'nutrilift:workout_session:124', source_updated_at: '2026-09-28T09:00:00.000Z' },
