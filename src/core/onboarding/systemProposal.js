@@ -49,18 +49,16 @@ export function validateSystemProposal(proposal) {
 
 export function decideSystemProposal(proposal, decisions = {}) {
   const current = validateSystemProposal(proposal);
-  const items = current.items
-    .map(item => {
-      const decision = decisions[item.id];
-      if (!decision) return item;
-      if (decision === 'approve') return { ...item, status: 'approved' };
-      if (decision === 'reject') return { ...item, status: 'rejected' };
-      if (decision === 'edit' && decisions[`${item.id}:payload`]) {
-        return { ...item, status: 'edited', payload: decisions[`${item.id}:payload`] };
-      }
-      return item;
-    })
-    .filter(item => item.status !== 'rejected');
+  const items = current.items.map(item => {
+    const decision = decisions[item.id];
+    if (!decision) return item;
+    if (decision === 'approve') return { ...item, status: 'approved' };
+    if (decision === 'reject') return { ...item, status: 'rejected' };
+    if (decision === 'edit' && decisions[`${item.id}:payload`]) {
+      return { ...item, status: 'edited', payload: decisions[`${item.id}:payload`] };
+    }
+    return item;
+  });
   return {
     ...current,
     status: items.some(item => item.status === 'proposed') ? 'ready' : 'approved',
