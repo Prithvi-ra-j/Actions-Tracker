@@ -523,7 +523,7 @@ export default function JarvisTab({ t, isActive = true, onQuestsChanged, onboard
         </b>
 
         {!activeOnboardingMode && (
-          <div style={{ display: 'flex', gap: '6px', marginLeft: 'auto' }}>
+          <div className="jarvis-screen__header-actions" style={{ display: 'flex', gap: '6px', marginLeft: 'auto', minWidth: 0 }}>
             <button type="button" aria-label="Conversation history" title="Conversation history" onClick={openConversationHistory} style={{ minHeight: '36px', padding: '0 10px', border: '1px solid var(--hairline)', borderRadius: 'var(--r-control)', background: 'var(--s1)', color: 'var(--tx)', cursor: 'pointer' }}>History</button>
             <button type="button" aria-label="New chat" title="New chat" onClick={startNewConversation} style={{ minHeight: '36px', padding: '0 10px', border: '1px solid var(--hairline)', borderRadius: 'var(--r-control)', background: 'var(--s1)', color: 'var(--tx)', cursor: 'pointer' }}>New chat</button>
           </div>
@@ -532,6 +532,7 @@ export default function JarvisTab({ t, isActive = true, onQuestsChanged, onboard
         {/* Mode pill */}
         {!activeOnboardingMode && (
           <button
+            className="jarvis-screen__mode"
             onClick={() => setModeMenuOpen(true)}
             style={{
               display: 'inline-flex',
