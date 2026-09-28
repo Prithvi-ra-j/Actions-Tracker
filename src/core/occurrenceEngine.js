@@ -35,7 +35,7 @@ async function evaluatePastOccurrences(currentDateStr) {
     // Let's just look at the last 7 days for efficiency
     const d = new Date(currentDateStr);
     d.setDate(d.getDate() - 7);
-    const startStr = d.toISOString().split('T')[0];
+    const startStr = localDateStr(d);
 
     const pastOccurrences = await getOccurrencesByDateRange(startStr, currentDateStr);
     let unknownCount = 0;
