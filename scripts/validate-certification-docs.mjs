@@ -14,10 +14,14 @@ const errors = [];
 if (!versionMatch) errors.push('src/version.js does not expose APP_VERSION');
 if (versionMatch && versionMatch[1] !== packageJson.version) errors.push(`version mismatch: package.json=${packageJson.version}, src/version.js=${versionMatch[1]}`);
 
-const master = docs.progress.match(/## Master workstream status([\s\\S]*?)## Dependency order/);
+const masterStart = docs.progress.indexOf('## Master workstream status');
+const masterEnd = docs.progress.indexOf('## Dependency order', masterStart);
+const master = masterStart >= 0 && masterEnd > masterStart
+  ? [docs.progress.slice(masterStart, masterEnd), docs.progress.slice(masterStart, masterEnd)]
+  : null;
 if (!master) errors.push('progress-tracker master workstream table is missing');
 else {
-  for (const row of master[1].split('\n').filter(line => /^\\| \\d+ \\|/.test(line))) {
+  for (const row of master[1].split('\n').filter(line => line.trim().startsWith('| ') && /^\|\s*\d+\s*\|/.test(line))) {
     const cells = row.split('|').map(cell => cell.trim());
     if (cells.length < 6) continue;
     const status = cells[4];
@@ -30,7 +34,7 @@ if (!docs.release.includes('This checklist separates automated evidence from rea
 if (!docs.definition.includes('Architecture freeze rule')) errors.push('10/10 definition must retain architecture freeze rule');
 
 // The detailed blueprint sections are historical implementation plans. The master table is authoritative.
-const staleRemaining = [...docs.progress.matchAll(/### Remaining\n([\s\\S]*?)(?=\n---|\n# Workstream|$)/g)];
+const staleRemaining = [...docs.progress.matchAll(/### Remaining\n([\s\S]*?)(?=\n---|\n# Workstream|$)/g)];
 if (staleRemaining.some(match => !match[1].includes('Master workstream status'))) {
   errors.push('progress-tracker contains an unqualified Remaining block; implementation status must be read from the master table');
 }
