@@ -4,7 +4,7 @@ import { CERTIFICATION_MANIFEST } from '../src/core/certification/certificationM
 
 const pkg = JSON.parse(fs.readFileSync('package.json', 'utf8'));
 const versionSource = fs.readFileSync('src/version.js', 'utf8');
-const match = versionSource.match(/export const APP_VERSION\\s*=\\s*'([^']+)'/);
+const match = versionSource.match(/export const APP_VERSION\s*=\s*'([^']+)'/);
 if (!match || match[1] !== pkg.version) throw new Error('Release evidence refused: version contract mismatch');
 
 const output = process.argv[2] || 'artifacts/certification/release-evidence.json';
