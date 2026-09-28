@@ -22,7 +22,7 @@ export async function recordCalibrationObservation(metric, {
 
   const facts = await getAllFacts();
   const observations = facts
-    .filter(f => f.type === 'calibration.observation' && f.objectId === metric)
+    .filter(f => f.type === 'calibration.observation' && f.objectId === normalizedMetric)
     .map(f => ({
       value: Number(f.value),
       occurredAt: f.occurredAt || f.createdAt,
