@@ -7,7 +7,7 @@ import { EmptyState } from './ui/States.jsx';
 import { SegmentedBar } from './ui/Indicators.jsx';
 import { Sparkle, Warning, PencilSimple } from '@phosphor-icons/react';
 import { buildTodayRecommendations } from '../core/today/todayRecommendationEngine.js';
-import { recordTodayRecommendationFeedback } from '../core/today/recommendationFeedback.js';
+import { executeTodayRecommendation } from '../core/today/recommendationExecutor.js';
 
 // Axis color map — only used as small dots per design rules
 const AXIS_COLORS = {
@@ -268,10 +268,10 @@ export default function TodayTab({
                       type="button"
                       onClick={async () => {
                         try {
-                          await recordTodayRecommendationFeedback({
-                            recommendationId: item.id,
+                          await executeTodayRecommendation({
+                            recommendation: item,
                             action,
-                            metadata: { domain: item.domain, type: item.type, title: item.title, hypothesis: item.reason },
+                            feedbackMetadata: { page: 'today' },
                           });
                         } finally {
                           if (action !== 'done') {
