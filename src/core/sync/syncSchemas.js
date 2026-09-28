@@ -20,6 +20,7 @@ export const NutriLiftRecordSchema = z.object({
   ]),
   occurred_at: isoTimestamp,
   source_updated_at: isoTimestamp.nullable().optional(),
+  user_id: z.string().uuid().nullable().optional(),
   updated_at: isoTimestamp.optional(),
   payload: z.record(z.unknown()),
   schema_version: z.number().int().positive(),
