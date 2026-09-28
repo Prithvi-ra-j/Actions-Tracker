@@ -85,13 +85,18 @@ export default function GuidedOnboardingFallback({ onComplete }) {
           completedAt: new Date().toISOString(),
         });
         const focusAxes = inferFocusAxes(state.answers);
-        const approvedProposal = decideSystemProposal(
+        const decidedProposal = decideSystemProposal(
           proposal,
           Object.fromEntries(proposal.items.map(item => [
             item.id,
             item.status === 'rejected' ? 'reject' : 'approve',
           ])),
         );
+        const approvedProposal = {
+          ...decidedProposal,
+          status: 'approved',
+          items: decidedProposal.items.filter(item => ['approved', 'edited'].includes(item.status)),
+        };
         await executeAction({
           actionType: 'complete_onboarding',
           payload: {
