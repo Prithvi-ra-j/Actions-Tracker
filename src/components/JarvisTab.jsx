@@ -1,6 +1,9 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { ACCENT } from '../constants.js';
 import { chatWithJarvis, generateInsight } from '../core/ai/jarvisEngine.js';
+import { planJarvisInput, executeJarvisPlan, summarizeExecution } from '../core/ai/jarvisOrchestrator.js';
+import { createJarvisInput } from '../core/ai/jarvisContracts.js';
+import { createLocalTranscriber, VOICE_STATES, supportsVoiceInput } from '../core/ai/voiceTranscriber.js';
 import { executeAction, undoAction } from '../core/ai/actionExecutor.js';
 import { computeImpact } from '../core/ai/impactEngine.js';
 import { conversationManager } from '../core/ai/conversationManager.js';
@@ -70,6 +73,9 @@ export default function JarvisTab({ t, isActive = true, onQuestsChanged, onboard
   const [selectedPlanSteps, setSelectedPlanSteps] = useState([]);
   const [loading, setLoading] = useState(false);
   const [loadingPhase, setLoadingPhase] = useState('');
+  const [voiceState, setVoiceState] = useState('IDLE');
+  const [voiceSupported, setVoiceSupported] = useState(false);
+  const [executionPlan, setExecutionPlan] = useState(null);
   const [error, setError] = useState(null);
   const [executing, setExecuting] = useState(false);
   const [modificationContext, setModificationContext] = useState(null);
@@ -96,6 +102,10 @@ export default function JarvisTab({ t, isActive = true, onQuestsChanged, onboard
     setCommandMenuOpen(false);
     setCommandQuery('');
   }, [isActive]);
+
+  useEffect(() => {
+    setVoiceSupported(supportsVoiceInput());
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
@@ -277,36 +287,61 @@ export default function JarvisTab({ t, isActive = true, onQuestsChanged, onboard
     const newMessages = [...messages, { role: 'user', content: msg }];
     setMessages(newMessages);
     setLoading(true);
-    setLoadingPhase('Thinking...');
+    setLoadingPhase('Understanding…');
     setError(null);
+    setVoiceState('IDLE');
     try {
-      const response = await chatWithJarvis(
-        msg,
-        messages,
-        modificationContext,
-        { onboarding: activeOnboardingMode, entryContext: attachPageContext ? jarvisContext : null }
-      );
-      const finalMessages = [
-        ...newMessages,
-        {
-          role: 'assistant',
-          content: response.message || '',
-          proposal: response.proposal,
-          claims: response.claims,
-          contextUsed: response.contextUsed,
-          proposalStatus: response.proposal ? 'awaiting_approval' : undefined,
-        },
-      ];
-      setMessages(finalMessages);
-      await saveConversation({
-        id: conversationId,
-        type: 'Jarvis',
-        messages: finalMessages,
-        createdAt: createdAtRef.current
+      const orchestration = await planJarvisInput(msg, {
+        source: 'text',
+        conversationId,
+        conversation: messages,
+        surface: activeOnboardingMode ? 'onboarding' : (jarvisContext?.page || 'jarvis'),
       });
+      if (orchestration.turn?.clarification) {
+        const finalMessages = [...newMessages, {
+          role: 'assistant',
+          content: orchestration.turn.clarification,
+          orchestration: { inputId: orchestration.input.id, status: 'awaiting_clarification' },
+        }];
+        setMessages(finalMessages);
+        await saveConversation({ id: conversationId, type: 'Jarvis', messages: finalMessages, createdAt: createdAtRef.current });
+        return;
+      }
+      if (orchestration.plan) {
+        setExecutionPlan(orchestration.plan);
+        setLoadingPhase(orchestration.plan.requiresConfirmation ? 'Waiting for confirmation…' : 'Executing…');
+        if (!orchestration.plan.requiresConfirmation) {
+          const result = await executeJarvisPlan(orchestration.plan, {
+            onUpdate: plan => setExecutionPlan({ ...plan }),
+          });
+          setExecutionPlan(result.plan);
+          const finalMessages = [...newMessages, {
+            role: 'assistant',
+            content: `${orchestration.turn.message || 'Done.'} ${summarizeExecution(result)}`.trim(),
+            executionPlan: result.plan,
+          }];
+          setMessages(finalMessages);
+          await saveConversation({ id: conversationId, type: 'Jarvis', messages: finalMessages, createdAt: createdAtRef.current });
+          return;
+        }
+      }
+      const response = await chatWithJarvis(msg, messages, modificationContext, {
+        onboarding: activeOnboardingMode,
+        entryContext: attachPageContext ? jarvisContext : null,
+      });
+      const finalMessages = [...newMessages, {
+        role: 'assistant',
+        content: response.message || orchestration.turn?.message || '',
+        proposal: response.proposal,
+        claims: response.claims,
+        contextUsed: response.contextUsed,
+        proposalStatus: response.proposal ? 'awaiting_approval' : undefined,
+        executionPlan: orchestration.plan || null,
+      }];
+      setMessages(finalMessages);
+      await saveConversation({ id: conversationId, type: 'Jarvis', messages: finalMessages, createdAt: createdAtRef.current });
     } catch (err) {
       recordAppError(err, { source: 'jarvis_ui', operation: 'send_message' });
-      // Preserve the exact prompt so retry cannot silently erase user intent.
       setInput(msg);
       const detail = err?.message ? String(err.message).slice(0, 320) : 'Unknown AI connection error.';
       setError(activeOnboardingMode
@@ -317,6 +352,36 @@ export default function JarvisTab({ t, isActive = true, onQuestsChanged, onboard
       setLoadingPhase('');
     }
   };
+
+  const handleVoiceInput = async () => {
+    if (loading || !conversationReady || !voiceSupported) return;
+    const transcriber = createLocalTranscriber();
+    setVoiceState('LISTENING');
+    setLoading(true);
+    setLoadingPhase('Listening…');
+    setError(null);
+    try {
+      setVoiceState('TRANSCRIBING');
+      setLoadingPhase('Transcribing…');
+      const transcript = await transcriber.transcribe();
+      const text = String(transcript?.text || '').trim();
+      if (!text) throw new Error('No speech was detected.');
+      setInput(text);
+      setVoiceState('UNDERSTANDING');
+      setLoadingPhase('Understanding…');
+      setLoading(false);
+      await handleSend();
+    } catch (err) {
+      recordAppError(err, { source: 'jarvis_voice', operation: 'transcribe' });
+      setVoiceState('FAILED');
+      setError(err?.message || 'Voice input failed.');
+      setLoading(false);
+      setLoadingPhase('');
+    } finally {
+      if (voiceState !== 'FAILED') setVoiceState('IDLE');
+    }
+  };
+
 
   const openConversationHistory = async () => {
     try {
@@ -556,7 +621,7 @@ export default function JarvisTab({ t, isActive = true, onQuestsChanged, onboard
         {/* Status pill right */}
         <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: '6px', height: '32px', padding: '0 12px', borderRadius: 'var(--r-control)', background: 'var(--s2)', color: 'var(--tx)', fontFamily: "'Geist Mono', monospace", fontSize: '11.5px' }}>
           <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: 'var(--ac)', display: 'inline-block' }} />
-          {loading ? loadingPhase || 'Working...' : 'Ready'}
+          {voiceState !== 'IDLE' ? voiceState.replaceAll('_', ' ') : (loading ? loadingPhase || 'Working...' : 'Ready')}
         </div>
       </div>
 
@@ -1130,6 +1195,24 @@ export default function JarvisTab({ t, isActive = true, onQuestsChanged, onboard
         >
           /
         </button>
+        {voiceSupported && (
+          <button
+            aria-label={voiceState === 'LISTENING' ? 'Stop listening' : 'Voice input'}
+            title={voiceState === 'LISTENING' ? 'Listening' : 'Voice input'}
+            onClick={handleVoiceInput}
+            disabled={loading && voiceState !== 'LISTENING'}
+            style={{
+              width: '46px', height: '46px', borderRadius: '50%', border: 'none',
+              background: voiceState === 'LISTENING' ? 'var(--ac)' : 'var(--s1)',
+              color: voiceState === 'LISTENING' ? 'var(--on-ac)' : 'var(--tx)',
+              cursor: loading && voiceState !== 'LISTENING' ? 'default' : 'pointer',
+              display: 'grid', placeItems: 'center', flexShrink: 0,
+              fontSize: '16px', fontWeight: 600,
+            }}
+          >
+            {voiceState === 'LISTENING' ? '■' : '◉'}
+          </button>
+        )}
         <button
           aria-label="Send"
           onClick={handleSend}
