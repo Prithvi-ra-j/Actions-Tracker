@@ -1097,3 +1097,5 @@ The GitHub-connected environment does not expose a local Node runtime for execut
 - Added Jarvis adversarial trust-boundary tests for destructive-action targeting, malformed onboarding proposals, secret/contact redaction and evidence-grounded claims.
 - Centralized remaining production user-facing local calendar-date derivations found in the audit.
 - Added docs/release-certificate-v1.md for release evidence collection.
+
+- Added deterministic proactive detectors for goal stagnation, repeated explicit habit misses, and evidence gaps; daily proactive analysis now evaluates these before the LLM summary and subjects them to the same confidence/dedupe/budget/quiet-hour policy.
