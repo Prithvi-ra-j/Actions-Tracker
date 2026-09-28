@@ -2,27 +2,41 @@ import { BaseConnector } from '../BaseConnector.js';
 import { isSupabaseConfigured } from '../../../integrations/supabase/supabaseClient.js';
 import { getCurrentSupabaseUser } from '../../../integrations/supabase/supabaseAuth.js';
 import { fetchNutriLiftRecords } from '../../../database/supabaseSyncRepository.js';
-import { addFact, getFact } from '../../../database/factsRepository.js';
+import { addFact, getFact, getAllFacts } from '../../../database/factsRepository.js';
 
 function factId(record) {
   return `fact:nutrilift:${record.record_type}:${record.external_id}`;
 }
 
+function sourceVersion(record) {
+  return record.source_updated_at || record.updated_at || record.occurred_at;
+}
+
 function toFact(record, importedAt) {
   const id = factId(record);
+  const version = sourceVersion(record);
+  const provenance = {
+    externalId: record.external_id,
+    recordType: record.record_type,
+    sourceUpdatedAt: version,
+    schemaVersion: record.schema_version,
+    importedAt,
+  };
+
   if (record.deleted_at) {
     return {
-      id,
-      type: 'correction',
-      objectId: record.external_id,
-      value: null,
+      id: `${id}:retraction:${version}`,
+      type: 'retraction',
+      objectId: id,
+      value: 1,
       occurredAt: record.deleted_at,
       source: { type: 'integration', integrationId: 'nutrilift' },
       meta: {
-        correctionType: 'retraction',
+        retractedFactId: id,
         externalId: record.external_id,
         recordType: record.record_type,
-        sourceUpdatedAt: record.source_updated_at || importedAt,
+        sourceUpdatedAt: version,
+        correctionType: 'retraction',
       },
     };
   }
@@ -34,18 +48,20 @@ function toFact(record, importedAt) {
     value: record.payload,
     occurredAt: record.occurred_at,
     source: { type: 'integration', integrationId: 'nutrilift' },
-    meta: {
-      externalId: record.external_id,
-      sourceUpdatedAt: record.source_updated_at || null,
-      schemaVersion: record.schema_version,
-      importedAt,
-    },
+    meta: provenance,
   };
+}
+
+function getLatestNutriLiftFact(facts, baseId) {
+  return facts
+    .filter(f => f.id === baseId || f.meta?.sourceFactId === baseId)
+    .sort((a, b) => String(a.meta?.sourceUpdatedAt || a.recordedAt || '').localeCompare(String(b.meta?.sourceUpdatedAt || b.recordedAt || '')))
+    .at(-1) || null;
 }
 
 export class NutriLiftConnector extends BaseConnector {
   constructor() {
-    super('nutrilift', 'fitness', '1.0');
+    super('nutrilift', 'fitness', '1.1');
   }
 
   async getStatus() {
@@ -73,27 +89,57 @@ export class NutriLiftConnector extends BaseConnector {
       );
     }
 
-    const records = await fetchNutriLiftRecords(options.full ? null : syncState.cursor);
+    const records = await fetchNutriLiftRecords({
+      cursor: options.full ? null : syncState.cursor,
+      limit: options.batchSize || 100,
+    });
+    const existingFacts = await getAllFacts();
     const facts = [];
     let ignored = 0;
+    let updated = 0;
     const importedAt = new Date().toISOString();
 
     for (const record of records) {
-      const id = factId(record);
-      if (await getFact(id)) {
+      const baseId = factId(record);
+      const existing = getLatestNutriLiftFact(existingFacts, baseId);
+      const incomingVersion = sourceVersion(record);
+      const existingVersion = existing?.meta?.sourceUpdatedAt || null;
+
+      if (existing && existingVersion && incomingVersion <= existingVersion && !record.deleted_at) {
         ignored += 1;
         continue;
       }
-      facts.push(toFact(record, importedAt));
+
+      if (existing && record.deleted_at && existing?.type === 'retraction') {
+        ignored += 1;
+        continue;
+      }
+
+      const fact = toFact(record, importedAt);
+      if (existing && !record.deleted_at) updated += 1;
+      facts.push(fact);
+    }
+
+    if (records.length === 0) {
+      return this.createSyncResult('success', 0, 0, ignored, syncState.cursor || null, [], startedAt, []);
     }
 
     const cursor = records.reduce((latest, record) => {
-      const candidate = record.source_updated_at || latest;
+      const candidate = sourceVersion(record);
       return candidate > latest ? candidate : latest;
     }, syncState.cursor || '');
 
-    return this.createSyncResult('success', facts.length, 0, ignored, cursor || syncState.cursor || null, [], startedAt, facts);
+    return this.createSyncResult(
+      'success',
+      facts.length,
+      updated,
+      ignored,
+      cursor || syncState.cursor || null,
+      [],
+      startedAt,
+      facts,
+    );
   }
 }
 
-export { factId, toFact };
+export { factId, toFact, sourceVersion };
