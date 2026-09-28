@@ -27,7 +27,7 @@ vi.mock('../../src/database/factsRepository.js', () => ({
       occurredAt: '2026-09-15T08:00:00Z',
       meta: { evidenceId: 'e3' },
     },
-  ],
+  ]),
 }));
 
 vi.mock('../../src/core/calibration/baselineRepository.js', () => ({
@@ -39,7 +39,7 @@ vi.mock('../../src/core/calibration/baselineRepository.js', () => ({
       confidence: 0.9,
       lastObservedAt: '2026-09-08T08:00:00Z',
     },
-  })),
+  }));
 }));
 
 describe('baseline signals', () => {
