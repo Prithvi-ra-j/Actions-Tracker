@@ -106,6 +106,9 @@ describe('Actions-Tracker 2.0 foundation contracts', () => {
     expect(registry.domains).toEqual([...CANONICAL_DOMAINS]);
     expect(registry.entities.goal.owner).toBe('user');
     expect(registry.entities.evidence.history).toBe('append_only');
+    expect(registry.entities.evidence.store).toBe('evidence');
+    expect(registry.entities.intervention.constructor).toBe('createIntervention');
+    expect(registry.entities.claim.relations).toContain('recommendation.id');
     expect(registry.legacyDomains.strength).toBe('body');
   });
 });
