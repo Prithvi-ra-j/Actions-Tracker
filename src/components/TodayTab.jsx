@@ -260,7 +260,8 @@ export default function TodayTab({
                   {[
                     ['done', 'Done'],
                     ['defer', 'Defer'],
-                    ['dismiss', 'Dismiss'],
+                    ['snooze', 'Snooze'],
+                    ['not_relevant', 'Not relevant'],
                   ].map(([action, label]) => (
                     <button
                       key={action}
@@ -273,7 +274,7 @@ export default function TodayTab({
                             metadata: { domain: item.domain, type: item.type },
                           });
                         } finally {
-                          if (action === 'dismiss' || action === 'defer') {
+                          if (action !== 'done') {
                             setDismissedFocus(prev => new Set([...prev, item.id]));
                           }
                         }
@@ -292,6 +293,18 @@ export default function TodayTab({
                     </button>
                   ))}
                 </div>
+                <button
+                  type="button"
+                  onClick={() => onOpenJarvis?.({
+                    page: 'today',
+                    entityType: 'recommendation',
+                    entityId: item.id,
+                    payload: { title: item.title, reason: item.reason },
+                  })}
+                  style={{ marginTop: 8, border: 0, background: 'transparent', color: 'var(--mu)', padding: 0, fontSize: 11.5 }}
+                >
+                  Edit with Jarvis
+                </button>
               </div>
             ))}
           </div>
