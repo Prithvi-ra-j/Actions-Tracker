@@ -18,6 +18,7 @@ import { getOccurrencesByDateRange } from '../../database/habitOccurrenceReposit
 import { detectProactiveSignals } from './proactiveDetectors.js';
 import { runMonthlyAudit } from './auditEngine.js';
 import { createInsightFingerprint, shouldSurfaceInsight } from './proactivePolicy.js';
+import { runInterventionOutcomeScheduler } from '../interventions/interventionOutcomeScheduler.js';
 
 async function getEmissionPolicy(today) {
   const emittedDate = await getSetting('proactiveEmissionDate');
@@ -218,6 +219,18 @@ async function runScheduledAnalysis() {
   }
 
   const today = localDateStr();
+
+  // Outcome evaluation is an independent intelligence lifecycle. It must run
+  // even when proactive notifications/LLM analysis are disabled.
+  try {
+    await runInterventionOutcomeScheduler({ now: new Date() });
+  } catch (error) {
+    console.warn('[AnalysisScheduler] Intervention outcome evaluation failed:', error);
+    await saveTelemetryEvent('intervention_outcome_scheduler_failed', today, {
+      error: error?.message || 'unknown_error',
+    });
+  }
+
   const lastDailyDate = await getSetting('lastDailyAnalysisDate');
 
   if (lastDailyDate !== today) {
