@@ -17,6 +17,7 @@ const PlanStepSchema = z.object({
 });
 
 export const ActionProposalSchema = z.object({
+  id: z.string().min(1).optional(),
   actionType: z.enum(ACTION_TYPES),
   payload: z.record(z.any()),
   impact: z.object({
