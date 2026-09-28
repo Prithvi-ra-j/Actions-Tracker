@@ -2,7 +2,7 @@ export const CALIBRATION_VERSION = '1.1';
 
 export const CALIBRATION_STAGES = Object.freeze([
   { name: 'No data', stage: 0, minCoverage: 0, minConfidence: 0, minSampleSize: 0 },
-  { name: 'Initial estimate', stage: 1, minCoverage: 0, minConfidence: 0.2, minSampleSize: 0 },
+  { name: 'Initial estimate', stage: 1, minCoverage: 0.2, minConfidence: 0.2, minSampleSize: 0 },
   { name: 'Early signal', stage: 2, minCoverage: 0.35, minConfidence: 0.45, minSampleSize: 3 },
   { name: 'Developing pattern', stage: 3, minCoverage: 0.55, minConfidence: 0.6, minSampleSize: 7 },
   { name: 'Established', stage: 4, minCoverage: 0.75, minConfidence: 0.8, minSampleSize: 14 },
