@@ -54,11 +54,12 @@ describe('UI Journeys', () => {
     expect(screen.getByLabelText('Jarvis API key')).toBeTruthy();
   });
 
-  it('starts first-run onboarding at Jarvis API setup', async () => {
+  it('starts first-run onboarding with the guided no-AI flow when no key is configured', async () => {
     await clearSecureValue('aiApiKey');
     render(<App />);
-    expect(await screen.findByText(/Connect Jarvis/i)).toBeTruthy();
-    expect(screen.getByLabelText('Jarvis API key')).toBeTruthy();
+    expect(await screen.findByRole('heading', { name: /Let’s build this around your real life/i })).toBeTruthy();
+    expect(screen.getByPlaceholderText('Type naturally…')).toBeTruthy();
+    expect(screen.getByText(/You can continue without AI/i)).toBeTruthy();
   });
 
   it('uses the empty database as the first-run state', async () => {
