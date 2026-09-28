@@ -69,12 +69,18 @@ export async function queryLLM(messages, options = {}) {
   const headers = { 'Content-Type': 'application/json' };
   if (config.apiKey) headers.Authorization = `Bearer ${config.apiKey}`;
 
+  const requestHeaders = {
+    ...headers,
+    ...(config.provider === 'server-gateway'
+      ? { 'X-Request-Id': options.requestId || (globalThis.crypto?.randomUUID?.() || `gw_${Date.now()}`) }
+      : {}),
+  };
+
   const response = await fetch(config.endpoint, {
     method: 'POST',
-    headers,
+    headers: requestHeaders,
     body: JSON.stringify(payload),
     signal: options.signal,
-    headers: { ...headers, ...(config.provider === 'server-gateway' ? { 'X-Request-Id': options.requestId || (globalThis.crypto?.randomUUID?.() || `gw_${Date.now()}`) } : {}) },
   });
 
   if (!response.ok) {
