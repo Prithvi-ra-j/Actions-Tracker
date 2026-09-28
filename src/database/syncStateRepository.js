@@ -42,7 +42,6 @@ export async function getSyncState(connectorId) {
     lastAttemptedSync:  null,
     status:             'idle',
     lastError:          null,
-    lastSyncResult:     resultStatus,
     connectorVersion:   '1.0',
     lastSyncResult:     null,
   };
