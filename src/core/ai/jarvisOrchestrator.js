@@ -55,3 +55,18 @@ export function summarizeExecution(result) {
   if(failed || blocked) return `${completed} action(s) completed. ${failed} failed and ${blocked} blocked.`;
   return `${completed} action(s) completed.`;
 }
+
+
+export async function planJarvisInput(text, options = {}) {
+  const input = options.input || (await import('./jarvisContracts.js')).createJarvisInput({
+    source: options.source || 'text',
+    text,
+    conversationId: options.conversationId,
+    context: options.context,
+  });
+  return understandJarvisInput(input, options);
+}
+
+export async function executeJarvisPlan(plan, options = {}) {
+  return executeExecutionPlan(plan, options);
+}
