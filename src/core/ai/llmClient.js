@@ -28,7 +28,7 @@ function assertHeaderSafeApiKey(value) {
 }
 
 async function resolveEndpoint() {
-  const gateway = await getSetting('aiGatewayUrl');
+  const gateway = (await getSetting('aiGatewayUrl')) || import.meta.env.VITE_AI_GATEWAY_URL;
   if (gateway) {
     return { endpoint: gateway, provider: 'server-gateway', apiKey: null };
   }
@@ -74,6 +74,7 @@ export async function queryLLM(messages, options = {}) {
     headers,
     body: JSON.stringify(payload),
     signal: options.signal,
+    headers: { ...headers, ...(config.provider === 'server-gateway' ? { 'X-Request-Id': options.requestId || (globalThis.crypto?.randomUUID?.() || `gw_${Date.now()}`) } : {}) },
   });
 
   if (!response.ok) {
