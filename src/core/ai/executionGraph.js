@@ -102,7 +102,11 @@ export async function executeExecutionPlan(plan, { onUpdate, confirm=false } = {
       current={...current,actions:current.actions.map(a=>a.id===action.id?{...a,status:'running'}:a)};
       onUpdate?.(current);
       try {
-        if (action.condition && !evaluateCondition(action.condition, results)) throw new Error('Execution condition evaluated false.');
+        if (action.condition && !evaluateCondition(action.condition, results)) {
+          completed.add(action.id);
+          current={...current,actions:current.actions.map(a=>a.id===action.id?{...a,status:'cancelled'}:a)};
+          return;
+        }
         const proposal=compileProposal(action.tool, action.arguments);
         const result=await executeAction(proposal);
         results.set(action.id,result);
