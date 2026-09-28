@@ -1,5 +1,13 @@
 export const INTERVENTION_RESULTS = Object.freeze(['positive', 'neutral', 'negative', 'inconclusive']);
 
+const DAY_MS = 86400000;
+
+function deriveOutcomeDueAt(startedAt, outcomeWindowDays) {
+  const startMs = Date.parse(startedAt);
+  if (!Number.isFinite(startMs)) return null;
+  return new Date(startMs + Math.max(1, Math.floor(outcomeWindowDays)) * DAY_MS).toISOString();
+}
+
 export function createIntervention({
   id = `intervention_${Date.now()}`,
   recommendationId = null,
@@ -11,15 +19,18 @@ export function createIntervention({
   proposedAt = new Date().toISOString(),
 } = {}) {
   if (!hypothesis) throw new Error('Intervention hypothesis is required');
+  const normalizedWindowDays = Math.max(1, Math.floor(outcomeWindowDays));
   return {
     id,
-    schemaVersion: 1,
+    schemaVersion: 2,
     recommendationId,
     hypothesis,
     context,
     expectedOutcome,
     measurement,
-    outcomeWindowDays: Math.max(1, Math.floor(outcomeWindowDays)),
+    outcomeWindowDays: normalizedWindowDays,
+    outcomeWindowStartedAt: proposedAt,
+    outcomeDueAt: deriveOutcomeDueAt(proposedAt, normalizedWindowDays),
     status: 'active',
     proposedAt,
     completedAt: null,
@@ -64,7 +75,6 @@ export function closeIntervention(intervention, evaluation, completedAt = new Da
     },
   };
 }
-
 
 export function summarizeInterventionLearning(interventions = []) {
   const completed = interventions.filter(item => item?.status === 'completed' && item?.evaluation);
