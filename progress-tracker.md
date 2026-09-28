@@ -1038,3 +1038,34 @@ The GitHub-connected environment does not expose a local Node runtime for execut
 - Updated the onboarding journey test to match the guided no-AI first-run flow.
 - Updated persistence upgrade/recovery fixtures to run under jsdom, providing the required browser localStorage environment.
 - Latest GitHub Actions validation: **success** for the Unit + Property + Scenario Tests job. Deployment/device validation remains separate.
+
+## 2026-09-28 — 9/10 transformation implementation slice
+
+### Implemented
+- Intelligent onboarding core: structured SystemProposal contract, explicit proposal decisions, deterministic no-AI proposal generation, approved system creation through ActionExecutor, and undo-safe created goal/habit/routine handling.
+- Calibration 2.0 primitives: progressive calibration profile with sample size, confidence, coverage, freshness, contradiction handling and user-facing warnings.
+- Adaptive Today: deterministic scoring/capacity/diversification policy, explainable focus cards, Done/Defer/Snooze/Not relevant feedback, and Jarvis edit entry point.
+- Goal loop: evidence-backed health classification plus auditable goal plan, assessment and learning records.
+- Jarvis trust/action boundary: prompt-injection boundary, explicit authorization boundary, derived risk/lifecycle metadata, functional proposal editing, and browser secret-storage policy.
+- Intervention learning: durable intervention store, repository, creation from recommendation feedback, and deterministic outcome evaluation primitives.
+- Proactive intelligence: confidence threshold, deterministic fingerprinting, quiet hours and daily notification budget.
+- Integrations: permission-required lifecycle, transient sync retry, lifecycle/settings controls.
+- Data fortress: DB v12 intervention store, backup SHA-256 integrity metadata, restore integrity verification, unknown-store preview metadata, and explicit local-data reset control.
+- Observability: structured error categories, correlation IDs, redaction and retry classification.
+- Release engineering: Node 22 CI, package/app version consistency gate, and release certification checklist.
+- Fixed the proposal editor placeholder so edits are persisted back into the pending proposal before approval.
+
+### Validation
+- GitHub Actions run 582: success.
+- Unit/property/scenario suite: success.
+- Persistence round-trip regression: success.
+- Production build smoke test: success.
+- v11 -> v12 intervention-store upgrade regression: success.
+- Real Android/device/provider/accessibility certification remains a separate release gate and has not been claimed here.
+
+### Remaining acceptance gates
+- Real Android install-over-existing-data upgrade.
+- Health Connect/NutriLift live permission/sync/retraction validation.
+- TalkBack/text-scale/back-button/background/kill/reopen validation.
+- Browser production secret strategy: current browser mode is session-memory; long-lived production browser secrets should use a server-side proxy.
+- Longitudinal validation of calibration/intervention learning against real user data.
