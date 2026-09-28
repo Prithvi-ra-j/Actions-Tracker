@@ -1,3 +1,4 @@
+import { localDateStr } from '../../helpers/dateHelpers.js';
 /**
  * Scheduled Analysis Pipeline (§33).
  *
@@ -41,7 +42,7 @@ async function runScheduledAnalysis() {
     return;
   }
 
-  const today = new Date().toISOString().split('T')[0];
+  const today = localDateStr();
   const lastDailyDate = await getSetting('lastDailyAnalysisDate');
 
   if (lastDailyDate !== today) {
