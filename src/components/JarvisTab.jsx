@@ -294,7 +294,7 @@ export default function JarvisTab({ t, isActive = true, onQuestsChanged, onboard
           proposal: response.proposal,
           claims: response.claims,
           contextUsed: response.contextUsed,
-          proposalStatus: response.proposal ? 'pending' : undefined,
+          proposalStatus: response.proposal ? 'awaiting_approval' : undefined,
         },
       ];
       setMessages(finalMessages);
@@ -942,7 +942,7 @@ export default function JarvisTab({ t, isActive = true, onQuestsChanged, onboard
                         }}
                       />
                     )}
-                    {msg.proposal?.actionType === 'create_plan' && msg.proposalStatus === 'pending' && (
+                    {msg.proposal?.actionType === 'create_plan' && ['pending','awaiting_approval'].includes(msg.proposalStatus) && (
                       <button type="button" onClick={() => openPlanBoard(msg.proposal)} style={{ minHeight: '40px', marginTop: '8px', padding: '0 12px', border: '1px solid var(--hairline)', borderRadius: 'var(--r-control)', background: 'var(--s1)', color: 'var(--tx)' }}>
                         Open plan board
                       </button>
@@ -1043,7 +1043,6 @@ export default function JarvisTab({ t, isActive = true, onQuestsChanged, onboard
       >
         <button
           aria-label="Attach or add"
-          onClick={() => { setInput('/'); setCommandMenuOpen(true); }}
           onClick={() => {
             setInput('/');
             setCommandQuery('');
