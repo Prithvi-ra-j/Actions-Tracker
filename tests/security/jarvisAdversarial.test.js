@@ -75,7 +75,7 @@ describe('Jarvis adversarial trust boundaries', () => {
       semantic_memories: [],
     };
     expect(() => validateClaimSupport([
-      { text: 'You completed 5 runs.', evidenceIds: ['e1'] },
+      { text: 'There is a run with value 5.', evidenceIds: ['e1'] },
     ], context)).not.toThrow();
     expect(() => validateClaimSupport([
       { text: 'You saved 1000 rupees.', evidenceIds: ['e1'] },
