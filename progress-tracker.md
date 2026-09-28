@@ -1102,3 +1102,13 @@ The GitHub-connected environment does not expose a local Node runtime for execut
 
 - Final implementation pass status: code-level 10/10 gaps addressed where repository/runtime evidence is available; current commits require a fresh CI run before certification claims.
 - Real Android/provider/accessibility/performance/longitudinal evidence remains explicitly validation-needed and is not marked complete from source changes alone.
+
+
+## Workflow stabilization — 2026-09-28
+
+- Fixed the passive analysis scheduler control flow by isolating deterministic signals, optional LLM daily analysis, and monthly audit execution into explicit functions. This removed the CI/Vite parser failure in `src/core/ai/analysisScheduler.js` and caches recent insight fingerprints per daily pass.
+- Fixed fresh-start reset test isolation and corrected the assertion to use the app-meta repository's deserialized value.
+- Fixed the Jarvis adversarial claim-support fixture so its positive claim directly matches the evidence projection.
+- Fresh GitHub Actions run **#636** completed successfully after these fixes. This validates the repository CI workflow (tests, persistence round-trip, and build smoke) at that commit.
+- Browser-only notification warnings remain expected/non-blocking because Capacitor Local Notifications are unavailable in jsdom; they are not workflow failures.
+- Android signing/device/provider/accessibility/longitudinal certification remains a separate real-environment validation boundary.
