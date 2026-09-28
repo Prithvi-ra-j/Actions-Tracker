@@ -8,7 +8,7 @@ const USER_DATA_STORES = [
   'questBoard', 'statSnapshots', 'facts', 'lifeObjects', 'selfModel',
   'habits', 'habitOccurrences', 'learnings', 'evidence', 'relations',
   'memories', 'audits', 'insights', 'decisions', 'experiments',
-  'creativeWorks', 'observations', 'routineConfig', 'jarvisConversations',
+  'creativeWorks', 'observations', 'routineConfig', 'jarvisConversations', 'interventions',
 ];
 
 /**
