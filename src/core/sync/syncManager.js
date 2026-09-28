@@ -7,12 +7,23 @@
  */
 
 import { getSyncState, markSyncStarted, markSyncSuccess, markSyncError } from '../../database/syncStateRepository.js';
-import { addFact } from '../../database/factsRepository.js';
+import { addFact, getAllFacts } from '../../database/factsRepository.js';
 import { deriveConnectorLifecycle } from './connectorLifecycle.js';
 import { withRetry } from '../recovery/retryPolicy.js';
 import { createCorrelationId } from '../observability/structuredError.js';
 
 const registry = new Map();
+
+function externalFactKey(fact) {
+  const source = fact?.source || {};
+  if (!source.connectorId || !source.externalId) return null;
+  return [
+    source.connectorId,
+    source.externalId,
+    source.externalVersion || '',
+    fact?.type || '',
+  ].join('|');
+}
 
 /**
  * Registers a connector with the sync manager.
@@ -75,6 +86,7 @@ export async function runAllSyncs() {
     startedAt: new Date().toISOString(),
     connectorsRun: 0,
     totalImported: 0,
+    totalIgnored: 0,
     errors: []
   };
 
@@ -104,12 +116,27 @@ export async function runAllSyncs() {
         }
       );
 
-      // Ingest the facts
+      // Ingest facts only after the connector result is available. Integration facts
+      // are replay-safe when the provider supplies connectorId + externalId.
       let ingestedCount = 0;
+      let ignoredCount = 0;
       if (result.facts && result.facts.length > 0) {
+        const existingFacts = await getAllFacts();
+        const seenExternalFacts = new Set(
+          existingFacts
+            .map(fact => externalFactKey(fact))
+            .filter(Boolean)
+        );
+
         for (const fact of result.facts) {
-          // Facts must be validated by their schema prior to returning from connector
+          const key = externalFactKey(fact);
+          if (key && seenExternalFacts.has(key)) {
+            ignoredCount++;
+            continue;
+          }
+          // Facts must be validated by their schema prior to returning from connector.
           await addFact(fact);
+          if (key) seenExternalFacts.add(key);
           ingestedCount++;
         }
       }
@@ -120,6 +147,7 @@ export async function runAllSyncs() {
       } else {
         await markSyncSuccess(id, result.cursor, result.status || 'success');
         summary.totalImported += ingestedCount;
+        summary.totalIgnored = (summary.totalIgnored || 0) + ignoredCount;
         if (result.status === 'partial') {
           summary.errors.push({ id, message: 'Connector completed with partial results' });
         }
