@@ -1,6 +1,7 @@
 import { getGoal } from '../../database/goalsRepository.js';
 import { getRelationsTo, getRelationsFrom, addRelation } from '../../database/relationRepository.js';
 import { getAllFacts } from '../../database/factsRepository.js';
+import { classifyGoalHealth, goalHealthExplanation } from './goalHealth.js';
 
 export function classifyEvidenceQuality(facts = []) {
   const measured = facts.filter(fact => !isSelfReported(fact)).length;
@@ -41,10 +42,30 @@ export async function getGoalProgress(goalId) {
   const measured = evidence.filter(item => !isSelfReported(item.fact));
   const selfReported = evidence.filter(item => isSelfReported(item.fact));
 
+  const latestEvidenceAt = [...measured, ...selfReported]
+    .map(item => item.fact.occurredAt)
+    .filter(Boolean)
+    .sort()
+    .at(-1) || null;
+  const daysSinceEvidence = latestEvidenceAt
+    ? Math.max(0, Math.floor((Date.now() - new Date(latestEvidenceAt).getTime()) / 86400000))
+    : null;
+  const health = classifyGoalHealth({
+    status: goal.status,
+    recentEvidenceCount: evidence.length,
+    recentActionCount: supportingActions.length,
+    daysSinceEvidence,
+    progress: Number(goal.progress || 0),
+    targetProgress: Number(goal.targetProgress || 1),
+  });
+
   return {
     goalId,
     goal,
     status: goal.status,
+    health,
+    healthExplanation: goalHealthExplanation(health),
+    daysSinceEvidence,
     measured: {
       evidenceCount: measured.length,
       latestAt: measured.map(item => item.fact.occurredAt).sort().at(-1) || null,
