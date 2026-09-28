@@ -106,6 +106,7 @@ export default function GoalsTab({ t, onOpenJarvis }) {
   const [goals, setGoals] = useState([]);
   const [loading, setLoading] = useState(true);
   const [goalProgress, setGoalProgress] = useState({});
+  const [goalPlans, setGoalPlans] = useState({});
   const [selectedGoal, setSelectedGoal] = useState(null);
   const [isEditing, setIsEditing] = useState(false);
   const [showConfirmDelete, setShowConfirmDelete] = useState(false);
@@ -408,6 +409,21 @@ export default function GoalsTab({ t, onOpenJarvis }) {
                 </div>
                 <div style={{ fontSize: '14px', color: 'var(--tx)', lineHeight: 1.5 }}>
                   {selectedGoal.fear}
+                </div>
+              </div>
+            )}
+
+            {goalPlans[selectedGoal.id]?.steps?.length > 0 && (
+              <div>
+                <div style={{ fontFamily: "'Geist Mono', monospace", fontSize: '11.5px', color: 'var(--mu)', marginBottom: '8px' }}>
+                  Current plan
+                </div>
+                <div style={{ display: 'grid', gap: 8 }}>
+                  {goalPlans[selectedGoal.id].steps.slice(0, 6).map((step, index) => (
+                    <div key={index} style={{ padding: '9px 10px', borderRadius: '10px', background: 'var(--s2)', fontSize: '13px', lineHeight: 1.4 }}>
+                      {step.payload?.title || step.payload?.name || step.actionType?.replaceAll('_', ' ') || `Step ${index + 1}`}
+                    </div>
+                  ))}
                 </div>
               </div>
             )}
