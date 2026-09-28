@@ -7,6 +7,7 @@ import { EmptyState } from './ui/States.jsx';
 import { SegmentedBar } from './ui/Indicators.jsx';
 import { Sparkle, Warning, PencilSimple } from '@phosphor-icons/react';
 import { buildTodayRecommendations } from '../core/today/todayRecommendationEngine.js';
+import { recordTodayRecommendationFeedback } from '../core/today/recommendationFeedback.js';
 
 // Axis color map — only used as small dots per design rules
 const AXIS_COLORS = {
@@ -179,13 +180,20 @@ export default function TodayTab({
   const [evidenceType, setEvidenceType] = useState('observation');
   const [savingEvidence, setSavingEvidence] = useState(false);
   const [evidenceError, setEvidenceError] = useState('');
+  const [dismissedFocus, setDismissedFocus] = useState(new Set());
 
   const mainQuest = allQuests?.find(q => q.status === 'active' && q.priority === 'main')
     || allQuests?.find(q => q.status === 'active');
 
   const occurrences = todayOccurrences || [];
   const overloaded = occurrences.length > 6;
-  const todayPlan = buildTodayRecommendations({ occurrences, stats, axisDetails, goals: lifeGoals });
+  const todayPlan = buildTodayRecommendations({
+    occurrences,
+    stats,
+    axisDetails,
+    goals: lifeGoals,
+    recentFeedback: [...dismissedFocus].map(id => ({ recommendationId: id, action: 'dismiss' })),
+  });
 
   const handleComplete = useCallback((id) => {
     onCompleteOccurrence(id);
@@ -240,6 +248,50 @@ export default function TodayTab({
               <div key={item.id} style={{ padding: '12px 13px', borderRadius: 'var(--r-container)', background: 'var(--s1)', boxShadow: 'inset 0 0 0 1px var(--hairline)' }}>
                 <div style={{ fontSize: '14px', fontWeight: 600 }}>{item.title}</div>
                 <div style={{ marginTop: '4px', color: 'var(--mu)', fontSize: '12.5px', lineHeight: 1.4 }}>{item.reason}</div>
+                {item.impact && (
+                  <div style={{ marginTop: '4px', color: 'var(--mu)', fontSize: '11.5px' }}>{item.impact}</div>
+                )}
+                {item.evidence?.length > 0 && (
+                  <div style={{ marginTop: '6px', color: 'var(--mu)', fontFamily: "'Geist Mono', monospace", fontSize: '10.5px' }}>
+                    Based on {item.evidence.join(' · ')}
+                  </div>
+                )}
+                <div style={{ display: 'flex', gap: '6px', marginTop: '9px', flexWrap: 'wrap' }}>
+                  {[
+                    ['done', 'Done'],
+                    ['defer', 'Defer'],
+                    ['dismiss', 'Dismiss'],
+                  ].map(([action, label]) => (
+                    <button
+                      key={action}
+                      type="button"
+                      onClick={async () => {
+                        try {
+                          await recordTodayRecommendationFeedback({
+                            recommendationId: item.id,
+                            action,
+                            metadata: { domain: item.domain, type: item.type },
+                          });
+                        } finally {
+                          if (action === 'dismiss' || action === 'defer') {
+                            setDismissedFocus(prev => new Set([...prev, item.id]));
+                          }
+                        }
+                      }}
+                      style={{
+                        minHeight: 38,
+                        padding: '0 10px',
+                        borderRadius: 'var(--r-control)',
+                        border: '1px solid var(--hairline)',
+                        background: 'var(--s2)',
+                        color: 'var(--tx)',
+                        fontSize: '12px',
+                      }}
+                    >
+                      {label}
+                    </button>
+                  ))}
+                </div>
               </div>
             ))}
           </div>
