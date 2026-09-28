@@ -20,3 +20,14 @@ export class WebSpeechTranscriber {
 }
 
 export function createLocalTranscriber(options={}) { return new WebSpeechTranscriber(options); }
+
+
+export const VOICE_STATES = Object.freeze([
+  'IDLE','LISTENING','TRANSCRIBING','UNDERSTANDING','PLANNING',
+  'WAITING_FOR_CLARIFICATION','WAITING_FOR_CONFIRMATION','EXECUTING',
+  'PARTIALLY_COMPLETE','COMPLETED','FAILED','OFFLINE'
+]);
+
+export function supportsVoiceInput() {
+  return Boolean(globalThis.SpeechRecognition || globalThis.webkitSpeechRecognition);
+}
