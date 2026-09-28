@@ -3,6 +3,7 @@ import { isSupabaseConfigured } from '../../../integrations/supabase/supabaseCli
 import { getCurrentSupabaseUser } from '../../../integrations/supabase/supabaseAuth.js';
 import { fetchNutriLiftRecords } from '../../../database/supabaseSyncRepository.js';
 import { getAllFacts } from '../../../database/factsRepository.js';
+import { upsertNutriLiftProjection, markNutriLiftProjectionRetracted } from '../../../database/nutriLiftProjectionRepository.js';
 
 function factId(record) {
   return `fact:nutrilift:${record.record_type}:${record.external_id}`;
@@ -117,6 +118,25 @@ export class NutriLiftConnector extends BaseConnector {
       }
 
       const fact = toFact(record, importedAt);
+      if (record.deleted_at) {
+        await markNutriLiftProjectionRetracted(baseId, {
+          externalId: record.external_id,
+          recordType: record.record_type,
+          sourceUpdatedAt: incomingVersion,
+          retractedAt: record.deleted_at,
+        });
+      } else {
+        await upsertNutriLiftProjection({
+          id: baseId,
+          externalId: record.external_id,
+          recordType: record.record_type,
+          payload: record.payload,
+          occurredAt: record.occurred_at,
+          sourceUpdatedAt: incomingVersion,
+          schemaVersion: record.schema_version,
+          retracted: false,
+        });
+      }
       if (existing && !record.deleted_at) updated += 1;
       facts.push(fact);
     }
