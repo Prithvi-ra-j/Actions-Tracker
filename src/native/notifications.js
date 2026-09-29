@@ -30,9 +30,11 @@ export const NOTIFICATION_IDS = {
  */
 async function getPlugin() {
   try {
+    const { Capacitor } = await import('@capacitor/core');
+    if (!Capacitor.isNativePlatform()) return { api: null };
     const mod = await import('@capacitor/local-notifications');
     // Wrap in an object to prevent async machinery from inspecting `.then`
-    // on the Capacitor proxy, which throws "not implemented on web".
+    // on the Capacitor proxy.
     return { api: mod.LocalNotifications };
   } catch {
     return { api: null };
