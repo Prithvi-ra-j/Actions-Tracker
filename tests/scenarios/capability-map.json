@@ -1,0 +1,132 @@
+{
+  "version": "1.0.0",
+  "capabilities": [
+    {
+      "id": "app.launch",
+      "risk": "P0",
+      "surfaces": [
+        "ui",
+        "mobile"
+      ],
+      "destructive": false
+    },
+    {
+      "id": "navigation.core",
+      "risk": "P0",
+      "surfaces": [
+        "ui",
+        "keyboard",
+        "mobile"
+      ],
+      "destructive": false
+    },
+    {
+      "id": "goals.create-update",
+      "risk": "P0",
+      "surfaces": [
+        "ui",
+        "jarvis_text",
+        "voice"
+      ],
+      "destructive": false
+    },
+    {
+      "id": "quests.complete-evidence",
+      "risk": "P0",
+      "surfaces": [
+        "ui",
+        "jarvis_text",
+        "voice"
+      ],
+      "destructive": false
+    },
+    {
+      "id": "today.adaptive-plan",
+      "risk": "P1",
+      "surfaces": [
+        "ui",
+        "jarvis_text"
+      ],
+      "destructive": false
+    },
+    {
+      "id": "stats.progression",
+      "risk": "P1",
+      "surfaces": [
+        "ui"
+      ],
+      "destructive": false
+    },
+    {
+      "id": "backup.restore",
+      "risk": "P0",
+      "surfaces": [
+        "ui",
+        "android"
+      ],
+      "destructive": true
+    },
+    {
+      "id": "notifications",
+      "risk": "P1",
+      "surfaces": [
+        "ui",
+        "android"
+      ],
+      "destructive": false
+    },
+    {
+      "id": "offline.lifecycle",
+      "risk": "P0",
+      "surfaces": [
+        "ui",
+        "android"
+      ],
+      "destructive": false
+    },
+    {
+      "id": "data.privacy-delete",
+      "risk": "P0",
+      "surfaces": [
+        "ui"
+      ],
+      "destructive": true
+    },
+    {
+      "id": "concurrency.multitab",
+      "risk": "P1",
+      "surfaces": [
+        "ui"
+      ],
+      "destructive": false
+    },
+    {
+      "id": "security.input-boundary",
+      "risk": "P0",
+      "surfaces": [
+        "ui",
+        "jarvis_text",
+        "voice"
+      ],
+      "destructive": false
+    },
+    {
+      "id": "accessibility.critical-journeys",
+      "risk": "P0",
+      "surfaces": [
+        "ui",
+        "keyboard",
+        "assistive-tech"
+      ],
+      "destructive": false
+    },
+    {
+      "id": "locale.timezone",
+      "risk": "P1",
+      "surfaces": [
+        "ui"
+      ],
+      "destructive": false
+    }
+  ]
+}

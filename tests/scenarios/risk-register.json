@@ -1,0 +1,40 @@
+{
+  "version": "1.0.0",
+  "risks": [
+    {
+      "id": "R001",
+      "capability": "offline.lifecycle",
+      "probability": 4,
+      "impact": 5,
+      "score": 20
+    },
+    {
+      "id": "R002",
+      "capability": "backup.restore",
+      "probability": 3,
+      "impact": 5,
+      "score": 15
+    },
+    {
+      "id": "R003",
+      "capability": "security.input-boundary",
+      "probability": 3,
+      "impact": 5,
+      "score": 15
+    },
+    {
+      "id": "R004",
+      "capability": "concurrency.multitab",
+      "probability": 3,
+      "impact": 4,
+      "score": 12
+    },
+    {
+      "id": "R005",
+      "capability": "accessibility.critical-journeys",
+      "probability": 3,
+      "impact": 4,
+      "score": 12
+    }
+  ]
+}

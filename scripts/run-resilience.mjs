@@ -1,0 +1,1 @@
+import {spawnSync} from 'node:child_process'; const r=spawnSync('npx',['playwright','test','tests/e2e/resilience','--project=chromium','--workers=1'],{stdio:'inherit',shell:process.platform==='win32'}); process.exit(r.status??1);
