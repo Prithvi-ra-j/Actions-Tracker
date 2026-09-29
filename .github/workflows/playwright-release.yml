@@ -18,5 +18,8 @@ jobs:
       - run: npm run test:cluster-failures
       - if: always()
         uses: actions/upload-artifact@v4
-        with: {name: release-quality-evidence, path: "playwright-report/
-test-results/"}
+        with:
+          name: release-quality-evidence
+          path: |
+            playwright-report/
+            test-results/
