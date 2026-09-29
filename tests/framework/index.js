@@ -48,8 +48,8 @@ export const mutatePath=(steps,mode='direct')=>structuredClone(PATH_MUTATORS[mod
 
 export async function snapshot(page){
   return page.evaluate(async()=>{
-    const local={};
-    for(let i=0;i<localStorage.length;i++){const k=localStorage.key(i);local[k]=localStorage.getItem(k);}
+    let local={};
+    try{for(let i=0;i<localStorage.length;i++){const k=localStorage.key(i);local[k]=localStorage.getItem(k);}}catch{}
     let db=[];
     try{if(indexedDB.databases)db=(await indexedDB.databases()).map(x=>({name:x.name,version:x.version}));}catch{}
     return {url:location.href,title:document.title,local,db};
