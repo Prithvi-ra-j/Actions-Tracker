@@ -7,8 +7,8 @@ export default defineConfig({
   use:{baseURL,actionTimeout:10000,navigationTimeout:30000,trace:'retain-on-failure',screenshot:'only-on-failure',video:'retain-on-failure',serviceWorkers:'allow'},
   webServer:process.env.PLAYWRIGHT_BASE_URL?undefined:{command:'npm run dev -- --host 127.0.0.1 --port 4173',url:baseURL,reuseExistingServer:!process.env.CI,timeout:120000},
   projects:[
-    {name:'smoke',testMatch:/.*smoke\\.spec\\.js/,use:{...devices['Desktop Chrome']}},
-    {name:'chromium',testMatch:/.*\\.spec\\.js/,use:{...devices['Desktop Chrome']}},
+    {name:'smoke',testMatch:/.*smoke\.spec\.js/,use:{...devices['Desktop Chrome']}},
+    {name:'chromium',testMatch:/.*\.spec\.js/,use:{...devices['Desktop Chrome']}},
     {name:'mobile',testMatch:/.*\\.spec\\.js/,use:{...devices['Galaxy S9+']}},
     {name:'webkit',testMatch:/.*\\.spec\\.js/,use:{...devices['Desktop Safari']}}
   ]
