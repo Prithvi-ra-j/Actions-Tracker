@@ -12,7 +12,19 @@
     "test:roundtrip": "node scripts/test-roundtrip.mjs",
     "test": "vitest run",
     "test:watch": "vitest",
-    "test:coverage": "vitest run --coverage"
+    "test:coverage": "vitest run --coverage",
+    "test:smoke": "node scripts/test-smoke.mjs",
+    "test:regression": "node scripts/test-regression.mjs",
+    "test:e2e": "playwright test",
+    "test:e2e:smoke": "playwright test --project=smoke",
+    "test:e2e:mobile": "playwright test --project=mobile",
+    "test:e2e:resilience": "playwright test tests/e2e/resilience tests/e2e/concurrency",
+    "test:e2e:a11y": "playwright test tests/e2e/accessibility",
+    "test:e2e:security": "playwright test tests/e2e/security",
+    "test:exploration": "node scripts/run-exploration.mjs",
+    "test:resilience": "node scripts/run-resilience.mjs",
+    "test:coverage-report": "node scripts/coverage-report.mjs",
+    "test:cluster-failures": "node scripts/cluster-failures.mjs"
   },
   "dependencies": {
     "@capacitor/android": "^6.0.0",
@@ -41,7 +53,9 @@
     "fast-check": "^3.22.0",
     "jsdom": "^29.1.1",
     "vite": "^5.4.10",
-    "vitest": "^2.1.0"
+    "vitest": "^2.1.0",
+    "@axe-core/playwright": "^4.13.0",
+    "@playwright/test": "^1.62.0"
   },
   "engines": {
     "node": ">=22"
