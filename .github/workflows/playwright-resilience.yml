@@ -16,5 +16,8 @@ jobs:
       - run: npx playwright test tests/e2e/long-session tests/e2e/self-validation --project=chromium --workers=1
       - if: always()
         uses: actions/upload-artifact@v4
-        with: {name: resilience-evidence, path: "playwright-report/
-test-results/"}
+        with:
+          name: resilience-evidence
+          path: |
+            playwright-report/
+            test-results/
