@@ -77,7 +77,7 @@ export async function runScenario(page,raw){
     else if(step.action==='back')await page.goBack().catch(()=>{});
     else if(step.action==='forward')await page.goForward().catch(()=>{});
     else if(step.action==='scroll')await page.mouse.wheel(0,Number(step.value||500));
-    else if(step.action==='screenshot')await page.screenshot({path:path.resolve('test-results','evidence',s.scenario_id+'.png'),fullPage:true});
+    else if(step.action==='screenshot'){await fs.mkdir(path.resolve('test-results','evidence'),{recursive:true});await page.screenshot({path:path.resolve('test-results','evidence',s.scenario_id+'.png'),fullPage:true});}
     else if(step.action==='evaluate')await page.evaluate(String(step.value||'undefined'));
   }
   return {scenarioId:s.scenario_id,durationMs:Date.now()-start};
