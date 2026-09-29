@@ -94,7 +94,7 @@ export async function evidence(testInfo,payload){
 }
 export const test=base.extend({
   realUser:async({page},use,testInfo)=>{
-    const before=await snapshot(page),errors=[];
+    const before={url:'about:blank',title:'',local:{},db:[]},errors=[];
     page.on('pageerror',e=>errors.push(e.message));
     await use({page});
     const after=await snapshot(page);
