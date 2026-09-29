@@ -1,0 +1,22 @@
+{
+  "version": "1.0.0",
+  "categories": [
+    "product-state",
+    "navigation",
+    "persistence",
+    "migration",
+    "concurrency",
+    "pwa-lifecycle",
+    "security",
+    "accessibility",
+    "performance",
+    "dependency",
+    "notification",
+    "timezone-locale",
+    "ai-intent",
+    "ai-action",
+    "human-usability",
+    "infrastructure",
+    "flake"
+  ]
+}
