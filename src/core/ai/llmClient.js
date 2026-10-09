@@ -87,7 +87,19 @@ export async function queryLLM(messages, options = {}) {
     const errorText = await response.text();
     await recordAICallTelemetry(options, model, startedAt, null, false);
     const safeDetail = errorText.slice(0, 500);
-    throw new Error(`LLM API Error (${response.status}): ${safeDetail}`);
+    const error = new Error(`LLM API Error (${response.status}): ${safeDetail}`);
+    let providerError;
+    try {
+      providerError = JSON.parse(errorText)?.error;
+    } catch {
+      providerError = null;
+    }
+    error.status = response.status;
+    error.providerCode = providerError?.code;
+    if (typeof providerError?.failed_generation === 'string') {
+      error.failedGeneration = providerError.failed_generation.slice(0, 2000);
+    }
+    throw error;
   }
 
   const data = await response.json();

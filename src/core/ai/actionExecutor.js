@@ -124,15 +124,17 @@ export async function executeAction(proposal) {
         ? await getSelfModel()
         : null;
   let result = { actionType, executionKey, before };
-  
-  switch (actionType) {
+
+  try {
+    switch (actionType) {
     case 'add_habit': {
       const id = await addHabit({
         id: payload.id,
         name: payload.name,
         description: payload.description,
         domain: payload.domain,
-        frequency: payload.frequency || { type: 'daily' },
+        frequency: payload.frequency,
+        target: payload.target,
         trackingMethod: payload.trackingMethod || 'boolean',
         identityVote: payload.identityVote,
         tinyVersion: payload.tinyVersion,
@@ -170,12 +172,12 @@ export async function executeAction(proposal) {
     }
     
     case 'add_goal': {
-      const id = await addGoal({
+      const goal = await addGoal({
         ...payload,
         label: payload.label || payload.title,
         title: payload.title || payload.label,
       });
-      result = { ...result, id };
+      result = { ...result, id: goal.id };
       break;
     }
 
@@ -438,6 +440,14 @@ export async function executeAction(proposal) {
     
     default:
       throw new Error(`[actionExecutor] Unsupported actionType: ${actionType}`);
+    }
+  } catch (error) {
+    await finishProposalExecution(executionKey, {
+      status: 'failed',
+      error: error?.message || 'Proposal execution failed.',
+      failedAt: new Date().toISOString(),
+    }).catch(() => {});
+    throw error;
   }
 
   try {

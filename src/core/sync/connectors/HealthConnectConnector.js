@@ -1,4 +1,5 @@
 import { BaseConnector } from '../BaseConnector.js';
+import { Capacitor } from '@capacitor/core';
 import { HealthConnect } from 'capacitor-health-connect';
 
 const READ_TYPES = ['Steps'];
@@ -11,7 +12,7 @@ const READ_TYPES = ['Steps'];
  * an adapter with the same methods) when registering this connector.
  */
 export class HealthConnectConnector extends BaseConnector {
-  constructor(provider = HealthConnect) {
+  constructor(provider = Capacitor.isNativePlatform() ? HealthConnect : null) {
     super('health-connect', 'health', '1.0');
     this.provider = provider;
   }

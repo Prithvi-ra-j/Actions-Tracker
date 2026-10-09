@@ -201,12 +201,18 @@ export default function JarvisApiSetup({ onConfigured }) {
             />
             <button
               type="button"
+              aria-label={showKey ? 'Hide API key' : 'Show API key'}
               onClick={() => setShowKey(v => !v)}
               style={{
                 border: 0,
                 background: 'transparent',
                 color: 'var(--mu)',
-                padding: '8px 4px',
+                minWidth: '44px',
+                minHeight: '44px',
+                padding: '0 4px',
+                display: 'grid',
+                placeItems: 'center',
+                flexShrink: 0,
                 cursor: 'pointer',
                 fontSize: '12px',
                 fontWeight: 600,

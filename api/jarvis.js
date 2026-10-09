@@ -1,7 +1,13 @@
 const MAX_BODY_BYTES = 256 * 1024;
 
 function json(res, status, body, headers = {}) {
-  return res.status(status).setHeader('Content-Type', 'application/json').setHeader('Cache-Control', 'no-store').setHeader('X-Content-Type-Options', 'nosniff').setHeader('X-Request-Id', body.requestId || '').json(body);
+  const response = res.status(status)
+    .setHeader('Content-Type', 'application/json')
+    .setHeader('Cache-Control', 'no-store')
+    .setHeader('X-Content-Type-Options', 'nosniff')
+    .setHeader('X-Request-Id', body.requestId || '');
+  for (const [name, value] of Object.entries(headers)) response.setHeader(name, value);
+  return response.json(body);
 }
 
 export default async function handler(req, res) {
@@ -23,6 +29,11 @@ export default async function handler(req, res) {
   }
 
   try {
+    const rawBody = typeof req.body === 'string' ? req.body : JSON.stringify(req.body ?? null);
+    if (new TextEncoder().encode(rawBody).byteLength > MAX_BODY_BYTES) {
+      return json(res, 413, { error: 'Request too large.', requestId });
+    }
+
     const body = typeof req.body === 'string' ? JSON.parse(req.body) : req.body;
     if (!body || !Array.isArray(body.messages) || body.messages.length === 0) {
       return json(res, 400, { error: 'messages[] is required.', requestId });

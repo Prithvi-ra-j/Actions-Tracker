@@ -1,4 +1,4 @@
-import { dbGet, dbPut } from './db.js';
+import { dbAdd, dbGet, dbPut } from './db.js';
 
 const STORE = 'proposalExecutions';
 
@@ -7,9 +7,6 @@ export async function getProposalExecution(idempotencyKey) {
 }
 
 export async function beginProposalExecution({ idempotencyKey, proposalId, actionType }) {
-  const existing = await getProposalExecution(idempotencyKey);
-  if (existing) return { created: false, record: existing };
-
   const record = {
     idempotencyKey,
     proposalId,
@@ -18,8 +15,15 @@ export async function beginProposalExecution({ idempotencyKey, proposalId, actio
     startedAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),
   };
-  await dbPut(STORE, record);
-  return { created: true, record };
+  try {
+    await dbAdd(STORE, record);
+    return { created: true, record };
+  } catch (error) {
+    if (error?.name !== 'ConstraintError') throw error;
+    const existing = await getProposalExecution(idempotencyKey);
+    if (!existing) throw error;
+    return { created: false, record: existing };
+  }
 }
 
 export async function finishProposalExecution(idempotencyKey, patch) {

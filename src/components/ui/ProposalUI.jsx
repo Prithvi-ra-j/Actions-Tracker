@@ -5,10 +5,11 @@ import { BottomSheet } from './Overlays';
 import { SegmentedBar } from './Indicators';
 import { EvidenceSheet } from '../EvidenceSheet.jsx';
 
-export function ActionProposalCard({ proposal, onApply, onEdit, onDismiss, status }) {
+export function ActionProposalCard({ proposal, onApply, onEdit, onDismiss, onUndo, status }) {
   const containerRef = useRef(null);
   const swipeRef = useRef(null);
   const applyThreshold = 120;
+  const canReview = ['pending', 'awaiting_approval'].includes(status);
   
   // A real swipe-to-apply gesture using pointer events without re-renders.
   useEffect(() => {
@@ -124,8 +125,17 @@ export function ActionProposalCard({ proposal, onApply, onEdit, onDismiss, statu
           {proposalDescription}
         </p>
 
-        {status === 'pending' && (
+        {canReview && (
           <div style={{ display: 'flex', gap: '8px' }}>
+            {onApply && (
+              <Button
+                variant="primary"
+                onClick={onApply}
+                style={{ minHeight: '48px', padding: '0 14px' }}
+              >
+                Review
+              </Button>
+            )}
             <div 
               ref={containerRef}
               style={{
@@ -189,11 +199,28 @@ export function ActionProposalCard({ proposal, onApply, onEdit, onDismiss, statu
         )}
         
         {status === 'executed' && (
-          <div style={{ padding: '12px 0', color: 'var(--strategy)', fontSize: '14px', fontWeight: 500, display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <polyline points="20 6 9 17 4 12"></polyline>
-            </svg>
-            Changes applied
+          <div style={{ padding: '12px 0', color: 'var(--strategy)', fontSize: '14px', fontWeight: 500, display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+            <span style={{ display: 'inline-flex', alignItems: 'center', gap: '8px' }}>
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <polyline points="20 6 9 17 4 12"></polyline>
+              </svg>
+              Changes applied
+            </span>
+            {onUndo && (
+              <Button
+                variant="secondary"
+                onClick={onUndo}
+                style={{ marginLeft: 'auto', minHeight: '36px', padding: '0 12px' }}
+              >
+                Undo
+              </Button>
+            )}
+          </div>
+        )}
+
+        {status === 'undone' && (
+          <div role="status" style={{ padding: '12px 0', color: 'var(--mu)', fontSize: '14px', fontWeight: 500 }}>
+            Changes undone. Your prior state was restored.
           </div>
         )}
 

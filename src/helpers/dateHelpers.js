@@ -57,7 +57,11 @@ export function parseLocalDate(str) {
   const match = /^\d{4}-\d{2}-\d{2}$/.exec(str);
   if (!match) return null;
   const [y, m, d] = str.split('-').map(Number);
-  return new Date(y, m - 1, d);
+  const date = new Date(0);
+  date.setHours(0, 0, 0, 0);
+  date.setFullYear(y, m - 1, d);
+  if (date.getFullYear() !== y || date.getMonth() !== m - 1 || date.getDate() !== d) return null;
+  return date;
 }
 
 export const localDateFromStr = parseLocalDate;

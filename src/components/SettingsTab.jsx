@@ -257,32 +257,44 @@ export default function SettingsTab({ t, onClose, reminders: reminderConfigs = [
     margin: '16px 4px 8px'
   };
 
+  const sectionRowProps = section => ({
+    role: 'button',
+    tabIndex: 0,
+    onClick: () => setActiveSection(section),
+    onKeyDown: event => {
+      if (event.key === 'Enter' || event.key === ' ') {
+        event.preventDefault();
+        setActiveSection(section);
+      }
+    },
+  });
+
   const renderMainMenu = () => (
     <div style={{ padding: '0 14px', flex: 1, overflowY: 'auto' }}>
       <div style={groupStyle}>
-        <div style={rowStyle(false)} onClick={() => setActiveSection('ai')}>
+        <div {...sectionRowProps('ai')} style={rowStyle(false)}>
           AI & Provider
           <span style={rowRightStyle}>
             {verifyResult?.success ? 'Verified ›' : aiSettings.hasKey ? 'Configured ›' : 'Needs setup ›'}
           </span>
         </div>
-        <div style={rowStyle(false)} onClick={() => setActiveSection('data')}>
+        <div {...sectionRowProps('data')} style={rowStyle(false)}>
           Data
           <span style={rowRightStyle}>Backup & storage ›</span>
         </div>
-        <div style={rowStyle(false)} onClick={() => setActiveSection('memory')}>
+        <div {...sectionRowProps('memory')} style={rowStyle(false)}>
           Memory & Privacy
           <span style={rowRightStyle}>›</span>
         </div>
-        <div style={rowStyle(false)} onClick={() => setActiveSection('integrations')}>
+        <div {...sectionRowProps('integrations')} style={rowStyle(false)}>
           Integrations
           <span style={rowRightStyle}>›</span>
         </div>
-        <div style={rowStyle(false)} onClick={() => setActiveSection('notifications')}>
+        <div {...sectionRowProps('notifications')} style={rowStyle(false)}>
           Notifications
           <span style={rowRightStyle}>›</span>
         </div>
-        <div style={rowStyle(true)} onClick={() => setActiveSection('appearance')}>
+        <div {...sectionRowProps('appearance')} style={rowStyle(true)}>
           Appearance & App
           <span style={rowRightStyle}>›</span>
         </div>

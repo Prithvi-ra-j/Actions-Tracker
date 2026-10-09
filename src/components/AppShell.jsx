@@ -31,7 +31,13 @@ export default function AppShell({
   return (
     <div
       className="min-h-100dvh"
-      style={{ display: 'flex', flexDirection: 'column', position: 'relative' }}
+      style={{
+        display: 'flex',
+        flexDirection: 'column',
+        position: 'relative',
+        height: currentTab === 'jarvis' ? '100dvh' : undefined,
+        overflow: currentTab === 'jarvis' ? 'hidden' : undefined,
+      }}
     >
       {/* App header — sticky. Hidden on Jarvis tab (it has its own inline header) */}
       {currentTab !== 'jarvis' && (
@@ -84,11 +90,8 @@ export default function AppShell({
         boxSizing: 'border-box',
         display: currentTab === 'jarvis' ? 'flex' : 'block',
         flexDirection: currentTab === 'jarvis' ? 'column' : undefined,
-        height: currentTab === 'jarvis'
-          ? 'calc(100dvh - 64px - env(safe-area-inset-bottom, 0px))'
-          : undefined,
         paddingBottom: currentTab === 'jarvis'
-          ? 0
+          ? 'calc(64px + env(safe-area-inset-bottom, 0px))'
           : 'calc(64px + 58px + env(safe-area-inset-bottom, 0px))',
       }}>
         {children}

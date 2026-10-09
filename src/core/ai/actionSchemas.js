@@ -1,6 +1,6 @@
 import { z } from 'zod';
 
-const ACTION_TYPES = [
+export const ACTION_TYPES = [
   'add_habit', 'modify_habit', 'pause_habit', 'archive_habit',
   'add_quest', 'modify_roadmap', 'adjust_routine', 'update_mastery_level',
   'add_learning', 'suggest_experiment', 'revise_target',
@@ -9,6 +9,17 @@ const ACTION_TYPES = [
 
 const ACTIONS_REQUIRING_ID = new Set([
   'modify_habit', 'pause_habit', 'archive_habit', 'modify_roadmap', 'update_mastery_level', 'modify_goal', 'update_experiment',
+]);
+
+const FrequencyDaysSchema = z.array(z.number().int().min(0).max(6))
+  .min(1)
+  .max(7)
+  .refine(days => new Set(days).size === days.length);
+
+const FrequencyRuleSchema = z.discriminatedUnion('type', [
+  z.object({ type: z.literal('daily') }),
+  z.object({ type: z.literal('weekly'), days: FrequencyDaysSchema }),
+  z.object({ type: z.literal('custom'), days: FrequencyDaysSchema }),
 ]);
 
 const PlanStepSchema = z.object({
@@ -43,6 +54,9 @@ export const ActionProposalSchema = z.object({
   }
   if (proposal.actionType === 'add_habit' && typeof proposal.payload.name !== 'string') {
     context.addIssue({ code: z.ZodIssueCode.custom, path: ['payload', 'name'], message: 'add_habit requires payload.name' });
+  }
+  if (proposal.actionType === 'add_habit' && !FrequencyRuleSchema.safeParse(proposal.payload.frequency).success) {
+    context.addIssue({ code: z.ZodIssueCode.custom, path: ['payload', 'frequency'], message: 'add_habit requires a valid frequency rule' });
   }
   if (proposal.actionType === 'add_quest' && typeof proposal.payload.title !== 'string') {
     context.addIssue({ code: z.ZodIssueCode.custom, path: ['payload', 'title'], message: 'add_quest requires payload.title' });

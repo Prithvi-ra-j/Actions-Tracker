@@ -288,6 +288,31 @@ export function dbPut(storeName, value) {
 }
 
 /**
+ * Inserts a record without replacing an existing key.
+ * @param {string} storeName
+ * @param {object} value Must contain the store's keyPath field.
+ * @returns {Promise<IDBValidKey>}
+ */
+export function dbAdd(storeName, value) {
+  return new Promise((resolve, reject) => {
+    const tx = getDB().transaction(storeName, 'readwrite');
+    const request = tx.objectStore(storeName).add(value);
+    let key;
+    request.onsuccess = () => { key = request.result; };
+    request.onerror = (event) => {
+      if (request.error?.name === 'ConstraintError') {
+        event.preventDefault();
+        event.stopPropagation();
+      }
+      reject(request.error || new Error('Database insert request failed.'));
+    };
+    tx.oncomplete = () => resolve(key);
+    tx.onerror = () => reject(tx.error || request.error);
+    tx.onabort = () => reject(tx.error || request.error || new Error('Database insert transaction aborted.'));
+  });
+}
+
+/**
  * Deletes a record from an object store by key.
  * @param {string} storeName
  * @param {IDBValidKey} key
@@ -430,11 +455,7 @@ const ALL_STORES = [
 export async function exportDatabase() {
   const data = {};
   for (const store of ALL_STORES) {
-    try {
-      data[store] = await dbGetAll(store);
-    } catch {
-      data[store] = [];
-    }
+    data[store] = await dbGetAll(store);
   }
   return JSON.stringify({
     _meta: {
@@ -522,6 +543,24 @@ export async function importDatabase(jsonString) {
         `Backup may be corrupt. Aborting before any data was changed.`
       );
     }
+    const objectStore = getDB().transaction(store, 'readonly').objectStore(store);
+    const keyPath = objectStore.keyPath;
+    records.forEach((record, index) => {
+      if (!record || typeof record !== 'object' || Array.isArray(record)) {
+        throw new Error(`[Import] Store "${store}" record ${index} is not an object. Aborting before any data was changed.`);
+      }
+      if (typeof keyPath === 'string') {
+        const key = record[keyPath];
+        if (key === undefined || key === null) {
+          throw new Error(`[Import] Store "${store}" record ${index} is missing primary key "${keyPath}". Aborting before any data was changed.`);
+        }
+        try {
+          indexedDB.cmp(key, key);
+        } catch {
+          throw new Error(`[Import] Store "${store}" record ${index} has an invalid primary key "${keyPath}". Aborting before any data was changed.`);
+        }
+      }
+    });
     dryCounts[store] = records.length;
   }
 

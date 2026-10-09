@@ -5,7 +5,7 @@
  */
 
 import { queryLLM } from './llmClient.js';
-import { JARVIS_SYSTEM_PROMPT } from './jarvisPersona.js';
+import { JARVIS_INSIGHT_SYSTEM_PROMPT, JARVIS_SYSTEM_PROMPT } from './jarvisPersona.js';
 import { assembleContext } from './contextBuilder.js';
 import { AIInsightSchema } from './aiSchemas.js';
 import { ActionProposalSchema } from './actionSchemas.js';
@@ -14,6 +14,7 @@ import { z } from 'zod';
 
 const ConversationalResponseSchema = z.object({
   message: z.string(),
+  responseWarning: z.string().optional(),
   // LLMs commonly emit proposal:null for ordinary conversation. Treat that
   // the same as an omitted proposal instead of rejecting the whole response.
   proposal: ActionProposalSchema.nullable().optional(),
@@ -40,7 +41,9 @@ const EXISTING_ENTITY_ACTIONS = new Set([
 function normalizeActionProposal(proposal) {
   if (!proposal || typeof proposal !== 'object') return proposal;
 
-  const actionType = proposal.actionType;
+  const actionType = proposal.actionType === 'create_habit'
+    ? 'add_habit'
+    : proposal.actionType;
   const payload = { ...(proposal.payload || {}) };
 
   // Models occasionally use a nearby field name for goal title/label.
@@ -73,6 +76,7 @@ function normalizeActionProposal(proposal) {
   const confidenceNumber = Number(proposal.confidence);
   return {
     ...proposal,
+    actionType,
     id: typeof proposal.id === 'string' && proposal.id ? proposal.id : `proposal_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
     payload,
     impact,
@@ -120,6 +124,58 @@ function normalizeConversationalResponse(responseObj, modificationContext = null
   return normalized;
 }
 
+function buildContextUsed(contextText) {
+  const context = JSON.parse(contextText);
+  return {
+    contextVersion: context.context_version,
+    evidenceCount: context.recent_evidence_facts?.length ?? 0,
+    memoryCount: context.semantic_memories?.length ?? 0,
+    activeHabitCount: context.active_habits?.length ?? 0,
+    activeGoalCount: context.active_goals?.length ?? 0,
+    activeHabits: (context.active_habits || []).slice(0, 8).map(habit => ({
+      id: habit.id, name: habit.name, domain: habit.domain,
+    })),
+    activeGoals: (context.active_goals || []).slice(0, 8).map(goal => goal.title),
+    recentEvidence: (context.recent_evidence_facts || []).slice(-8).map(fact => ({
+      id: fact.id, type: fact.type, date: fact.date,
+    })),
+  };
+}
+
+function getRejectedPlainTextReply(error) {
+  if (
+    error?.status !== 400 ||
+    error?.providerCode !== 'json_validate_failed' ||
+    typeof error?.failedGeneration !== 'string'
+  ) {
+    return null;
+  }
+
+  const failedGeneration = error.failedGeneration.trim();
+  if (!failedGeneration) return null;
+
+  try {
+    const parsed = JSON.parse(failedGeneration);
+    if (typeof parsed?.message === 'string' && parsed.message.trim()) {
+      return parsed.message.trim().slice(0, 2000);
+    }
+  } catch {
+    // Some OpenAI-compatible providers return the rejected plain-text output.
+  }
+
+  return failedGeneration.slice(0, 2000);
+}
+
+function buildTextOnlyRecovery(message, contextText, warning) {
+  return {
+    message: message.trim().slice(0, 2000),
+    proposal: null,
+    claims: [],
+    responseWarning: warning,
+    contextUsed: buildContextUsed(contextText),
+  };
+}
+
 /**
  * Generates an insight based on current user context.
  * 
@@ -130,7 +186,7 @@ export async function generateInsight(userQuery = "Analyze my current state and 
   const contextText = await assembleContext('audit');
 
   const messages = [
-    { role: 'system', content: JARVIS_SYSTEM_PROMPT },
+    { role: 'system', content: JARVIS_INSIGHT_SYSTEM_PROMPT },
     { role: 'user', content: `Here is the current system state and evidence:\n\n${contextText}\n\nTask: ${userQuery}` }
   ];
 
@@ -220,10 +276,10 @@ export async function chatWithJarvis(userMessage, history = [], modificationCont
     { role: 'user', content: userMessage }
   ];
   
+  let responseObj = null;
   try {
     const requestId = globalThis.crypto?.randomUUID?.() || `jarvis_${Date.now()}`;
     const rawResponse = await queryLLM(messages, { jsonMode: true, temperature: 0.2, intent: 'jarvis_chat', mode: options.mode || 'ask', conversationId: options.conversationId || null, proposalId: modificationContext?.id || null, requestId, messages });
-    let responseObj;
     try {
       responseObj = JSON.parse(rawResponse);
     } catch (parseErr) {
@@ -235,7 +291,6 @@ export async function chatWithJarvis(userMessage, history = [], modificationCont
     // deterministically retain the target ID during proposal modifications.
     const normalized = normalizeConversationalResponse(responseObj, modificationContext);
     const validated = ConversationalResponseSchema.parse(normalized);
-    const context = JSON.parse(contextText);
     // During Jarvis onboarding, the conversation is itself collecting new user
     // information. Those answers are not yet persisted evidence, so requiring
     // evidence IDs here can reject an otherwise valid onboarding turn.
@@ -245,22 +300,29 @@ export async function chatWithJarvis(userMessage, history = [], modificationCont
 
     return {
       ...validated,
-      contextUsed: {
-        contextVersion: context.context_version,
-        evidenceCount: context.recent_evidence_facts?.length ?? 0,
-        memoryCount: context.semantic_memories?.length ?? 0,
-        activeHabitCount: context.active_habits?.length ?? 0,
-        activeGoalCount: context.active_goals?.length ?? 0,
-        activeHabits: (context.active_habits || []).slice(0, 8).map(habit => ({
-          id: habit.id, name: habit.name, domain: habit.domain,
-        })),
-        activeGoals: (context.active_goals || []).slice(0, 8).map(goal => goal.title),
-        recentEvidence: (context.recent_evidence_facts || []).slice(-8).map(fact => ({
-          id: fact.id, type: fact.type, date: fact.date,
-        })),
-      },
+      contextUsed: buildContextUsed(contextText),
     };
   } catch (err) {
+    const plainTextReply = getRejectedPlainTextReply(err);
+    if (plainTextReply) {
+      console.warn('[JarvisEngine] Provider rejected JSON output; returning a text-only reply without actions.');
+      return buildTextOnlyRecovery(
+        plainTextReply,
+        contextText,
+        'This reply came back as plain text, so Jarvis could not prepare an action. No changes were made; you can keep chatting or retry.'
+      );
+    }
+    if (err?.issues?.length && typeof responseObj?.message === 'string' && responseObj.message.trim()) {
+      const issueSummary = err.issues
+        .map(issue => `${issue.path.join('.') || 'response'} (${issue.code})`)
+        .join(', ');
+      console.warn(`[JarvisEngine] Invalid response schema; action discarded: ${issueSummary}`);
+      return buildTextOnlyRecovery(
+        responseObj.message,
+        contextText,
+        'Jarvis could not validate an action in this reply. No changes were made; the conversational text is available, and you can keep chatting or retry.'
+      );
+    }
     if (err?.issues) {
       console.error('[JarvisEngine] Chat schema validation failed:', err.issues);
     }

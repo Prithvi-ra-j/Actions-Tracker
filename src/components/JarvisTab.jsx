@@ -20,6 +20,26 @@ import './JarvisTab.css';
 
 const DEFAULT_CONVERSATION_ID = 'jarvis_default';
 const ONBOARDING_CONVERSATION_ID = 'jarvis_onboarding';
+const undoableActionTypes = new Set([
+  'add_habit',
+  'modify_habit',
+  'pause_habit',
+  'archive_habit',
+  'modify_roadmap',
+  'update_mastery_level',
+  'add_goal',
+  'modify_goal',
+  'update_experiment',
+  'add_quest',
+  'add_learning',
+  'suggest_experiment',
+  'adjust_routine',
+  'revise_target',
+  'complete_onboarding',
+  'log_evidence',
+  'propose_memory',
+  'create_plan',
+]);
 
 const MODES = [
   { id: 'ask', label: 'Ask', hint: 'Understand the system', icon: '✦' },
@@ -72,6 +92,7 @@ export default function JarvisTab({ t, isActive = true, onQuestsChanged, onboard
   const [loadingPhase, setLoadingPhase] = useState('');
   const [error, setError] = useState(null);
   const [executing, setExecuting] = useState(false);
+  const [undoingProposalId, setUndoingProposalId] = useState(null);
   const [modificationContext, setModificationContext] = useState(null);
   const [sheet, setSheet] = useState(null);
   const [conversationHistory, setConversationHistory] = useState([]);
@@ -176,10 +197,7 @@ export default function JarvisTab({ t, isActive = true, onQuestsChanged, onboard
           } catch (err) {
             if (!cancelled) {
               recordAppError(err, { source: 'jarvis_ui', operation: 'start_onboarding' });
-              const detail = err?.message
-                ? String(err.message).slice(0, 320)
-                : 'Unknown AI connection error.';
-              setError(`Jarvis could not start the onboarding interview: ${detail}`);
+              setError('Jarvis could not start the onboarding interview. Check your provider connection, then retry.');
               onboardingStartedRef.current = false;
             }
           } finally {
@@ -274,7 +292,9 @@ export default function JarvisTab({ t, isActive = true, onQuestsChanged, onboard
   const handleSend = async () => {
     if (!input.trim() || loading || !conversationReady) return;
     const msg = input.trim();
-    const newMessages = [...messages, { role: 'user', content: msg }];
+    const retryingLastTurn = messages.at(-1)?.role === 'user' && messages.at(-1)?.content === msg;
+    const history = retryingLastTurn ? messages.slice(0, -1) : messages;
+    const newMessages = retryingLastTurn ? messages : [...messages, { role: 'user', content: msg }];
     setMessages(newMessages);
     setLoading(true);
     setLoadingPhase('Thinking...');
@@ -282,7 +302,7 @@ export default function JarvisTab({ t, isActive = true, onQuestsChanged, onboard
     try {
       const response = await chatWithJarvis(
         msg,
-        messages,
+        history,
         modificationContext,
         { onboarding: activeOnboardingMode, entryContext: attachPageContext ? jarvisContext : null }
       );
@@ -293,6 +313,7 @@ export default function JarvisTab({ t, isActive = true, onQuestsChanged, onboard
           content: response.message || '',
           proposal: response.proposal,
           claims: response.claims,
+          responseWarning: response.responseWarning,
           contextUsed: response.contextUsed,
           proposalStatus: response.proposal ? 'awaiting_approval' : undefined,
         },
@@ -304,14 +325,29 @@ export default function JarvisTab({ t, isActive = true, onQuestsChanged, onboard
         messages: finalMessages,
         createdAt: createdAtRef.current
       });
+      setInput('');
     } catch (err) {
       recordAppError(err, { source: 'jarvis_ui', operation: 'send_message' });
       // Preserve the exact prompt so retry cannot silently erase user intent.
       setInput(msg);
-      const detail = err?.message ? String(err.message).slice(0, 320) : 'Unknown AI connection error.';
-      setError(activeOnboardingMode
-        ? `Jarvis encountered an error processing your onboarding answer: ${detail}`
-        : `Jarvis encountered an error processing your request: ${detail}`);
+      const providerErrorMessage = err?.status === 429
+        ? 'Jarvis is temporarily rate-limited. Wait a moment, then retry; your answer is still in the composer.'
+        : err?.status === 401
+          ? 'The AI provider rejected the saved credentials. Check the Jarvis connection settings, then retry.'
+          : err?.status === 404
+            ? 'The selected AI model is unavailable at this endpoint. Check the Jarvis connection settings.'
+            : 'Jarvis could not complete the request. Check your connection and retry.';
+      if (activeOnboardingMode) {
+        if (err?.status === 429 || err?.status === 401 || err?.status === 404) {
+            setError(providerErrorMessage);
+        } else if (err?.name === 'ZodError' || err?.issues?.length) {
+            setError('Jarvis returned a response the app could not use. Your answer is still in the composer; retry to try again.');
+        } else {
+            setError('Jarvis could not complete the request. Your answer is still in the composer; check your connection and retry.');
+        }
+      } else {
+        setError(providerErrorMessage);
+      }
     } finally {
       setLoading(false);
       setLoadingPhase('');
@@ -447,23 +483,9 @@ export default function JarvisTab({ t, isActive = true, onQuestsChanged, onboard
   const executeApprovedProposal = async (proposal) => {
     if (executing) return;
     setExecuting(true);
+    let result;
     try {
-      const result = await executeAction(proposal);
-      const updatedMessages = messages.map(m => m.proposal && m.proposal.id === proposal.id ? { ...m, proposalStatus: 'executed' } : m);
-      setMessages(updatedMessages);
-      await saveConversation({
-        id: conversationId,
-        type: 'Jarvis',
-        messages: updatedMessages,
-        createdAt: createdAtRef.current
-      });
-      if (proposal.actionType === 'add_quest' || proposal.actionType === 'modify_quest' || proposal.actionType === 'archive_quest') {
-        onQuestsChanged && onQuestsChanged();
-      }
-
-      if (activeOnboardingMode && proposal.actionType === 'complete_onboarding') {
-        onOnboardingComplete && onOnboardingComplete();
-      }
+      result = await executeAction(proposal);
     } catch (err) {
       recordAppError(err, { source: 'jarvis_ui', operation: 'execute_proposal' });
       const updatedMessages = messages.map(m => m.proposal && m.proposal.id === proposal.id
@@ -472,8 +494,71 @@ export default function JarvisTab({ t, isActive = true, onQuestsChanged, onboard
       );
       setMessages(updatedMessages);
       setError(err?.message || 'The proposal could not be applied. Your data was not changed.');
+      setExecuting(false);
+      return;
+    }
+
+    const updatedMessages = messages.map(m => m.proposal && m.proposal.id === proposal.id
+      ? { ...m, proposalStatus: 'executed', actionFactId: result.actionFactId }
+      : m
+    );
+    setMessages(updatedMessages);
+    try {
+      await saveConversation({
+        id: conversationId,
+        type: 'Jarvis',
+        messages: updatedMessages,
+        createdAt: createdAtRef.current
+      });
+    } catch (err) {
+      recordAppError(err, { source: 'jarvis_ui', operation: 'save_executed_proposal' });
+      setError('Changes were applied, but Jarvis could not save this conversation update.');
+    }
+    try {
+      if (proposal.actionType === 'add_quest' || proposal.actionType === 'modify_quest' || proposal.actionType === 'archive_quest') {
+        onQuestsChanged && onQuestsChanged();
+      }
+      if (activeOnboardingMode && proposal.actionType === 'complete_onboarding') {
+        onOnboardingComplete && onOnboardingComplete();
+      }
+    } catch (err) {
+      recordAppError(err, { source: 'jarvis_ui', operation: 'refresh_after_proposal' });
+      setError('Changes were applied, but the affected view could not refresh.');
     } finally {
       setExecuting(false);
+    }
+  };
+
+  const undoExecutedProposal = async message => {
+    const { proposal, actionFactId } = message;
+    if (!proposal || !actionFactId || undoingProposalId === proposal.id) return;
+    setUndoingProposalId(proposal.id);
+    try {
+      await undoAction(actionFactId);
+    } catch (err) {
+      recordAppError(err, { source: 'jarvis_ui', operation: 'undo_proposal' });
+      setError(err?.message || 'The change could not be undone.');
+      setUndoingProposalId(null);
+      return;
+    }
+
+    const updatedMessages = messages.map(item => item.proposal?.id === proposal.id
+      ? { ...item, proposalStatus: 'undone' }
+      : item
+    );
+    setMessages(updatedMessages);
+    try {
+      await saveConversation({
+        id: conversationId,
+        type: 'Jarvis',
+        messages: updatedMessages,
+        createdAt: createdAtRef.current,
+      });
+    } catch (err) {
+      recordAppError(err, { source: 'jarvis_ui', operation: 'save_undone_proposal' });
+      setError('The change was undone, but Jarvis could not save this conversation update.');
+    } finally {
+      setUndoingProposalId(null);
     }
   };
 
@@ -868,6 +953,23 @@ export default function JarvisTab({ t, isActive = true, onQuestsChanged, onboard
                       </p>
                     )}
 
+                    {msg.responseWarning && (
+                      <div
+                        role="status"
+                        style={{
+                          margin: '0 0 10px 12px',
+                          padding: '9px 11px',
+                          borderRadius: '10px',
+                          background: 'var(--s1)',
+                          color: 'var(--mu)',
+                          fontSize: '12px',
+                          lineHeight: 1.45,
+                        }}
+                      >
+                        {msg.responseWarning}
+                      </div>
+                    )}
+
                     {/* Trust rail for inferred */}
                     {msg.inferred && (
                       <p style={{
@@ -926,6 +1028,14 @@ export default function JarvisTab({ t, isActive = true, onQuestsChanged, onboard
                       <ActionProposalCard
                         proposal={msg.proposal}
                         status={msg.proposalStatus}
+                        onUndo={
+                          msg.proposalStatus === 'executed' &&
+                          msg.actionFactId &&
+                          undoableActionTypes.has(msg.proposal.actionType) &&
+                          undoingProposalId !== msg.proposal.id
+                            ? () => undoExecutedProposal(msg)
+                            : undefined
+                        }
                         onApply={() => setSelectedProposalForImpact({ proposal: msg.proposal, impact: msg.proposal.impact })}
                         onEdit={() => setSelectedProposalForEdit(msg.proposal)}
                         onDismiss={async () => {
@@ -978,42 +1088,46 @@ export default function JarvisTab({ t, isActive = true, onQuestsChanged, onboard
       {error && (
         <div
           className="jarvis-screen__error"
+          role="alert"
           style={{
             margin: '0 14px 8px',
             padding: '12px 14px',
             flex: '0 0 auto',
             borderRadius: 'var(--r-container)',
           background: 'var(--s1)',
-          boxShadow: 'inset 4px 0 0 var(--danger)',
+          boxShadow: 'inset 0 0 0 1px var(--danger)',
           fontSize: '13px',
           color: 'var(--tx)',
         }}>
           {activeOnboardingMode ? (
             <>
-              <strong>Jarvis couldn't start onboarding.</strong>
+              <strong>{input.trim() ? "Jarvis couldn't process that answer." : "Jarvis couldn't start onboarding."}</strong>
               <div style={{ marginTop: '5px', color: 'var(--mu)' }}>{error}</div>
             </>
           ) : (
             <>
-              <strong>The change wasn't applied.</strong> Your existing data is unchanged.
+              <strong>Jarvis couldn't complete that reply.</strong> Your message is still in the composer; no changes were made.
+              <div style={{ marginTop: '5px', color: 'var(--mu)' }}>{error}</div>
             </>
           )}
           <div style={{ display: 'flex', gap: '8px', marginTop: '10px' }}>
             <button
               onClick={() => {
                 setError(null);
-                if (activeOnboardingMode) {
+                if (input.trim() && !loading) {
+                  handleSend();
+                } else if (activeOnboardingMode) {
                   onboardingStartedRef.current = false;
                   setOnboardingRetryNonce(value => value + 1);
                 }
               }}
-              style={{ flex: 1, height: '40px', borderRadius: 'var(--r-control)', background: 'var(--ac)', color: 'var(--on-ac)', border: 'none', fontSize: '13px', fontWeight: 600, cursor: 'pointer' }}
+              style={{ flex: 1, minHeight: '44px', borderRadius: 'var(--r-control)', background: 'var(--ac)', color: 'var(--on-ac)', border: 'none', fontSize: '13px', fontWeight: 600, cursor: 'pointer' }}
             >
               Retry
             </button>
             <button
               onClick={() => setError(null)}
-              style={{ flex: 1, height: '40px', borderRadius: 'var(--r-control)', background: 'var(--s2)', color: 'var(--tx)', border: 'none', fontSize: '13px', fontWeight: 500, cursor: 'pointer' }}
+              style={{ flex: 1, minHeight: '44px', borderRadius: 'var(--r-control)', background: 'var(--s2)', color: 'var(--tx)', border: 'none', fontSize: '13px', fontWeight: 500, cursor: 'pointer' }}
             >
               Dismiss
             </button>
