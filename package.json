@@ -11,6 +11,7 @@
     "cap:android": "npx cap open android",
     "test:roundtrip": "node scripts/test-roundtrip.mjs",
     "test": "vitest run",
+    "test:e2e": "playwright test",
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage"
   },
@@ -33,6 +34,7 @@
   },
   "devDependencies": {
     "@capacitor/cli": "^6.0.0",
+    "@playwright/test": "^1.63.0",
     "@testing-library/dom": "^10.4.2",
     "@testing-library/react": "^16.3.3",
     "@testing-library/user-event": "^14.6.7",

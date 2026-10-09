@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { ActionProposalSchema } from '../../src/core/ai/actionSchemas.js';
+import { JARVIS_SYSTEM_PROMPT } from '../../src/core/ai/jarvisPersona.js';
 
 const impact = {
   affectedDomains: [],
@@ -44,5 +45,26 @@ describe('Jarvis action contracts', () => {
 
   it('rejects an empty plan', () => {
     expect(() => proposal('create_plan', { steps: [] })).toThrow();
+  });
+
+  it('accepts a complete onboarding payload with the required fields', () => {
+    expect(proposal('complete_onboarding', {
+      identity: { name: 'QA profile' },
+      focusAxes: ['knowledge'],
+      desiredSelf: { vision: 'Study consistently', dimensions: {} },
+    }).actionType).toBe('complete_onboarding');
+  });
+
+  it('rejects incomplete onboarding payloads', () => {
+    expect(() => proposal('complete_onboarding', { identity: {} })).toThrow();
+  });
+
+  it('tells Jarvis to interview one question at a time and defines onboarding fields', () => {
+    expect(JARVIS_SYSTEM_PROMPT).toContain('Ask exactly one focused follow-up question per turn.');
+    expect(JARVIS_SYSTEM_PROMPT).toContain('For conversational turns, proposal must be null.');
+    expect(JARVIS_SYSTEM_PROMPT).toContain('actionType must exactly match one of:');
+    expect(JARVIS_SYSTEM_PROMPT).toContain('"add_habit", not "create_habit"');
+    expect(JARVIS_SYSTEM_PROMPT).toContain('"focusAxes": ["knowledge"]');
+    expect(JARVIS_SYSTEM_PROMPT).toContain('"desiredSelf"');
   });
 });

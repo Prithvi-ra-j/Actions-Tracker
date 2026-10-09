@@ -33,6 +33,7 @@ describe('UI Journeys', () => {
         request.onblocked = () => reject(new Error(`Database deletion blocked: ${db.name}`));
       });
     }
+    localStorage.setItem('actions_tracker_fresh_start_2026_09_26', '1');
     await initDB();
     await clearSecureValue('aiApiKey');
     await setSecureValue('aiApiKey', 'test-api-key');
@@ -324,6 +325,89 @@ describe('UI Journeys', () => {
     expect(dockedJarvisBtn).toBeTruthy();
     fireEvent.click(dockedJarvisBtn);
     expect(await screen.findByPlaceholderText(/Tell Jarvis what you want/i)).toBeTruthy();
+  });
+
+  it('retries a failed Jarvis request with the original prompt', async () => {
+    const jarvisEngine = await import('../../src/core/ai/jarvisEngine.js');
+    const chatSpy = vi.spyOn(jarvisEngine, 'chatWithJarvis')
+      .mockRejectedValueOnce(new Error('provider unavailable'))
+      .mockResolvedValueOnce({ message: 'Recovered response', proposal: null, claims: [], contextUsed: [] });
+    await addLog({
+      axis: 'body',
+      type: 'manual_evidence',
+      value: 1,
+      date: '2026-10-02',
+      meta: { content: 'Retry journey fixture' },
+    });
+    render(<JarvisTab />);
+    expect(await screen.findByText('Recent activity')).toBeTruthy();
+    const composer = await screen.findByRole('combobox', { name: 'Tell Jarvis what you want' });
+    const prompt = 'Help me adjust my morning routine';
+    fireEvent.change(composer, { target: { value: prompt } });
+    fireEvent.click(screen.getByRole('button', { name: 'Send' }));
+
+    expect(await screen.findByText("Jarvis couldn't complete that reply.")).toBeTruthy();
+    expect(composer.value).toBe(prompt);
+    expect(screen.getByText(prompt)).toBeTruthy();
+    fireEvent.click(screen.getByRole('button', { name: 'Retry' }));
+
+    expect(await screen.findByText('Recovered response')).toBeTruthy();
+    expect(chatSpy).toHaveBeenCalledTimes(2);
+    expect(chatSpy.mock.calls[1][0]).toBe(prompt);
+    expect(chatSpy.mock.calls[1][1]).toEqual([]);
+    await waitFor(() => expect(composer.value).toBe(''));
+  });
+
+  it('retries an invalid onboarding reply with an accessible, useful error', async () => {
+    const jarvisEngine = await import('../../src/core/ai/jarvisEngine.js');
+    const schemaError = new Error('complete_onboarding requires identity');
+    schemaError.name = 'ZodError';
+    const chatSpy = vi.spyOn(jarvisEngine, 'chatWithJarvis')
+      .mockResolvedValueOnce({ message: 'What is your name?', proposal: null, claims: [], contextUsed: [] })
+      .mockRejectedValueOnce(schemaError)
+      .mockResolvedValueOnce({ message: 'Which area matters most to you?', proposal: null, claims: [], contextUsed: [] });
+    render(<JarvisTab onboardingMode />);
+
+    expect(await screen.findByText('What is your name?')).toBeTruthy();
+    const composer = await screen.findByRole('combobox', { name: 'Tell Jarvis what you want' });
+    const answer = 'QA test profile';
+    fireEvent.change(composer, { target: { value: answer } });
+    fireEvent.click(screen.getByRole('button', { name: 'Send' }));
+
+    const errorAlert = await screen.findByRole('alert');
+    expect(errorAlert.textContent).toContain('Jarvis returned a response the app could not use.');
+    expect(errorAlert.textContent).not.toContain('complete_onboarding requires identity');
+    expect(composer.value).toBe(answer);
+    fireEvent.click(screen.getByRole('button', { name: 'Retry' }));
+
+    expect(await screen.findByText('Which area matters most to you?')).toBeTruthy();
+    expect(chatSpy).toHaveBeenCalledTimes(3);
+    expect(chatSpy.mock.calls[2][0]).toBe(answer);
+    expect(chatSpy.mock.calls[2][1]).toHaveLength(1);
+    expect(chatSpy.mock.calls[2][1][0]).toMatchObject({ role: 'assistant', content: 'What is your name?' });
+    await waitFor(() => expect(composer.value).toBe(''));
+  });
+
+  it('shows a warning for text-only provider replies recovered by Jarvis', async () => {
+    const jarvisEngine = await import('../../src/core/ai/jarvisEngine.js');
+    vi.spyOn(jarvisEngine, 'chatWithJarvis')
+      .mockResolvedValueOnce({ message: 'What is your name?', proposal: null, claims: [], contextUsed: [] })
+      .mockResolvedValueOnce({
+        message: 'What usually keeps you up at night?',
+        proposal: null,
+        claims: [],
+        contextUsed: [],
+        responseWarning: 'This reply came back as plain text, so Jarvis could not prepare an action. No changes were made; you can keep chatting or retry.',
+      });
+    render(<JarvisTab onboardingMode />);
+
+    expect(await screen.findByText('What is your name?')).toBeTruthy();
+    const composer = await screen.findByRole('combobox', { name: 'Tell Jarvis what you want' });
+    fireEvent.change(composer, { target: { value: 'I keep going to bed late.' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Send' }));
+
+    expect(await screen.findByText('What usually keeps you up at night?')).toBeTruthy();
+    expect((await screen.findByRole('status')).textContent).toContain('No changes were made');
   });
 
   it('filters and selects Jarvis slash commands with the keyboard', async () => {

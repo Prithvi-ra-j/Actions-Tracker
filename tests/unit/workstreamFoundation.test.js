@@ -32,6 +32,8 @@ describe('workstream foundation', () => {
     expect(parsed.getFullYear()).toBe(2024);
     expect(parsed.getMonth()).toBe(1);
     expect(parsed.getDate()).toBe(29);
+    expect(parseLocalDate('2026-02-31')).toBeNull();
+    expect(parseLocalDate('2026-13-01')).toBeNull();
 
     expect(addDays('2024-02-28', 1)).toBe('2024-02-29');
     expect(subtractDays('2024-03-01', 1)).toBe('2024-02-29');

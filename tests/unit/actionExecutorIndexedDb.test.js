@@ -8,6 +8,9 @@ import { getRoutineConfig } from '../../src/database/routineRepository.js';
 import { getAllFacts } from '../../src/database/factsRepository.js';
 import { getSetting, setSetting } from '../../src/database/settingsRepository.js';
 import { getSemanticMemories } from '../../src/database/memoryRepository.js';
+import { getAllGoals } from '../../src/database/goalsRepository.js';
+import { getProposalExecution } from '../../src/database/proposalExecutionRepository.js';
+import { localDateStr } from '../../src/helpers/dateHelpers.js';
 
 const impact = {
   affectedDomains: ['creativity'],
@@ -20,18 +23,33 @@ const impact = {
 };
 
 describe('actionExecutor IndexedDB integration', () => {
-  it('persists an approved habit, occurrence, routine slot, and audit fact', async () => {
+  it('persists the approved habit schedule, target, cue, routine slot, and audit fact', async () => {
     await initDB();
     const id = `e2e-habit-${Date.now()}`;
+    const today = new Date();
+    const daysUntilTuesday = (2 - today.getDay() + 7) % 7;
+    const firstOccurrenceDate = localDateStr(new Date(
+      today.getFullYear(),
+      today.getMonth(),
+      today.getDate() + daysUntilTuesday
+    ));
     const result = await executeAction({
       actionType: 'add_habit',
       payload: {
         id,
         name: 'IndexedDB test habit',
         domain: 'creativity',
-        frequency: { type: 'daily' },
-        durationMinutes: 20,
-        routineSlot: { day: [1], startTime: '20:00' },
+        frequency: { type: 'weekly', days: [2, 4] },
+        target: { value: 30, unit: 'minutes' },
+        durationMinutes: 30,
+        implementationIntention: {
+          anchor: 'After work',
+          behavior: 'Go to the gym',
+          location: 'Local gym',
+          timeSlot: 'Tuesday and Thursday at 19:00',
+        },
+        routineSlot: { days: [2, 4], startTime: '19:00', duration: 30 },
+        firstOccurrenceDate,
         masteryRoadmap: { currentLevel: 1, levels: [{ level: 1, name: 'Start' }] },
         identityVote: 'I finish what I start',
         tinyVersion: 'One line',
@@ -42,10 +60,24 @@ describe('actionExecutor IndexedDB integration', () => {
     });
 
     expect(result.id).toBe(id);
-    expect((await getHabit(id)).masteryRoadmap.currentLevel).toBe(1);
-    expect((await getHabit(id)).identityVote).toBe('I finish what I start');
+    const habit = await getHabit(id);
+    expect(habit.masteryRoadmap.currentLevel).toBe(1);
+    expect(habit.identityVote).toBe('I finish what I start');
+    expect(habit.frequency).toEqual({ type: 'weekly', days: [2, 4] });
+    expect(habit.target).toEqual({ value: 30, unit: 'minutes' });
+    expect(habit.implementationIntention).toMatchObject({
+      anchor: 'After work',
+      behavior: 'Go to the gym',
+      location: 'Local gym',
+      timeSlot: 'Tuesday and Thursday at 19:00',
+    });
     expect((await getOccurrencesForHabit(id)).length).toBeGreaterThan(0);
-    expect((await getRoutineConfig()).timeSlots.some(slot => slot.habitId === id)).toBe(true);
+    expect((await getRoutineConfig()).timeSlots.some(slot =>
+      slot.habitId === id
+      && slot.duration === 30
+      && slot.startTime === '19:00'
+      && slot.days?.join(',') === '2,4'
+    )).toBe(true);
     expect((await getAllFacts()).some(fact => fact.type === 'jarvis_action.add_habit' && fact.objectId === id)).toBe(true);
   });
 
@@ -96,6 +128,29 @@ describe('actionExecutor IndexedDB integration', () => {
     const actionFact = (await getAllFacts()).find(fact => fact.type === 'jarvis_action.add_habit' && fact.objectId === id);
     await undoAction(actionFact.id);
     expect((await getHabit(id)).status).toBe('archived');
+  });
+
+  it('rolls back a failed plan and records the parent execution as failed', async () => {
+    await initDB();
+    const proposalId = `failed-plan-${Date.now()}`;
+    const goalLabel = `Rolled back plan goal ${Date.now()}`;
+
+    await expect(executeAction({
+      id: proposalId,
+      actionType: 'create_plan',
+      payload: {
+        steps: [
+          { actionType: 'add_goal', payload: { label: goalLabel, title: goalLabel } },
+          { actionType: 'modify_goal', payload: { id: 'missing-plan-goal', label: 'Updated' } },
+        ],
+      },
+      impact,
+      reasoning: 'Rollback integration test',
+      confidence: 1,
+    })).rejects.toThrow('rolled back');
+
+    expect((await getAllGoals()).some(goal => goal.label === goalLabel)).toBe(false);
+    expect((await getProposalExecution(`proposal:${proposalId}:apply`)).status).toBe('failed');
   });
 
   it('executes the remaining declared action types through repositories', async () => {

@@ -25,6 +25,16 @@ describe('proposal execution ledger', () => {
     expect((await getProposalExecution('proposal:A:apply')).status).toBe('applying');
   });
 
+  it('allows only one creator when the same proposal starts concurrently', async () => {
+    const attempts = await Promise.all([
+      beginProposalExecution({ idempotencyKey: 'proposal:concurrent:apply', proposalId: 'concurrent', actionType: 'add_goal' }),
+      beginProposalExecution({ idempotencyKey: 'proposal:concurrent:apply', proposalId: 'concurrent', actionType: 'add_goal' }),
+    ]);
+
+    expect(attempts.filter(attempt => attempt.created)).toHaveLength(1);
+    expect((await getProposalExecution('proposal:concurrent:apply')).status).toBe('applying');
+  });
+
   it('persists the applied result for replay', async () => {
     await beginProposalExecution({ idempotencyKey: 'proposal:B:apply', proposalId: 'B', actionType: 'add_goal' });
     await finishProposalExecution('proposal:B:apply', { status: 'applied', result: { id: 'goal-1' } });

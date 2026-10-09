@@ -8,7 +8,7 @@ on:
 
 jobs:
   test:
-    name: Unit + Property + Scenario Tests
+    name: Tests + Build + Browser E2E
     runs-on: ubuntu-latest
 
     steps:
@@ -24,8 +24,26 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      - name: Audit production dependencies
+        run: npm audit --omit=dev --audit-level=high
+
       - name: Run tests
         run: npm test
 
       - name: Build (smoke test — ensure no import errors)
         run: npm run build
+
+      - name: Install Playwright Chromium
+        run: npx playwright install --with-deps chromium
+
+      - name: Run critical browser journeys
+        run: npm run test:e2e
+
+      - name: Upload browser test evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: browser-test-evidence
+          path: test-results/
+          if-no-files-found: ignore
+          retention-days: 14

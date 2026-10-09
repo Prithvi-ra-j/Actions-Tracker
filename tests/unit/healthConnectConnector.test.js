@@ -48,4 +48,10 @@ describe('HealthConnectConnector', () => {
     expect(result.facts).toEqual([]);
     expect(result.cursor).toBe('2026-09-19T00:00:00Z');
   });
+
+  it('does not report a web plugin shim as an available native provider', async () => {
+    const connector = new HealthConnectConnector();
+
+    expect(await connector.getStatus()).toBe('disconnected');
+  });
 });
