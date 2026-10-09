@@ -12,8 +12,8 @@ The system uses an RPG-like axis model to track progression:
 - **Discipline**: Habit consistency, routine, and self-control.
 
 ## Core Features
-- **Local-First & Offline**: All data is stored in IndexedDB on the device. There is no cloud backend, no account to create, and no central server that can be breached. Data is fully yours.
-- **Jarvis Engine**: A local AI connector that provides pattern detection, daily feedback, and anomaly detection based on your raw daily telemetry.
+- **Local-First & Offline**: Personal app data is stored in IndexedDB on the device, and core local workflows do not require an account. If Jarvis is enabled, prompts and selected context are sent to the configured AI provider, directly or through the optional server gateway.
+- **Jarvis Engine**: An optional AI assistant for contextual feedback and proposals. Provider calls require an internet connection and send the request context to the configured provider.
 - **Daily Check-Ins**: Fast, frictionless entry for daily non-negotiable habits.
 - **RPG Progression**: Activities log points ("Evidence") against your stats, automatically leveling up your stats and providing a gamified loop.
 - **Automatic Backup**: Backups are periodically exported as a JSON file to the device's file system for safekeeping against data corruption or app uninstalls.
@@ -24,7 +24,7 @@ The system uses an RPG-like axis model to track progression:
 - **Container**: Capacitor v6 for native Android features (File System, Notifications, Status Bar, Secure Storage)
 
 ## Setup and Build
-**Requirements:** Node 20+
+**Requirements:** Node 22+
 
 ```bash
 # Install dependencies
