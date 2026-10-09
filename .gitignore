@@ -45,3 +45,10 @@ github_secrets.md
 keystore_b64.txt
 *.b64
 
+
+# Planning docs, reference notes, screenshots and local tooling
+ACTIONS-TRACKER-2.0-MASTER-BLUEPRINT.md
+TESTING-IMPLEMENTATION-PLAN.md
+references/
+impeccable-skills/
+live images/
