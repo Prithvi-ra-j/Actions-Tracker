@@ -2,7 +2,7 @@
 import 'fake-indexeddb/auto';
 import React from 'react';
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import { render, screen, fireEvent, cleanup, waitFor } from '@testing-library/react';
+import { render, screen, fireEvent, cleanup, waitFor, within } from '@testing-library/react';
 import App from '../../src/App.jsx';
 import JarvisTab from '../../src/components/JarvisTab.jsx';
 import { clearSecureValue, getSecureValue, setSecureValue } from '../../src/native/secureStorage.js';
@@ -13,6 +13,7 @@ import { getAllGoals } from '../../src/database/goalsRepository.js';
 import { addLearning, getAllLearnings } from '../../src/database/learningRepository.js';
 import { addAudit, getLatestAudit } from '../../src/database/auditRepository.js';
 import { saveConversation } from '../../src/database/jarvisConversationRepository.js';
+import { addHabit } from '../../src/database/habitRepository.js';
 
 // Wait until the bootstrap finished and the loading splash is gone.
 async function waitForApp() {
@@ -88,9 +89,23 @@ describe('UI Journeys', () => {
       value: 1,
       date: '2026-09-25',
     });
+
     render(<App />);
     fireEvent.click(await waitForApp());
     expect(await screen.findByRole('heading', { name: 'Stats' })).toBeTruthy();
+  });
+
+  it('updates discipline in Stats after completing a habit without logs', async () => {
+    await addHabit({ name: 'Walk today', domain: 'body', frequency: { type: 'daily' } });
+    render(<App />);
+    await waitForApp();
+    const row = screen.getByText('Walk today').parentElement.parentElement;
+    fireEvent.click(within(row).getByRole('checkbox'));
+
+    await waitFor(() => {
+      expect(screen.getByRole('img', { name: 'Character stats radar chart', hidden: true })
+        .querySelector('desc').textContent).toContain('Discipline: 99');
+    });
   });
 
   it('saves Today evidence to IndexedDB with its selected axis and type', async () => {

@@ -213,7 +213,7 @@ export default function StatsTab({
   }
 
   const totalLogs = allLogs?.length || 0;
-  if (totalLogs === 0) {
+  if (totalLogs === 0 && !Object.values(stats).some(value => value > 0)) {
     return (
       <div style={{ padding: '16px' }}>
         <EmptyState

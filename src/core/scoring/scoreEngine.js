@@ -24,6 +24,7 @@ import { createScoreProjection, createLowCoverageProjection } from '../../models
 import { createEvidence }                    from '../../models/evidenceSchema.js';
 
 import { calcAxisStat } from '../../helpers/statsEngine.js';
+import { localDateStr } from '../../helpers/dateHelpers.js';
 import { getAllLogs } from '../../database/logsRepository.js';
 import { getAllAxisConfigs } from '../../database/axisConfigRepository.js';
 import { getAllQuests } from '../../database/questBoardRepository.js';
@@ -41,6 +42,10 @@ import { getAllLearnings }        from '../../database/learningRepository.js';
 import { getAllBooks }            from '../../database/booksRepository.js';
 
 const SCORE_ENGINE_VERSION = '1.0';
+
+function periodDate(value) {
+  return /^\d{4}-\d{2}-\d{2}$/.test(value) ? value : localDateStr(new Date(value));
+}
 
 // ─── Public API ────────────────────────────────────────────────────────────────
 
@@ -112,7 +117,7 @@ async function _buildProjection(domain, period) {
   const axisHabits = allHabits.filter(h => h.domain === domain && h.status === 'active');
   
   // Get canonical score from the pure math engine
-  const canonicalValue = calcAxisStat(domain, axisLogs, axisConfig, axisQuests, period.end, axisHabits);
+  const canonicalValue = calcAxisStat(domain, axisLogs, axisConfig, axisQuests, periodDate(period.end), axisHabits);
 
   let projection;
   switch (domain) {
@@ -153,7 +158,7 @@ async function _buildProjection(domain, period) {
   
   // Step 7: Plateau Detection
   const allSnapshots = await getAllSnapshots();
-  const todayDate = new Date(period.end + 'T00:00:00');
+  const todayDate = new Date(periodDate(period.end) + 'T00:00:00');
   const fourWeeksAgo = new Date(todayDate);
   fourWeeksAgo.setDate(fourWeeksAgo.getDate() - 28);
   
@@ -192,9 +197,12 @@ async function _buildDisciplineProjection(period) {
   for (const habit of activeHabits) {
     const occs = await getOccurrencesForHabit(habit.id);
     // Filter to period
-    const inWindow = occs.filter(o =>
-      o.scheduledFor >= period.start && o.scheduledFor <= period.end
-    );
+    const startDate = periodDate(period.start);
+    const endDate = periodDate(period.end);
+    const inWindow = occs.filter(o => {
+      const date = o.scheduledFor.split('T')[0];
+      return date >= startDate && date <= endDate;
+    });
     allOccurrences.push(...inWindow);
   }
 

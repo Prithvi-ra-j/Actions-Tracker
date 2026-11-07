@@ -14,8 +14,8 @@ The system uses an RPG-like axis model to track progression:
 ## Core Features
 - **Local-First & Offline**: Personal app data is stored in IndexedDB on the device, and core local workflows do not require an account. If Jarvis is enabled, prompts and selected context are sent to the configured AI provider, directly or through the optional server gateway.
 - **Jarvis Engine**: An optional AI assistant for contextual feedback and proposals. Provider calls require an internet connection and send the request context to the configured provider.
-- **Daily Check-Ins**: Fast, frictionless entry for daily non-negotiable habits.
-- **RPG Progression**: Activities log points ("Evidence") against your stats, automatically leveling up your stats and providing a gamified loop.
+- **Daily Check-Ins**: Complete today's scheduled habits, with earlier unresolved occurrences available separately.
+- **Stat Progression**: Stats are derived from recorded activity and habit outcomes, with a ceremony when a stat crosses a title threshold. There is no XP ledger.
 - **Automatic Backup**: Backups are periodically exported as a JSON file to the device's file system for safekeeping against data corruption or app uninstalls.
 
 ## Technical Stack

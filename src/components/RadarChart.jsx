@@ -1,25 +1,23 @@
 import React, { useMemo } from 'react';
-import { ACCENT } from '../constants.js';
 
 /**
  * RadarChart — SVG hexagonal radar chart (spec §9).
  *
  * Props:
- *   stats        — { strength, discipline, knowledge, wisdom, creativity, strategy }  current (0–99)
+ *   stats        — values for the six life dimensions (0–99)
  *   snapshot     — same shape, last weekly snapshot (or null) → historical overlay
  *   targets      — same shape, year-end targets → target overlay
- *   dark         — boolean, controls label colours
  *   size         — optional SVG width/height (default 300)
  */
 
 // Axis order clockwise from top (spec §9)
 const AXES = [
-  { key: 'body',   label: 'Body',   color: '#c1442c' },
-  { key: 'discipline', label: 'Discipline', color: '#c1442c' },
-  { key: 'knowledge',  label: 'Knowledge',  color: '#4a7ba6' },
-  { key: 'social',     label: 'Social',     color: '#4a7ba6' },
-  { key: 'creativity', label: 'Creativity', color: '#d99a2b' },
-  { key: 'strategy',   label: 'Strategy',   color: '#4f8a5f' },
+  { key: 'body',       label: 'Body',       color: 'var(--body)' },
+  { key: 'discipline', label: 'Discipline', color: 'var(--discipline)' },
+  { key: 'knowledge',  label: 'Knowledge',  color: 'var(--knowledge)' },
+  { key: 'social',     label: 'Social',     color: 'var(--social)' },
+  { key: 'creativity', label: 'Creativity', color: 'var(--creativity)' },
+  { key: 'strategy',   label: 'Strategy',   color: 'var(--strategy)' },
 ];
 
 const MAX_VALUE = 99;
@@ -49,10 +47,10 @@ function hexPoints(cx, cy, r) {
   }).join(' ');
 }
 
-export default function RadarChart({ stats = {}, snapshot = null, targets = null, dark = false, size = 300 }) {
+export default function RadarChart({ stats = {}, snapshot = null, targets = null, size = 300 }) {
   const cx = size / 2;
-  const cy = size / 2 - 4; // slight upward shift so bottom labels fit
-  const maxR = size * 0.36; // slightly inside to leave room for labels
+  const cy = size / 2;
+  const maxR = size * 0.28;
 
   // Label positions — pushed out beyond the max ring
   const labelOffset = maxR * 1.22;
@@ -73,10 +71,9 @@ export default function RadarChart({ stats = {}, snapshot = null, targets = null
   const snapshotPts = snapshot ? statsToPoints(cx, cy, maxR, snapshot) : null;
   const targetPts   = targets  ? statsToPoints(cx, cy, maxR, targets)  : null;
 
-  const gridColor  = dark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.06)';
-  const axisColor  = dark ? 'rgba(255,255,255,0.10)' : 'rgba(0,0,0,0.08)';
-  const labelColor = dark ? 'rgba(255,255,255,0.65)' : 'rgba(0,0,0,0.55)';
-  const ringLabelColor = dark ? 'rgba(255,255,255,0.25)' : 'rgba(0,0,0,0.20)';
+  const gridColor = 'var(--hairline)';
+  const axisColor = 'var(--mu)';
+  const ringLabelColor = 'var(--mu)';
 
   return (
     <svg
@@ -97,7 +94,7 @@ export default function RadarChart({ stats = {}, snapshot = null, targets = null
           key={v}
           points={hexPoints(cx, cy, (v / MAX_VALUE) * maxR)}
           fill="none"
-          stroke={v === 99 ? (dark ? 'rgba(255,255,255,0.14)' : 'rgba(0,0,0,0.12)') : gridColor}
+          stroke={v === 99 ? axisColor : gridColor}
           strokeWidth={v === 99 ? 1.5 : 1}
         />
       ))}
@@ -136,7 +133,7 @@ export default function RadarChart({ stats = {}, snapshot = null, targets = null
         <polygon
           points={targetPts}
           fill="none"
-          stroke={ACCENT}
+          stroke="var(--ac)"
           strokeWidth={1}
           strokeDasharray="4 3"
           opacity={0.45}
@@ -147,8 +144,9 @@ export default function RadarChart({ stats = {}, snapshot = null, targets = null
       {snapshotPts && (
         <polygon
           points={snapshotPts}
-          fill={dark ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.04)'}
-          stroke={dark ? 'rgba(255,255,255,0.22)' : 'rgba(0,0,0,0.18)'}
+          fill="var(--mu)"
+          fillOpacity={0.04}
+          stroke="var(--mu)"
           strokeWidth={1}
           strokeDasharray="2 3"
         />
@@ -157,9 +155,9 @@ export default function RadarChart({ stats = {}, snapshot = null, targets = null
       {/* ── Current stats polygon ─────────────────────────────────────────── */}
       <polygon
         points={currentPts}
-        fill={ACCENT}
+        fill="var(--ac)"
         fillOpacity={0.18}
-        stroke={ACCENT}
+        stroke="var(--ac)"
         strokeWidth={2}
         strokeLinejoin="round"
       />
@@ -173,8 +171,8 @@ export default function RadarChart({ stats = {}, snapshot = null, targets = null
             key={key}
             cx={p.x} cy={p.y}
             r={3}
-            fill={ACCENT}
-            stroke={dark ? '#141210' : '#f7f3ec'}
+            fill="var(--ac)"
+            stroke="var(--bg)"
             strokeWidth={1.5}
           />
         );
@@ -183,13 +181,9 @@ export default function RadarChart({ stats = {}, snapshot = null, targets = null
       {/* ── Axis labels ───────────────────────────────────────────────────── */}
       {axisEndpoints.map(({ key, label, color, lx, ly, angle }) => {
         // Determine text-anchor and vertical alignment based on angle position
-        const deg = (angle * 180) / Math.PI;
         let anchor = 'middle';
-        if (deg < -60) anchor = 'middle';           // top
-        else if (deg < 20) anchor = 'start';         // right side
-        else if (deg < 120) anchor = 'middle';        // bottom
-        else anchor = 'end';                          // left side
-        if (deg > 170 || deg < -120) anchor = 'end'; // top-left
+        if (Math.cos(angle) > 0.1) anchor = 'start';
+        else if (Math.cos(angle) < -0.1) anchor = 'end';
 
         const val = Math.round(stats[key] ?? 0);
 
@@ -202,7 +196,6 @@ export default function RadarChart({ stats = {}, snapshot = null, targets = null
               fontSize="7.5"
               fontFamily="monospace"
               letterSpacing="0.08em"
-              textTransform="uppercase"
               fill={color}
               fontWeight="bold"
             >
@@ -215,7 +208,7 @@ export default function RadarChart({ stats = {}, snapshot = null, targets = null
               fontSize="9"
               fontFamily="monospace"
               fontWeight="900"
-              fill={dark ? 'rgba(255,255,255,0.85)' : 'rgba(0,0,0,0.80)'}
+              fill="var(--tx)"
             >
               {val}
             </text>

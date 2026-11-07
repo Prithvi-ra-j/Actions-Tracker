@@ -1,5 +1,5 @@
 import React, { useState, useCallback } from 'react';
-import { formatDisplayDate } from '../helpers/dateHelpers.js';
+import { formatDisplayDate, localDateStr } from '../helpers/dateHelpers.js';
 import { getGracePrompt } from '../core/occurrenceEngine.js';
 import { BottomSheet } from './ui/Overlays.jsx';
 import { Button } from './ui/Buttons.jsx';
@@ -53,7 +53,7 @@ function SquareCheckbox({ checked, onChange, disabled }) {
   );
 }
 
-function QuestRow({ occ, onComplete, onTap }) {
+function QuestRow({ occ, onComplete, onTap, showDate = false }) {
   const isDone = occ.status === 'completed';
   const isExcused = occ.status === 'excused';
   const axisColor = AXIS_COLORS[occ.axis?.toLowerCase()] || 'var(--mu)';
@@ -89,6 +89,11 @@ function QuestRow({ occ, onComplete, onTap }) {
         }}>
           {occ.habitTitle || 'Habit'}
         </div>
+        {showDate && (
+          <div style={{ fontSize: '12px', color: 'var(--mu)' }}>
+            {formatDisplayDate(occ.scheduledFor.split('T')[0])}
+          </div>
+        )}
         {axisLabel && (
           <div style={{
             fontFamily: "'Geist Mono', monospace",
@@ -159,6 +164,7 @@ function MainQuestCard({ quest }) {
 
 export default function TodayTab({
   t,
+  today = localDateStr(),
   todayOccurrences,
   onCompleteOccurrence,
   onExcuseOccurrence,
@@ -179,7 +185,11 @@ export default function TodayTab({
   const mainQuest = allQuests?.find(q => q.status === 'active' && q.priority === 'main')
     || allQuests?.find(q => q.status === 'active');
 
-  const occurrences = todayOccurrences || [];
+  const occurrences = (todayOccurrences || []).filter(occ => occ.scheduledFor.split('T')[0] === today);
+  const earlierOccurrences = (todayOccurrences || []).filter(occ => {
+    const date = occ.scheduledFor.split('T')[0];
+    return date < today && (occ.status === 'expected' || occ.status === 'unknown');
+  });
   const overloaded = occurrences.length > 6;
 
   const handleComplete = useCallback((id) => {
@@ -256,6 +266,21 @@ export default function TodayTab({
           </div>
         )}
 
+        {earlierOccurrences.length > 0 && (
+          <details style={{ marginTop: '16px', color: 'var(--mu)' }}>
+            <summary style={{ cursor: 'pointer', fontSize: '13px' }}>Earlier occurrences</summary>
+            {earlierOccurrences.map(occ => (
+              <QuestRow
+                key={occ.id}
+                occ={occ}
+                showDate
+                onComplete={handleComplete}
+                onTap={setSelectedHabit}
+              />
+            ))}
+          </details>
+        )}
+
         {/* Main Quest Card */}
         <MainQuestCard quest={mainQuest} />
 
@@ -305,6 +330,11 @@ export default function TodayTab({
             <div style={{ fontSize: '14px', color: 'var(--mu)', fontFamily: "'Geist Mono', monospace" }}>
               {selectedHabit.axis} • Status: {selectedHabit.status}
             </div>
+            {getGracePrompt(selectedHabit.status, selectedHabit.graceState) && (
+              <div style={{ fontSize: '13px', color: 'var(--mu)' }}>
+                {getGracePrompt(selectedHabit.status, selectedHabit.graceState)}
+              </div>
+            )}
 
             {selectedHabit.status !== 'completed' && selectedHabit.status !== 'excused' && (
               <div style={{ display: 'flex', gap: '10px' }}>

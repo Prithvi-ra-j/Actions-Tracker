@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useCallback, useMemo, useRef } from 'react';
 import { THEMES, ACCENT } from './constants.js';
-import { localDateStr }   from './helpers/dateHelpers.js';
+import { localDateStr, subtractDays } from './helpers/dateHelpers.js';
 import { getGraceState } from './core/occurrenceEngine.js';
 
 // ── Database ──────────────────────────────────────────────────────────────────
@@ -70,9 +70,7 @@ const TABS = [
 const TOTAL_TARGETS = 16;
 
 function daysAgoDate(dateStr, days) {
-  const date = new Date(`${dateStr}T00:00:00`);
-  date.setDate(date.getDate() - days);
-  return date.toISOString().split('T')[0];
+  return subtractDays(dateStr, days);
 }
 
 async function loadEnrichedOccurrences(startDate, endDate, currentDate) {
@@ -85,6 +83,7 @@ async function loadEnrichedOccurrences(startDate, endDate, currentDate) {
     return {
       ...occurrence,
       habitTitle: habit?.name || 'Unknown Habit',
+      axis: habit?.domain,
       graceState: getGraceState(scheduledDate, currentDate).state,
     };
   }));
@@ -615,22 +614,24 @@ export default function App() {
       setCompletionFeedback({ habitTitle: occurrence?.habitTitle || 'Habit completed' });
       // Refresh today's occurrences
       setTodayOccurrences(await loadEnrichedOccurrences(daysAgoDate(today, 2), today, today));
+      await recomputeStats();
     } catch (err) {
       console.error('[App] handleCompleteOccurrence failed:', err);
     } finally {
       completingOccurrences.current.delete(id);
     }
-  }, [today, todayOccurrences]);
+  }, [today, todayOccurrences, recomputeStats]);
 
   const handleExcuseOccurrence = useCallback(async (id, reason) => {
     try {
       const { excuseOccurrence } = await import('./database/habitOccurrenceRepository.js');
       await excuseOccurrence(id, reason);
       setTodayOccurrences(await loadEnrichedOccurrences(daysAgoDate(today, 2), today, today));
+      await recomputeStats();
     } catch (err) {
       console.error('[App] handleExcuseOccurrence failed:', err);
     }
-  }, [today]);
+  }, [today, recomputeStats]);
 
   const handleOccurrenceReason = useCallback(async (id, reason) => {
     try {
@@ -758,6 +759,7 @@ export default function App() {
       <div style={{ display: tab === 'daily' ? 'block' : 'none' }}>
         <TodayTab
           t={t}
+          today={today}
           todayOccurrences={todayOccurrences}
           onAddEvidence={handleAddEvidence}
           allQuests={allQuests}
