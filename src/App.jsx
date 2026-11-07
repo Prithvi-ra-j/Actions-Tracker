@@ -1,4 +1,4 @@
-import { lazy, Suspense, useEffect, useState, useCallback, useMemo } from 'react';
+import React, { lazy, Suspense, useEffect, useState, useCallback, useMemo } from 'react';
 import { THEMES, ACCENT } from './constants.js';
 import { localDateStr, subtractDays } from './helpers/dateHelpers.js';
 import { loadEnrichedOccurrences } from './core/appData.js';

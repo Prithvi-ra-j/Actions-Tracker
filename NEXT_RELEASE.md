@@ -6,7 +6,7 @@ This is the release checklist. A green web build does not satisfy the Android ar
 `1.6.0.0` (four-part project version; expected Android versionCode: `1006000000`)
 
 ## Status
-`IN PROGRESS` — automated checks pass; Android artifact and device/provider gates are not verified.
+`IN PROGRESS` — automated checks pass; the Android artifact and device/provider gates are not verified.
 
 ## Current scope
 
@@ -15,6 +15,7 @@ This is the release checklist. A green web build does not satisfy the Android ar
 | Automated tests pass; device QA pending | Jarvis conversation history, new chat, contextual entry, data-backed home/review/plan surfaces, proposal review, and keyboard-accessible slash commands | UI journeys and action contract tests pass; verify on Android. |
 | Automated tests pass; device QA pending | Goal create/edit/pause lifecycle and Learn topic/practice flows | IndexedDB UI journeys pass; verify on Android. |
 | Automated tests pass; device QA pending | Audit ignore/restore, backup import confirmation, and editable provider settings | UI journey tests pass; verify on Android. |
+| Browser checks pass; broader accessibility QA pending | Skip navigation, main landmark, mobile navigation semantics, update notice keyboard access | Browser smoke at 393px; verify visual layouts at target widths and on Android/TalkBack. |
 
 ## Known blockers and unverified behavior
 
@@ -27,9 +28,10 @@ This is the release checklist. A green web build does not satisfy the Android ar
 
 ## Automated checks
 
-- [x] `npm test` — 58 files, 363 tests passed (2026-11-08; rerun after final edits)
-- [x] `npm run build` passed; initial JavaScript entry has a 200 KiB gzip budget (2026-11-08; rerun after final edits)
-- [x] `npm run test:e2e` — 5 browser journeys passed, including mobile keyboard skip-navigation (2026-11-08)
+- [x] `npm test` — 58 files, 363 tests passed (2026-11-08)
+- [x] `npm run build` and `npm run check:bundle` — passed; initial JavaScript entry is 187.5 KiB gzip against a 200 KiB budget (2026-11-08)
+- [x] `npm run test:e2e` — 5/5 browser journeys passed, including mobile keyboard skip-navigation (2026-11-08)
+- [x] `npm run lint` — 0 errors; 70 existing warnings remain and are not suppressed (2026-11-08)
 - [ ] Manual Android build workflow completed and APK artifact verified
 
 ## Device checklist (must be completed before tagging)
