@@ -64,8 +64,6 @@ async function run() {
     // Check tier crossovers
     let lastTier = '';
     let crossoverDownCount = 0;
-    let maxTier = '';
-    
     for (let i = 0; i < history.length; i++) {
        const tier = getThresholdTitle(axis, Math.round(history[i]));
        if (tier !== lastTier && lastTier !== '') {
@@ -77,7 +75,7 @@ async function run() {
        // simplistic max tier (not perfectly ordered, but good enough for finding 'Sage' or 'Elite')
        // Actually let's just track the string at max value
     }
-    maxTier = getThresholdTitle(axis, Math.round(max));
+    const maxTier = getThresholdTitle(axis, Math.round(max));
 
     return { max, min, final, crossoverDownCount, maxTier, history };
   }

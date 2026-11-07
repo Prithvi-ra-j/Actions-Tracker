@@ -122,7 +122,7 @@ test('preserves the sync cursor and prior success across failure and retry', asy
   });
 
   await testLab.open('/');
-  await expect(page.getByRole('tab', { name: 'Stats' })).toBeVisible({ timeout: 60_000 });
+  await expect(page.getByRole('button', { name: 'Stats' })).toBeVisible({ timeout: 60_000 });
 
   await page.getByRole('button', { name: 'Open Settings' }).click();
   await page.getByRole('button', { name: /Integrations/ }).click();

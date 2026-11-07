@@ -32,18 +32,18 @@ test('captures interaction metrics and test-clock time without recording typed v
     }));
   });
   await testLab.open('/');
-  await expect(page.getByRole('tab', { name: 'Stats' })).toBeVisible({ timeout: 60_000 });
+  await expect(page.getByRole('button', { name: 'Stats' })).toBeVisible({ timeout: 60_000 });
   expect(await page.evaluate(() => new Date().toISOString().slice(0, 16))).toBe('2026-10-02T02:30');
 
   const fixture = buildFixture('inconsistent-user-v3');
   expect(await testLab.seedFixture(fixture)).toEqual({ logs: 127, goals: 4 });
   await page.reload();
-  await expect(page.getByRole('tab', { name: 'Stats' })).toBeVisible({ timeout: 60_000 });
+  await expect(page.getByRole('button', { name: 'Stats' })).toBeVisible({ timeout: 60_000 });
   const snapshot = await testLab.readIndexedDbSnapshot();
   expect(snapshot.stores.logs.filter(log => log.meta?.fixtureId === fixture.id)).toHaveLength(127);
   expect(snapshot.stores.lifeObjects.filter(goal => goal.source === 'testlab')).toHaveLength(4);
 
-  await page.getByRole('tab', { name: 'Stats' }).dispatchEvent('click');
+  await page.getByRole('button', { name: 'Stats' }).dispatchEvent('click');
   await testLab.failRequests('**/__testlab-controlled-failure');
   const failedFetch = await page.evaluate(async () => {
     try {

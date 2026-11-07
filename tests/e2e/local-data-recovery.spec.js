@@ -52,7 +52,7 @@ test('migrated local data remains after recording evidence and reloading', async
   }, migratedDate);
 
   await testLab.open('/');
-  await expect(page.getByRole('tab', { name: 'Stats' })).toBeVisible({ timeout: 60_000 });
+  await expect(page.getByRole('button', { name: 'Stats' })).toBeVisible({ timeout: 60_000 });
   expect(pageErrors).toEqual([]);
   await expect.poll(async () => (
     (await readLogs(page)).some(log => log.date === migratedDate && log.meta?.task === 'body')
@@ -77,7 +77,7 @@ test('migrated local data remains after recording evidence and reloading', async
   await testLab.checkpoint('evidence-saved');
 
   await page.reload();
-  await expect(page.getByRole('tab', { name: 'Stats' })).toBeVisible({ timeout: 60_000 });
+  await expect(page.getByRole('button', { name: 'Stats' })).toBeVisible({ timeout: 60_000 });
   await expect.poll(async () => (
     (await readLogs(page)).some(log => log.meta?.content === evidenceText)
   ), { timeout: 30_000 }).toBe(true);

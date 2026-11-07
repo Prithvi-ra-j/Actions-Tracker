@@ -6,11 +6,13 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
+    "check:bundle": "node scripts/check-entry-bundle.mjs",
     "preview": "vite preview",
     "cap:sync": "npx cap sync",
     "cap:android": "npx cap open android",
     "test:roundtrip": "node scripts/test-roundtrip.mjs",
     "test": "vitest run",
+    "lint": "eslint .",
     "test:e2e": "playwright test",
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage"
@@ -34,13 +36,17 @@
   },
   "devDependencies": {
     "@capacitor/cli": "^6.0.0",
+    "@eslint/js": "^10.0.1",
     "@playwright/test": "^1.63.0",
     "@testing-library/dom": "^10.4.2",
     "@testing-library/react": "^16.3.3",
     "@testing-library/user-event": "^14.6.7",
     "@vitejs/plugin-react": "^4.3.1",
+    "eslint": "^10.14.0",
+    "eslint-plugin-react-hooks": "^7.1.1",
     "fake-indexeddb": "^6.2.5",
     "fast-check": "^3.22.0",
+    "globals": "^17.14.0",
     "jsdom": "^29.1.1",
     "vite": "^5.4.10",
     "vitest": "^2.1.0"

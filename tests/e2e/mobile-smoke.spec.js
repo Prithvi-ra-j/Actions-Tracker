@@ -33,9 +33,18 @@ test('renders and navigates at the narrow mobile viewport', async ({ page, testL
   });
 
   await testLab.open('/');
-  await expect(page.getByRole('tab', { name: 'Stats' })).toBeVisible({ timeout: 60_000 });
+  await expect(page.getByRole('button', { name: 'Stats' })).toBeVisible({ timeout: 60_000 });
   expect(await page.evaluate(() => [window.innerWidth, window.innerHeight])).toEqual([393, 851]);
-  await page.getByRole('tab', { name: 'Stats' }).click();
+  await expect(page.getByRole('main')).toBeVisible();
+  const skipLink = page.getByRole('link', { name: 'Skip to main content' });
+  await page.keyboard.press('Tab');
+  await expect(skipLink).toBeFocused();
+  await page.keyboard.press('Enter');
+  await expect(page.getByRole('main')).toBeFocused();
+
+  const statsButton = page.getByRole('button', { name: 'Stats' });
+  await statsButton.click();
   await expect(page.getByRole('heading', { name: 'Stats' })).toBeVisible();
+  await expect(statsButton).toHaveAttribute('aria-current', 'page');
   await testLab.checkpoint('mobile-stats');
 });

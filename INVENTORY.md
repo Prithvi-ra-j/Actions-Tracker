@@ -1,6 +1,6 @@
 # INVENTORY.md — Actions-Tracker (v1.5.0 in `package.json`)
 
-Read-only audit; no source code was changed. Generated 2026-11-07.
+Repository inventory started as a read-only audit on 2026-11-07. Screen loading, update-notice wiring, and related dead code were rechecked on 2026-11-08.
 
 ## How to read this document
 
@@ -11,14 +11,14 @@ Read-only audit; no source code was changed. Generated 2026-11-07.
 | **[S]** | Reported by a sub-agent that read the files and cited lines. I spot-checked some claims, not all. |
 | **[U]** | UNVERIFIED. Inferred from names/comments, or not read. |
 
-Not done: I did **not** run the app, the test suite, a build, or any device/provider check. No git repo is present (`.git` absent), so there is no history to consult.
+The original audit did **not** run the app, test suite, build, or device/provider checks. The current worktree has Git history available.
 The import-graph script cannot see dynamically built import paths or reflection. "Unreachable" below means "no static import path from `src/main.jsx`". A file in the import graph can still be unrendered (see §1).
 
 ---
 
 ## 1. Screens / routes
 
-There is **no router**. Navigation is a `tab` state in [App.jsx](src/App.jsx) rendered inside [AppShell.jsx](src/components/AppShell.jsx). All tab pages stay mounted and are hidden with `display:none` [R]. Settings is a full-screen swap (`showSettings`) [R].
+There is **no router**. Navigation is a `tab` state in [App.jsx](src/App.jsx) rendered inside [AppShell.jsx](src/components/AppShell.jsx). Screens are lazy-loaded on first visit, then stay mounted and hidden with the HTML `hidden` attribute [R]. Settings is a full-screen swap (`showSettings`) [R].
 
 ### Reachable screens
 
@@ -43,15 +43,14 @@ There is **no router**. Navigation is a `tab` state in [App.jsx](src/App.jsx) re
 |---|---|
 | [NavDrawer.jsx](src/components/NavDrawer.jsx) | Imported in App.jsx:41 and `showNavDrawer` state exists, but `<NavDrawer` is never rendered. [R/G] |
 | [ReviewPrompt.jsx](src/components/ReviewPrompt.jsx) | Imported (App.jsx:39), never rendered. [G] |
-| [UpdateBanner.jsx](src/components/UpdateBanner.jsx) | Imported (App.jsx:51); `updateInfo` is set from `checkForUpdate()`, but the banner is never rendered, so update notices are invisible. [G] |
 | [BookTracker.jsx](src/components/BookTracker.jsx) | No importer. [G] |
-| [ArchetypeCompiler.jsx](src/components/ArchetypeCompiler.jsx), [InsightsInbox.jsx](src/components/InsightsInbox.jsx), [SundayReflection.jsx](src/components/SundayReflection.jsx), [ProfileTab.jsx](src/components/ProfileTab.jsx), [StatHistoryModal.jsx](src/components/StatHistoryModal.jsx), [EvidencePrompt.jsx](src/components/EvidencePrompt.jsx), [HabitRoadmapEditor.jsx](src/components/HabitRoadmapEditor.jsx), [JarvisRender.jsx](src/components/JarvisRender.jsx), [ui/ActionPrimitives.jsx](src/components/ui/ActionPrimitives.jsx) | No importer. [G] Purposes inferred from filenames only [U]. |
+| [ArchetypeCompiler.jsx](src/components/ArchetypeCompiler.jsx), [InsightsInbox.jsx](src/components/InsightsInbox.jsx), [SundayReflection.jsx](src/components/SundayReflection.jsx), [ProfileTab.jsx](src/components/ProfileTab.jsx), [StatHistoryModal.jsx](src/components/StatHistoryModal.jsx), [EvidencePrompt.jsx](src/components/EvidencePrompt.jsx), [HabitRoadmapEditor.jsx](src/components/HabitRoadmapEditor.jsx), [ui/ActionPrimitives.jsx](src/components/ui/ActionPrimitives.jsx) | No importer. [G] Purposes inferred from filenames only [U]. |
 | [dev/PrimitivesDevPage.jsx](src/components/dev/PrimitivesDevPage.jsx), [dev/TokensDevPage.jsx](src/components/dev/TokensDevPage.jsx) | No importer and no route. [G] |
 
 **Props passed but ignored (dead wiring) [R]:**
 - `LearnTab` is passed `books`, `onAddBook`, `onStartBook`, `onUpdatePages`, `onFinishBook`; its signature accepts none of them (LearnTab.jsx:269). There is therefore **no reachable UI to add or progress a book**.
 - `SettingsTab` is passed `dark`, `setDark`, `todayRecord`, `onRunSync`; its signature takes only `t, onClose, reminders, onSaveReminders` (SettingsTab.jsx:7). It imports `runAllSyncs` itself.
-- `TodayTab` is not given `handleDailyToggle`. The legacy 4-checkbox daily UI (body/philosophy/art/history) has no screen. `handleDailyToggle`, `handleGoalToggle`, `handleMilestoneToggle` in App.jsx are unused. [R/G]
+- `TodayTab` is not given a daily-checkbox handler. The legacy 4-checkbox daily UI (body/philosophy/art/history) has no screen; the unused daily, goal, and milestone toggle handlers were removed. [R]
 
 ---
 
@@ -191,7 +190,7 @@ Hard-coded duplicates [S]: default axis config in both `axisConfigRepository.js`
 | **Jarvis / AI provider** ([llmClient.js](src/core/ai/llmClient.js), [jarvisEngine.js](src/core/ai/jarvisEngine.js), [contextBuilder.js](src/core/ai/contextBuilder.js)) | App → provider. POSTs system prompt, conversation history, built context, user message, model, temperature, token limit. Context includes self model, score snapshot, active goals/habits, routine config, experiments, semantic memories and **recent evidence facts** (so health/steps and journal-type content can be sent) [S]. Provider response → proposals. | OpenAI-compatible endpoint (default Groq). API key in `secureStorage` (native secure plugin, local fallback on web). base URL / model / gateway in IndexedDB `settings`. [S] | Fully wired in the UI. Settings toggles `jarvisSendPageContext`, `jarvisSaveMemories` exist [R]; whether they filter the payload is [U]. |
 | **Server gateway** ([api/jarvis.js](api/jarvis.js), 80 lines) | App → your server → provider. Forwards arbitrary `messages` using server-side `AI_PROVIDER_API_KEY` / `GROQ_API_KEY`. [S] | Server env | Optional. **No authentication is visible in the handler** [S]: if deployed publicly it would proxy anyone's prompts on your key. Deployment exposure is [U]. |
 | **Jarvis write surface** ([actionSchemas.js](src/core/ai/actionSchemas.js)) | 18 action types: `add_habit, modify_habit, pause_habit, archive_habit, add_quest, modify_roadmap, adjust_routine, update_mastery_level, add_learning, suggest_experiment, revise_target, log_evidence, propose_memory, create_plan, complete_onboarding, add_goal, modify_goal, update_experiment`. Needs explicit approval; `undoAction` supported; idempotency in `proposalExecutions`. [S] | n/a | Wired. |
-| **Update checker** ([updateChecker.js](src/core/updateChecker.js)) | App → `api.github.com/repos/Prithvi-ra-j/Actions-Tracker/releases?per_page=1`, unauthenticated, cached 6 h in `sessionStorage` [S]. Called at boot (App.jsx:~290, [R]). | none | Fetched but **result never displayed** (UpdateBanner not rendered). |
+| **Update checker** ([updateChecker.js](src/core/updateChecker.js)) | App → `api.github.com/repos/Prithvi-ra-j/Actions-Tracker/releases?per_page=1`, unauthenticated, cached 6 h in `sessionStorage` [S]. Called at boot (App.jsx, [R]). | [UpdateBanner.jsx](src/components/UpdateBanner.jsx) | Update notices render as a live status with keyboard-operable release and dismiss buttons. |
 | **Local notifications / filesystem backup / haptics / status bar / secure storage** | Device-local. Backup writes `ActionsTracker_Latest_Backup.json` to Documents [R: backupService.js:5]. | n/a | Wired [S]. |
 | **Service worker / PWA** | [public/sw.js](public/sw.js) exists; [main.jsx](src/main.jsx) states it is intentionally **not registered**. Manifest is linked. [R/S] | n/a | `sw.js` is dead. README still calls the app a "PWA" with offline PWA behaviour [R]. |
 
@@ -205,7 +204,7 @@ Explicit `TODO/FIXME/HACK` markers: **none** found in `src` (grep). The items be
 `core/ai/feedbackEngine.js` (only imported by dead InsightsInbox), `core/evidence/evidenceQuery.js`, `core/domain/domainEvents.js` (test only), `core/scoring/calibration.js` and `scoringContracts.js` (test only), `data/quotes.js` (**4,747 lines, no importer**), `data/starterPack.js` (no importer), `database/{appMetaRepository (test only), commit, creativeWorkRepository, decisionRepository, gymSessionsRepository, observationRepository}.js`, `helpers/rpgEngine.js`, `models/{creativeWorkSchema, decisionSchema, factSchema, habitSchema, observationSchema}.js`, `scripts/dummyDataGenerator.js`, `theme.js`.
 Note: `models/factSchema.js` (the `buildFact` validator) has **no importer** [G], so facts are validated by whatever `factsRepository.addFact` does [U: not read].
 
-**Dead handlers/state in App.jsx [R]:** `handleDailyToggle`, `handleGoalToggle`, `handleMilestoneToggle`, `handleStartBook`, `TOTAL_TARGETS`, `doneTargets`, `showNavDrawer`/`NavDrawer`, `ReviewPrompt`, `UpdateBanner`, `hasSundayReflection`.
+**Remaining dead handlers/state in App.jsx [R]:** `handleStartBook`, `TOTAL_TARGETS`, `doneTargets`, `showNavDrawer`/`NavDrawer`, `ReviewPrompt`. The unused daily/goal/milestone toggle handlers, `UpdateBanner` omission, and orphaned `JarvisRender.jsx` were removed or corrected during the 2026-11-08 quality pass.
 
 **Half-built:**
 - Books: store, repo and UI exist, but UI is not reachable (§1).

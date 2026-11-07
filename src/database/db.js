@@ -493,7 +493,7 @@ export async function importDatabase(jsonString) {
   try {
     parsed = JSON.parse(jsonString);
   } catch (e) {
-    throw new Error(`[Import] JSON parse failed: ${e.message}`);
+    throw new Error(`[Import] JSON parse failed: ${e.message}`, { cause: e });
   }
 
   if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {

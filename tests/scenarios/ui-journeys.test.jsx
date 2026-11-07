@@ -18,7 +18,7 @@ import { addHabit } from '../../src/database/habitRepository.js';
 // Wait until the bootstrap finished and the loading splash is gone.
 async function waitForApp() {
   // The tab bar only exists once dbReady is true.
-  return screen.findByRole('tab', { name: 'Stats' }, { timeout: 15000 });
+  return screen.findByRole('button', { name: 'Stats' }, { timeout: 15000 });
 }
 
 describe('UI Journeys', () => {
@@ -101,6 +101,7 @@ describe('UI Journeys', () => {
     await waitForApp();
     const row = screen.getByText('Walk today').parentElement.parentElement;
     fireEvent.click(within(row).getByRole('checkbox'));
+    fireEvent.click(screen.getByRole('button', { name: 'Stats' }));
 
     await waitFor(() => {
       expect(screen.getByRole('img', { name: 'Character stats radar chart', hidden: true })
@@ -182,8 +183,8 @@ describe('UI Journeys', () => {
     });
     render(<App />);
     await waitForApp();
-    fireEvent.click(screen.getByRole('tab', { name: 'Learn' }));
-    fireEvent.click(screen.getByText('Reasoning practice'));
+    fireEvent.click(screen.getByRole('button', { name: 'Learn' }));
+    fireEvent.click(await screen.findByText('Reasoning practice'));
     fireEvent.change(screen.getByLabelText('Practice note'), {
       target: { value: 'Applied the idea to a planning problem.' },
     });
@@ -205,7 +206,7 @@ describe('UI Journeys', () => {
     await addLog({ axis: 'knowledge', type: 'manual_evidence', value: 1, date: '2026-09-26' });
     render(<App />);
     await waitForApp();
-    fireEvent.click(screen.getByRole('tab', { name: 'Learn' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Learn' }));
     fireEvent.click(screen.getByRole('button', { name: 'Add topic' }));
     fireEvent.change(screen.getByLabelText('Learning topic'), { target: { value: 'Clear reasoning' } });
     fireEvent.change(screen.getByLabelText('Learning objective'), { target: { value: 'Explain arguments accurately' } });
@@ -229,7 +230,7 @@ describe('UI Journeys', () => {
     await addGoal({ label: 'Run a 10K', domain: 'body', targets: [] });
     render(<App />);
     await waitForApp();
-    fireEvent.click(screen.getByRole('tab', { name: 'Goals' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Goals' }));
     fireEvent.click(await screen.findByText('Run a 10K'));
     fireEvent.click(screen.getByRole('button', { name: 'Ask about this goal' }));
 
@@ -267,7 +268,7 @@ describe('UI Journeys', () => {
     render(<App />);
     await waitForApp();
     fireEvent.click(screen.getByRole('button', { name: 'Open Settings' }));
-    fireEvent.click(screen.getByText('Data'));
+    fireEvent.click(await screen.findByText('Data'));
     fireEvent.change(screen.getByLabelText('Choose backup file'), {
       target: { files: [new File(['{}'], 'backup.json', { type: 'application/json' })] },
     });
@@ -308,7 +309,7 @@ describe('UI Journeys', () => {
     });
     render(<App />);
     await waitForApp();
-    fireEvent.click(screen.getByRole('tab', { name: 'Audits' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Audits' }));
     fireEvent.click(await screen.findByText('Training schedule conflicts with available time.'));
     fireEvent.click(screen.getByRole('button', { name: 'Ignore finding' }));
     fireEvent.click(screen.getByRole('button', { name: 'Already handled' }));

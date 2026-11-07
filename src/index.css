@@ -45,6 +45,22 @@
   border-radius: 4px;
 }
 
+.skip-link {
+  position: fixed;
+  top: 8px;
+  left: 8px;
+  z-index: 100;
+  padding: 10px 14px;
+  border-radius: var(--r-control);
+  background: var(--s1);
+  color: var(--tx);
+  transform: translateY(-160%);
+}
+
+.skip-link:focus {
+  transform: translateY(0);
+}
+
 /* Base body styles using tokens */
 body {
   background-color: var(--bg);

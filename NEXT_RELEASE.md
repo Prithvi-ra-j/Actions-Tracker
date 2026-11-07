@@ -23,12 +23,13 @@ This is the release checklist. A green web build does not satisfy the Android ar
 | Release blocker | Android APK artifact | Not built locally; Android SDK is not configured. The manual build workflow has not been dispatched. |
 | Release blocker | Android/device and provider checks | Not run in this task. Health Connect, live Supabase/NutriLift, TalkBack, and in-place upgrade/data preservation remain unverified. |
 | Implementation gap | Jarvis correction/recovery details, experiment/result cards, audit-specific view, offline/provider recovery, and long-thread scrolling | Still need dedicated acceptance tests and visual review. |
-| Implementation gap | Cross-app visual/accessibility pass | 360/390/432px visual checks, focus restoration, reduced motion, and 130% text scale are not recorded. |
+| Implementation gap | Cross-app visual/accessibility pass | Browser smoke now verifies the main landmark, skip link, mobile navigation, and selected-page announcement at 393px; 360/390/432px visual checks, focus restoration, reduced motion, 130% text scale, and Android TalkBack remain unverified. |
 
 ## Automated checks
 
-- [x] `npm test` — 44 files, 279 tests passed (2026-09-26)
-- [x] `npm run build` passed (2026-09-26)
+- [x] `npm test` — 58 files, 363 tests passed (2026-11-08; rerun after final edits)
+- [x] `npm run build` passed; initial JavaScript entry has a 200 KiB gzip budget (2026-11-08; rerun after final edits)
+- [x] `npm run test:e2e` — 5 browser journeys passed, including mobile keyboard skip-navigation (2026-11-08)
 - [ ] Manual Android build workflow completed and APK artifact verified
 
 ## Device checklist (must be completed before tagging)

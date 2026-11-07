@@ -226,13 +226,7 @@ async function _buildKnowledgeProjection(period) {
   const learnings = await getAllLearnings();
 
   // 3. Load books
-  let books = [];
-  try {
-    books = await getAllBooks();
-  } catch {
-    // booksRepository may not export getAllBooks — graceful degrade
-    books = [];
-  }
+  const books = await getAllBooks().catch(() => []);
 
   // 4. Collect signals from domain engine
   const signals = knowledgeEngine.collectSignals({ facts, learnings, books });

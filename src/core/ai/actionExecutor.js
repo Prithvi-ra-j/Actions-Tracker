@@ -412,7 +412,7 @@ export async function executeAction(proposal) {
         for (const childFactId of [...childActionFactIds].reverse()) {
           try { await undoAction(childFactId); } catch (rollbackError) { console.error('[actionExecutor] Plan rollback failed:', rollbackError); }
         }
-        throw new Error(`Plan failed and completed steps were rolled back: ${error.message}`);
+        throw new Error(`Plan failed and completed steps were rolled back: ${error.message}`, { cause: error });
       }
       result = { ...result, id: `plan_${Date.now()}`, childActionFactIds, childResults };
       break;

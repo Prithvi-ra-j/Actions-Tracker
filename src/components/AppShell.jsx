@@ -39,6 +39,8 @@ export default function AppShell({
         overflow: currentTab === 'jarvis' ? 'hidden' : undefined,
       }}
     >
+      <a className="skip-link" href="#main-content">Skip to main content</a>
+
       {/* App header — sticky. Hidden on Jarvis tab (it has its own inline header) */}
       {currentTab !== 'jarvis' && (
         <AppHeader
@@ -83,7 +85,7 @@ export default function AppShell({
 
 
       {/* Page content — padded so nothing hides under nav or pill */}
-      <div style={{
+      <main id="main-content" tabIndex="-1" style={{
         flex: 1,
         position: 'relative',
         minHeight: 0,
@@ -95,7 +97,7 @@ export default function AppShell({
           : 'calc(64px + 58px + env(safe-area-inset-bottom, 0px))',
       }}>
         {children}
-      </div>
+      </main>
 
       {/* Docked "Ask Jarvis" pill — accent, 44px, 14px above bar, right edge */}
       {currentTab !== 'jarvis' && (
@@ -136,8 +138,7 @@ export default function AppShell({
       )}
 
       {/* Bottom Tab Bar — 64px, 5 tabs, icon + label */}
-      <div
-        role="tablist"
+      <nav
         aria-label="Main navigation"
         style={{
           position: 'fixed',
@@ -158,8 +159,7 @@ export default function AppShell({
             <button
               key={tab.id}
               id={`tab-${tab.id}`}
-              role="tab"
-              aria-selected={active}
+              aria-current={active ? 'page' : undefined}
               aria-label={tab.label}
               onClick={() => onTabChange(tab.id)}
               style={{
@@ -192,7 +192,7 @@ export default function AppShell({
             </button>
           );
         })}
-      </div>
+      </nav>
     </div>
   );
 }

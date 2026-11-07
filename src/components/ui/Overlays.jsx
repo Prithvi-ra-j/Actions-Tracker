@@ -61,7 +61,7 @@ export function ConfirmDialog({ isOpen, onClose, onConfirm, title, description, 
   const [progress, setProgress] = useState(0);
 
   useEffect(() => {
-    let timer, frame;
+    let frame;
     if (holding) {
       const start = Date.now();
       const duration = 600; // 600ms hold-to-confirm
@@ -83,7 +83,6 @@ export function ConfirmDialog({ isOpen, onClose, onConfirm, title, description, 
     }
     return () => {
       cancelAnimationFrame(frame);
-      clearTimeout(timer);
     };
   }, [holding, onConfirm]);
 

@@ -17,7 +17,9 @@ function decodeCursor(cursor) {
   try {
     const parsed = JSON.parse(cursor);
     if (parsed?.sourceUpdatedAt && parsed?.externalId) return parsed;
-  } catch {}
+  } catch {
+    // Older backups may contain an opaque timestamp-only cursor.
+  }
   // Backward compatibility with the previous timestamp-only cursor.
   return { sourceUpdatedAt: cursor, externalId: '' };
 }

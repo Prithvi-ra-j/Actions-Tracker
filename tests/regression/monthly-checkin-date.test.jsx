@@ -49,7 +49,7 @@ describe('Monthly check-in date validation regression', () => {
 
     render(<App />);
     
-    await screen.findByRole('tab', { name: 'Stats' }, { timeout: 15000 });
+    await screen.findByRole('button', { name: 'Stats' }, { timeout: 15000 });
     
     expect(screen.queryByText(/Monthly Check-In/i)).toBeNull();
   }, 20_000);

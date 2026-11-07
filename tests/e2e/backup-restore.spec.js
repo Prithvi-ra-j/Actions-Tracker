@@ -59,7 +59,7 @@ test('exports and restores data into a clean profile without leaving the old loc
     }));
   });
   await testLab.open('/');
-  await expect(page.getByRole('tab', { name: 'Stats' })).toBeVisible({ timeout: 60_000 });
+  await expect(page.getByRole('button', { name: 'Stats' })).toBeVisible({ timeout: 60_000 });
   await expect.poll(async () => (await readLogs(page)).some(log => (
     log.date === '2026-10-02' && log.meta?.task === 'body'
   ))).toBe(true);
@@ -87,7 +87,7 @@ test('exports and restores data into a clean profile without leaving the old loc
       }));
     });
     await restoreLab.open('/');
-    await expect(cleanPage.getByRole('tab', { name: 'Stats' })).toBeVisible({ timeout: 60_000 });
+    await expect(cleanPage.getByRole('button', { name: 'Stats' })).toBeVisible({ timeout: 60_000 });
     await expect.poll(async () => (await readLogs(cleanPage)).some(log => (
       log.date === '2026-10-01' && log.meta?.task === 'body'
     ))).toBe(true);
