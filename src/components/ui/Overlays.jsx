@@ -32,6 +32,10 @@ export function BottomSheet({ isOpen, onClose, title, children }) {
         style={{
           position: 'fixed',
           left: 0, right: 0, bottom: 0,
+          maxHeight: 'calc(100dvh - env(safe-area-inset-top, 0px) - 12px)',
+          overflowY: 'auto',
+          overscrollBehavior: 'contain',
+          boxSizing: 'border-box',
           backgroundColor: 'var(--s1)',
           borderTopLeftRadius: 'var(--r-sheet)',
           borderTopRightRadius: 'var(--r-sheet)',

@@ -9,7 +9,8 @@ export default function OnboardingFlow({ t, onComplete }) {
         width: '100%',
         height: '100dvh',
         minHeight: '100dvh',
-        overflow: 'hidden',
+        overflowX: 'hidden',
+        overflowY: 'auto',
         background: 'var(--bg)',
         color: 'var(--tx)',
       }}
