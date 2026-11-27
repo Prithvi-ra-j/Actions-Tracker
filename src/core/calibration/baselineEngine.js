@@ -99,8 +99,31 @@ export function computeGrowthOverview({ habits, occurrences, logs, goals = [], f
     const control = calibration[axis] || {};
     const isPausedOn = date => (control.pauses || []).some(period =>
       date >= period.start && (!period.end || date <= period.end));
-    const baselineItems = items.filter(item => !restDates.has(item.date) && !isPausedOn(item.date) &&
+    const eligibleItems = items.filter(item => !restDates.has(item.date) && !isPausedOn(item.date) &&
       (!control.since || item.date >= control.since));
+    const datedHabits = habits.flatMap(habit => {
+      if (!habit.createdAt || !Number.isFinite(Date.parse(habit.createdAt))) return [];
+      const createdOn = localDateStr(new Date(habit.createdAt));
+      return validDate(createdOn, today) ? [{ habit, createdOn }] : [];
+    }).sort((a, b) => a.createdOn.localeCompare(b.createdOn));
+    const releases = new Map();
+    const updatingHabits = [];
+    for (const { habit, createdOn } of datedHabits) {
+      const habitItems = eligibleItems.filter(item => item.habitId === habit.id && item.date >= createdOn);
+      const selectedAxes = credits(habit.domain, habit.secondaryDomain, habit.primaryShare);
+      if (!selectedAxes.some(entry => entry.axis === axis) && !habitItems.length) continue;
+      if (habit.status !== 'active' && !habitItems.length) continue;
+      const previous = eligibleItems.filter(item => item.habitId !== habit.id && item.date < createdOn &&
+        (!releases.has(item.habitId) || (releases.get(item.habitId) && releases.get(item.habitId) < createdOn)));
+      const previousDays = new Set(previous.map(item => item.date)).size;
+      const previousWeeks = new Set(previous.map(item => weekStart(item.date))).size;
+      if (previousDays < 5 || previousWeeks < 4) continue;
+      const activeDates = [...new Set(habitItems.map(item => item.date))].sort();
+      releases.set(habit.id, activeDates[4] || null);
+      if (activeDates.length < 5) updatingHabits.push({ id: habit.id, name: habit.name, activeDays: activeDates.length });
+    }
+    const updatingIds = new Set(updatingHabits.map(habit => habit.id));
+    const baselineItems = eligibleItems.filter(item => !updatingIds.has(item.habitId));
     const activeDays = new Set(baselineItems.map(item => item.date)).size;
     const weeks = new Map();
     for (const item of baselineItems) {
@@ -131,7 +154,7 @@ export function computeGrowthOverview({ habits, occurrences, logs, goals = [], f
       momentum = recent === 0 && baseline > 0 ? 'Resting' : z >= 1 ? 'Building' : z <= -1 ? 'Resting' : 'Steady';
     }
     return {
-      axis, status, activeDays, activeWeeks, baseline, spread, recent, momentum,
+      axis, status, activeDays, activeWeeks, baseline, spread, recent, momentum, updatingHabits,
       paused: !!control.paused, calibrationSince: control.since || null,
       recorded: items.length,
       lifetime: items.reduce((sum, item) => sum + item.weight, 0),

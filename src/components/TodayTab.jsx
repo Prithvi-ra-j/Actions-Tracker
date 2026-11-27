@@ -8,6 +8,7 @@ import { Button } from './ui/Buttons.jsx';
 import { EmptyState } from './ui/States.jsx';
 import HabitEditor from './HabitEditor.jsx';
 import AttributionFields from './AttributionFields.jsx';
+import DailyReading from './DailyReading.jsx';
 import { Sparkle, Warning, PencilSimple } from '@phosphor-icons/react';
 import { attributeLabel } from '../constants.js';
 
@@ -288,6 +289,8 @@ export default function TodayTab({
         style={{ marginBottom: '12px', alignSelf: 'flex-start' }}>
         {tinyMode ? 'Use regular versions today' : 'Use tiny versions today'}
       </button>}
+
+      <DailyReading today={today} />
 
       {/* Quest Log */}
       <section>

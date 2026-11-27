@@ -1,15 +1,10 @@
 import React, { useEffect, useState } from 'react';
 import { LIFE_DIMENSIONS } from '../constants.js';
-import { dbGetAll } from '../database/db.js';
-import { getAllHabits } from '../database/habitRepository.js';
-import { getAllLogs } from '../database/logsRepository.js';
 import { getAllSettings, setSetting } from '../database/settingsRepository.js';
-import { getAllFacts } from '../database/factsRepository.js';
-import { getSelfModel } from '../database/selfModelRepository.js';
-import { daysBetween, localDateStr } from '../helpers/dateHelpers.js';
-import { computeGrowthOverview } from '../core/calibration/baselineEngine.js';
+import { daysBetween } from '../helpers/dateHelpers.js';
+import { loadGrowthOverview } from '../core/calibration/loadGrowthOverview.js';
+import { parseDailyReading, READING_FIELDS } from '../core/dailyReading.js';
 import { archiveBaselines } from '../core/calibration/baselineArchive.js';
-import { getAllGoals } from '../database/goalsRepository.js';
 import GrowthRadar from './GrowthRadar.jsx';
 import { BottomSheet } from './ui/Overlays.jsx';
 
@@ -27,30 +22,21 @@ export default function StatsTab({ today, isActive, todayOccurrences, allLogs, s
   const [calibration, setCalibration] = useState({});
   const [savingCalibration, setSavingCalibration] = useState(false);
   const [baselineHistory, setBaselineHistory] = useState([]);
+  const [firstWeekReadings, setFirstWeekReadings] = useState([]);
 
   useEffect(() => {
     if (!isActive) return undefined;
     let cancelled = false;
     async function load() {
       try {
-        const [habits, occurrences, logs, settings, selfModel, facts, goals] = await Promise.all([
-          getAllHabits(), dbGetAll('habitOccurrences'), getAllLogs(), getAllSettings(), getSelfModel(), getAllFacts(), getAllGoals(),
-        ]);
-        const startedAt = selfModel.onboardingCompletedAt;
-        const startedOn = startedAt && Number.isFinite(Date.parse(startedAt)) ? localDateStr(new Date(startedAt)) : null;
-        const restDays = Object.keys(settings).filter(key => key.startsWith('restDay:') && settings[key] === 'true')
-          .map(key => key.slice('restDay:'.length));
-        const controls = {};
-        for (const axis of LIFE_DIMENSIONS) {
-          const raw = settings[`calibration:${axis.key}`];
-          if (!raw) continue;
-          const control = JSON.parse(raw);
-          if (!control || typeof control !== 'object' || !Array.isArray(control.pauses) ||
-              !Array.isArray(control.history)) throw new Error(`Invalid calibration settings for ${axis.key}.`);
-          controls[axis.key] = control;
-        }
-        const result = computeGrowthOverview({ habits, occurrences, logs, facts, goals, restDay: settings.restDay,
-          restDays, calibration: controls, today, startedOn });
+        const { overview: result, controls, settings } = await loadGrowthOverview(today);
+        const readings = result.firstWeek ? Object.entries(settings)
+          .filter(([key]) => key.startsWith('dailyReading:') &&
+            key.slice('dailyReading:'.length) >= result.firstWeek.start &&
+            key.slice('dailyReading:'.length) <= result.firstWeek.end)
+          .map(([key, raw]) => ({ date: key.slice('dailyReading:'.length), value: parseDailyReading(raw) }))
+          .filter(entry => READING_FIELDS.some(field => entry.value[field.key]))
+          .sort((a, b) => a.date.localeCompare(b.date)) : [];
         await archiveBaselines(result, today);
         const archiveSettings = await getAllSettings();
         const history = Object.entries(archiveSettings).filter(([key]) => key.startsWith('baselineSnapshot:'))
@@ -59,6 +45,7 @@ export default function StatsTab({ today, isActive, todayOccurrences, allLogs, s
           setOverview(result);
           setCalibration(controls);
           setBaselineHistory(history);
+          setFirstWeekReadings(readings);
           setError('');
         }
       } catch (err) {
@@ -159,6 +146,13 @@ export default function StatsTab({ today, isActive, todayOccurrences, allLogs, s
       <p>{LIFE_DIMENSIONS.filter(axis => overview.firstWeek.credits[axis.key] > 0)
         .map(axis => `${axis.label}: ${Number(overview.firstWeek.credits[axis.key].toFixed(2))} credits`).join(' · ') || 'No attributed non-rest activity recorded in this period.'}</p>
       <p style={muted}>This is a summary of the first week, not a goal or a judgment. Credits exclude recorded rest days.</p>
+      {firstWeekReadings.length > 0 && <details>
+        <summary>Optional daily readings</summary>
+        {firstWeekReadings.map(entry => <p key={entry.date}>{entry.date}: {READING_FIELDS
+          .filter(field => entry.value[field.key])
+          .map(field => `${field.label}: ${entry.value[field.key]}`).join(' · ')}</p>)}
+        <p style={muted}>These check-ins provide context and do not affect your scores or growth totals.</p>
+      </details>}
     </section>}
 
     <section style={card}>
@@ -188,6 +182,7 @@ export default function StatsTab({ today, isActive, todayOccurrences, allLogs, s
           : 'Early estimate · not enough evidence for a numeric score'}</p>;
       })}
       <p style={muted}>Scores are optional estimates, not ranks or goals. Numbers require at least 80% coverage and 70% confidence; fallback estimates are not plotted.</p>
+      <p style={muted}>Shared-credit activity is included in growth and momentum, but not in these legacy numeric scores.</p>
       {LIFE_DIMENSIONS.some(axis => axisDetails[axis.key]?.warnings?.includes('projection_failed')) &&
         <button type="button" onClick={onRefreshScores}>Retry scores</button>}
     </section>
@@ -207,7 +202,7 @@ export default function StatsTab({ today, isActive, todayOccurrences, allLogs, s
             </span>
           </span>
           <span style={muted}>{item.paused ? 'Learning paused' : item.status === 'Calibrating' ? 'Learning your normal'
-            : `${item.momentum || 'Not enough baseline yet'}${item.status === 'Provisional' ? ' · Early estimate' : ''}`}</span>
+            : `${item.momentum || 'Not enough baseline yet'}${item.status === 'Provisional' ? ' · Early estimate' : ''}${item.updatingHabits.length ? ' · Updating' : ''}`}</span>
         </button>;
       })}
       <p style={muted}>Bars show cumulative credited activity, not a goal. Splits share one credit; only your chosen attributes receive it. Corrections can reduce a total, but time, rest and baseline changes cannot.</p>
@@ -253,9 +248,13 @@ export default function StatsTab({ today, isActive, todayOccurrences, allLogs, s
       {selected && <div>
         <p>{selected.paused ? 'Learning paused' : selected.status}{selected.status === 'Provisional' && !selected.paused ? ' · Early estimate' : ''}</p>
         <p>{selected.paused ? 'Momentum is paused.' : selected.momentum || 'Learning your normal'}</p>
+        {selected.updatingHabits.length > 0 && <p style={muted}>Updating: {selected.updatingHabits
+          .map(habit => `${habit.name} (${habit.activeDays} of 5 active days)`).join(', ')}.
+          {' '}These habits count toward lifetime now and join momentum after five active days.</p>}
         <p>{selected.recorded} recorded activities across {selected.days} days.</p>
         <p>{Number(selected.lifetime.toFixed(2))} lifetime credits. A split contributes only its chosen share.</p>
         <p>{selected.completed} habit completions · {selected.notes} evidence entries · {selected.milestones} milestones</p>
+        <p style={muted}>Shared-credit activity is not included in legacy numeric scores.</p>
         <h3>What moved it</h3>
         {selected.recentItems.length ? selected.recentItems.map((item, index) =>
           <p key={`${item.date}-${index}`}>{item.date}: {item.name} · {Math.round(item.weight * 100)}% credit</p>)

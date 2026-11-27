@@ -183,6 +183,26 @@ export default function App() {
     })();
     return () => { cancelled = true; };
   }, [dbReady, needsOnboarding, today]);
+
+  useEffect(() => {
+    if (!dbReady || needsOnboarding) return undefined;
+    let cancelled = false;
+    async function saveBaselineHistory() {
+      try {
+        const [{ loadGrowthOverview }, { archiveBaselines }] = await Promise.all([
+          import('./core/calibration/loadGrowthOverview.js'),
+          import('./core/calibration/baselineArchive.js'),
+        ]);
+        const { overview } = await loadGrowthOverview(today);
+        await archiveBaselines(overview, today);
+      } catch (error) {
+        console.error('[App] Could not archive baseline history:', error);
+        if (!cancelled) setDailyError('Could not save baseline history. Open Stats to retry.');
+      }
+    }
+    saveBaselineHistory();
+    return () => { cancelled = true; };
+  }, [dbReady, needsOnboarding, today]);
   const todayRecord = useMemo(() => {
     const rec = { body: false, philosophy: false, art: false, history: false };
     const dayLogs = allLogs.filter(l => l.type === 'daily_checkbox' && l.date === today);

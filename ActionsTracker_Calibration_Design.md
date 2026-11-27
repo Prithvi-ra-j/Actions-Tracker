@@ -97,8 +97,10 @@ Never let relative scores become the only measure. The split is **lifetime = eff
 - **Backup restore / new phone:** baseline data lives in the DB so it restores with everything; the state is recomputed from history if missing.
 - **Existing users (you):** compute a baseline **retroactively** from history; skip the grey period; label as "built from your history".
 - **Only one attribute used:** others stay Calibrating; no scary zeros anywhere.
-- **Habit added late to an attribute:** the attribute's baseline restarts only for that attribute's weekly effort, not globally.
+- **Habit added to an already calibrated attribute:** keep its existing baseline and status. Exclude only the new habit from momentum until it has five active days, and show an "Updating" tag; its lifetime credit counts immediately. Other evidence and habits remain in the baseline. Rest and paused days do not count toward the five days.
 - **Time zone/travel:** days are local days; no double counting.
+
+Shared-credit records contribute their chosen shares to lifetime and momentum (subject to the new-habit gate above). They are excluded from legacy numeric domain scores until per-engine weighting is designed and evaluated; the score view explains this.
 
 ## 9. Implementation map (no new store required)
 
