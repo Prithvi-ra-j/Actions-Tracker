@@ -16,10 +16,11 @@ The system uses an RPG-like axis model to track progression:
 - **Jarvis Engine**: An optional AI assistant for contextual feedback and proposals. Provider calls require an internet connection and send the request context to the configured provider.
 - **Daily Check-Ins**: Create daily habits directly on Today and complete them, with earlier unresolved occurrences available separately. First-run setup can be continued without Jarvis.
 - **Stat Progression**: Stats are derived from recorded activity and habit outcomes, with a ceremony when a stat crosses a title threshold. There is no XP ledger.
+- **Food & Fitness**: The Settings placeholder describes planned in-app food logging and analysis and workout logging and tracking; these features are not available yet. External NutriLift sync has been removed; previously imported data remains in local backups.
 - **Automatic Backup**: Backups are periodically exported as a JSON file to the device's file system for safekeeping against data corruption or app uninstalls.
 
 ## Technical Stack
-- **Frontend**: React (Vite) - *Note: Vite proxy uses port 3000 for Supabase connections.*
+- **Frontend**: React (Vite)
 - **Database**: IndexedDB (Native Browser / WebView)
 - **Container**: Capacitor v6 for native Android features (File System, Notifications, Status Bar, Secure Storage)
 

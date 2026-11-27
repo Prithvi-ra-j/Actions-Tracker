@@ -196,18 +196,6 @@ export default function useAppActions({
     }
   }, [setBooks, recomputeStats]);
 
-  const handleRunSync = useCallback(async () => {
-    try {
-      const { runAllSyncs } = await import('../core/sync/syncManager.js');
-      const summary = await runAllSyncs();
-      await recomputeStats();
-      return summary;
-    } catch (error) {
-      console.error('[AppActions] handleRunSync failed:', error);
-      throw error;
-    }
-  }, [recomputeStats]);
-
   return {
     handleAddEvidence,
     handleAddHabit,
@@ -221,6 +209,5 @@ export default function useAppActions({
     handleStartBook,
     handleUpdatePages,
     handleFinishBook,
-    handleRunSync,
   };
 }

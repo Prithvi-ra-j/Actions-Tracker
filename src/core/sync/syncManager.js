@@ -48,10 +48,7 @@ export async function runAllSyncs() {
       const result = await connector.sync({}, state);
       let ingestedCount = 0;
 
-      // Facts are immutable. A NutriLift source update keeps the deterministic
-      // source projection id, while a retraction is a new ledger fact targeting
-      // the source fact. We deliberately do not advance the cursor until every
-      // returned fact is written successfully.
+      // Do not advance the cursor until every returned fact is persisted.
       if (result.facts?.length) {
         for (const fact of result.facts) {
           await addFact(fact);

@@ -32,7 +32,7 @@ There is **no router**. Navigation is a `tab` state in [App.jsx](src/App.jsx) re
 | Goals | [GoalsTab.jsx](src/components/GoalsTab.jsx) | Goal list/create/edit/pause. [R: structure; README/NEXT_RELEASE say lifecycle] | Yes, bottom tab. |
 | Audits | [AuditsTab.jsx](src/components/AuditsTab.jsx) | Findings from the AI monthly audit, with ignore/restore. [R: structure] | Yes, bottom tab. |
 | Jarvis | [JarvisTab.jsx](src/components/JarvisTab.jsx) (1370 lines) | AI chat with slash commands (`COMMANDS`, line 53), proposals with approve/undo. [R: partial] | **Not in the bottom bar.** Reached via the floating "Ask Jarvis" pill in AppShell, via `onOpenJarvis` buttons in other tabs, and automatically after onboarding. [R] |
-| Settings | [SettingsTab.jsx](src/components/SettingsTab.jsx) | Provider settings, export/import JSON, storage, saved memories, Health Connect / NutriLift status + sync, diagnostics, version. [R: grep of headings] | Yes, gear icon in the header (not shown on the Jarvis tab). |
+| Settings | [SettingsTab.jsx](src/components/SettingsTab.jsx) | Provider settings, export/import JSON, storage, saved memories, Health Connect, planned in-app Food & Fitness, diagnostics, version. | Yes, gear icon in the header (not shown on the Jarvis tab). |
 | Level-up ceremony | [LevelUpCeremony.jsx](src/components/LevelUpCeremony.jsx) | Overlay when an axis title threshold is crossed. [R: wiring in App.jsx] | Auto overlay. |
 | Completion feedback | [CompletionFeedback.jsx](src/components/CompletionFeedback.jsx) | Toast/overlay after completing an occurrence. [R: wiring] | Auto. |
 | Proof/Fear check-in | [ProofFearCheckin.jsx](src/components/ProofFearCheckin.jsx) | Monthly modal, due 30 days after first real activity, then every 30 days. Writes a `proof_check_in` log. [R: App.jsx 460-480, ProofFearCheckin.jsx:41-43] | Auto overlay. |
@@ -85,7 +85,7 @@ IndexedDB database `actions-tracker`, `DB_VERSION = 12` [R: db.js:15]. 32 object
 | `audits` | `id`; idx `periodStart` | `{id, period{start,end}, domains, evidenceCoverage, scoreChanges, wins, failures, contradictions, patterns, risks, recommendations, findingStates, nextPeriodFocus, supportingEvidenceIds, analysisVersion, contextVersion, promptVersion, modelId, createdAt}` [R] | Yes | `auditEngine.addAudit` |
 | `insights` | `id` | [U: fields not read] | Yes | `analysisScheduler.addInsight` |
 | `appMeta`, `migrationRegistry` | `key` / `version` | [U] | **No** | `appMetaRepository` has no non-test importer [G] |
-| `nutriLiftProjections` | `id` | Projection of imported NutriLift records [S] | **No** | NutriLift connector [S] |
+| `nutriLiftProjections` | `id` | Legacy imported NutriLift projections, retained for backup compatibility | **No** | No new writes |
 | `proposalExecutions` | `idempotencyKey`; idx `proposalId` | Idempotency ledger for Jarvis proposals [S] | **No** | actionExecutor [S] |
 | `jarvisConversations` | `id`; idx `updatedAt` | Persisted chats [U: fields] | Yes | JarvisTab |
 | `decisions` | `id`; idx `createdAt` | [U] | Yes | **Nothing** (repo has no importer) [G] |
@@ -128,7 +128,7 @@ Inconsistency [R]: App.jsx builds its evaluations map from `f.type === 'evaluati
 | **Goal** | `lifeObjects` (`type:'goal'`) | GoalsTab (`addGoal`), Jarvis `add_goal` | Not read by `statsEngine` [U]; `doneTargets` in App.jsx is computed but unused |
 | **Book** | `books` | `addBook`, but only reachable from dead UI | `book_finished` logs → quest derivation `q-knowledge-books`, `q-strategy-reading` (legacy ids) |
 | **Learning** | `learnings` | LearnTab, Jarvis `add_learning` | `knowledgeEngine` via `scoreEngine` [S]; `learning_practice` log |
-| **Fact** | `facts` | `syncManager` (Health Connect steps, NutriLift) and Jarvis (`log_evidence`, actionExecutor.js:58/272/510/527) | `evidenceBuilder` → domain engines → `scoreEngine` [S] |
+| **Fact** | `facts` | `syncManager` (Health Connect steps) and Jarvis (`log_evidence`); previously imported NutriLift facts are retained | `evidenceBuilder` → domain engines → `scoreEngine` [S] |
 | **Evidence (record)** | `evidence` | Nobody writes it | n/a. Evidence "records" are computed on the fly, not persisted. |
 | **Experiment** | `experiments` | Jarvis `suggest_experiment` | Social engine via facts [U] |
 | **Memory** | `memories` | Jarvis `propose_memory` | AI context only |
@@ -184,8 +184,8 @@ Hard-coded duplicates [S]: default axis config in both `axisConfigRepository.js`
 
 | Integration | Direction / data | Credentials | Status |
 |---|---|---|---|
-| **Health Connect** ([HealthConnectConnector.js](src/core/sync/connectors/HealthConnectConnector.js)) | Device → app only. Reads `Steps` (count, start/end, metadata id, unit) into `body.activity.steps` facts. No write permissions requested. [S] | Android permission | Registered in App.jsx; sync via Settings button. Native-only (null on web). **Never tested on a device** (NEXT_RELEASE.md) [R]. |
-| **NutriLift** ([NutriLiftConnector.js](src/core/sync/connectors/NutriLiftConnector.js)) | Supabase → app. Paginated read of NutriLift records (`record_type`, `external_id`, `payload`, timestamps, schema/version, deletion state) → immutable facts + `nutriLiftProjections`; retraction handling. [S] | `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY` + **a signed-in Supabase user** | Wired for sync. **No UI calls `signInWithPassword`** (only defined in supabaseAuth.js; grep shows no caller) [G], so with no way to sign in the sync cannot authenticate from the app [U: a session might be injected externally]. Live Supabase never verified (NEXT_RELEASE.md). |
+| **Health Connect** ([HealthConnectConnector.js](src/core/sync/connectors/HealthConnectConnector.js)) | Device → app only. Reads `Steps` (count, start/end, metadata id, unit) into `body.activity.steps` facts. No write permissions requested. [S] | Android permission | Registered in App.jsx; no Settings sync control. Native-only (null on web). **Never tested on a device** (NEXT_RELEASE.md) [R]. |
+| **NutriLift** | External sync removed; existing imported facts and projections are retained. | None | In-app Food & Fitness is planned, not implemented. |
 | **Supabase (other)** | Client/auth helpers only; no other tables or writes found. [S] | Anon key in the browser bundle (normal for anon keys; RLS must protect data [U]) | Partial |
 | **Jarvis / AI provider** ([llmClient.js](src/core/ai/llmClient.js), [jarvisEngine.js](src/core/ai/jarvisEngine.js), [contextBuilder.js](src/core/ai/contextBuilder.js)) | App → provider. POSTs system prompt, conversation history, built context, user message, model, temperature, token limit. Context includes self model, score snapshot, active goals/habits, routine config, experiments, semantic memories and **recent evidence facts** (so health/steps and journal-type content can be sent) [S]. Provider response → proposals. | OpenAI-compatible endpoint (default Groq). API key in `secureStorage` (native secure plugin, local fallback on web). base URL / model / gateway in IndexedDB `settings`. [S] | Fully wired in the UI. Settings toggles `jarvisSendPageContext`, `jarvisSaveMemories` exist [R]; whether they filter the payload is [U]. |
 | **Server gateway** ([api/jarvis.js](api/jarvis.js), 80 lines) | App → your server → provider. Forwards arbitrary `messages` using server-side `AI_PROVIDER_API_KEY` / `GROQ_API_KEY`. [S] | Server env | Optional. **No authentication is visible in the handler** [S]: if deployed publicly it would proxy anyone's prompts on your key. Deployment exposure is [U]. |
@@ -267,14 +267,14 @@ Config [R]: `vitest.config.js` uses `environment: 'node'` and the include list `
 
 | Suite | Files (approx. test count by regex) | Covers |
 |---|---|---|
-| `tests/unit` | 31 | Stat engine, tiers, volume, momentum, quest derivation, consistency; Jarvis engine/gateway/action contracts/schemas/AI context boundaries; LLM client; actionExecutor on IndexedDB; backup/restore; connectors (Health Connect, NutriLift), sync manager; occurrence grace, routine engine; date/timezone; banners |
+| `tests/unit` | Varies | Stat engine, tiers, volume, momentum, quest derivation, consistency; Jarvis engine/gateway/action contracts/schemas/AI context boundaries; LLM client; actionExecutor on IndexedDB; backup/restore; Health Connect, sync manager; occurrence grace, routine engine; date/timezone; banners |
 | `tests/scenarios` | 6 | Persona simulations (checkbox gamer, ideal, inactive, strategy reader); `ui-journeys.test.jsx` (~21 tests: goals, learn, audits, backup import, provider settings); Jarvis approval/undo |
 | `tests/properties` | 4 | Property-based (fast-check): bounds, determinism, independence, monotonicity |
 | `tests/adversarial`, `tests/sensitivity` | 4 + 4 | Score gaming and weight/window sensitivity |
 | `tests/migration` | 5 | IndexedDB upgrade, v1→v2 migration, axis vocabulary |
 | `tests/regression` | 1 | Monthly check-in date |
 | `tests/testlab` | 1 test + 3 helpers | Scenario harness |
-| `tests/e2e` | 5 specs | Backup/restore, local data recovery, mobile smoke, NutriLift sync retry, test-lab harness |
+| `tests/e2e` | Varies | Backup/restore, local data recovery, mobile smoke, test-lab harness |
 
 **Static reach from unit/component tests [G]:** of 142 `src` files, 41 are imported directly by a vitest test and 110 are reachable transitively. Transitive reach only means the module is loaded, not exercised.
 

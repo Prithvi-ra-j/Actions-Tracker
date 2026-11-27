@@ -22,7 +22,8 @@ This is the release checklist. A green web build does not satisfy the Android ar
 | Priority | Item | Status |
 |---|---|---|
 | Release blocker | Android APK artifact | Not built locally; Android SDK is not configured. The manual build workflow has not been dispatched. |
-| Release blocker | Android/device and provider checks | Not run in this task. Health Connect, live Supabase/NutriLift, TalkBack, and in-place upgrade/data preservation remain unverified. |
+| Release blocker | Android/device and provider checks | Not run in this task. Health Connect, TalkBack, and in-place upgrade/data preservation remain unverified. |
+| Planned | Food & Fitness | In-app food logging and analysis, and workout logging and tracking are work in progress. External NutriLift sync has been removed. |
 | Implementation gap | Jarvis correction/recovery details, experiment/result cards, audit-specific view, offline/provider recovery, and long-thread scrolling | Still need dedicated acceptance tests and visual review. |
 | Implementation gap | Cross-app visual/accessibility pass | Browser smoke now verifies the main landmark, skip link, mobile navigation, and selected-page announcement at 393px; 360/390/432px visual checks, focus restoration, reduced motion, 130% text scale, and Android TalkBack remain unverified. |
 
@@ -42,7 +43,6 @@ This is the release checklist. A green web build does not satisfy the Android ar
 - [ ] Health Connect permission and real Steps reads checked
 - [ ] Backup/restore and in-place upgrade preserve real data without restarting onboarding
 - [ ] `adb logcat` has no relevant app errors
-- [ ] Any in-scope Supabase/NutriLift authenticated import and retraction cycle checked
 - [ ] All current-scope items above have passed device QA
 
 ## Release notes draft

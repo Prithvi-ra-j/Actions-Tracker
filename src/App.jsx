@@ -19,7 +19,6 @@ import { hasUserData } from './database/bootstrapState.js';
 import { hasJarvisApiKey } from './core/ai/jarvisConfig.js';
 import { registerConnector } from './core/sync/syncManager.js';
 import { HealthConnectConnector } from './core/sync/connectors/HealthConnectConnector.js';
-import { NutriLiftConnector } from './core/sync/connectors/NutriLiftConnector.js';
 import { bootstrapAnalysisScheduler } from './core/ai/analysisScheduler.js';
 import { installGlobalErrorLogging, markErrorLoggerReady } from './core/errorLogger.js';
 import { checkForUpdate } from './core/updateChecker.js';
@@ -204,7 +203,6 @@ export default function App() {
 
         // Register integrations
         registerConnector(new HealthConnectConnector());
-        registerConnector(new NutriLiftConnector());
 
         // Sync quest progress from logs, then re-fetch updated quests
         await syncQuestProgress(allLogs);
@@ -436,7 +434,6 @@ export default function App() {
     handleStartBook,
     handleUpdatePages,
     handleFinishBook,
-    handleRunSync,
   } = useAppActions({
     today,
     setReminders,
@@ -540,7 +537,6 @@ export default function App() {
             onSaveReminders={handleSaveReminders}
             todayRecord={todayRecord}
             onClose={() => setShowSettings(false)}
-            onRunSync={handleRunSync}
           />
         </Suspense>
       ) : (

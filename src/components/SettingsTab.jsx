@@ -1,8 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { BottomSheet, ConfirmDialog } from './ui/Overlays.jsx';
 import { Button } from './ui/Buttons.jsx';
-import { getConnectorStatuses, runAllSyncs } from '../core/sync/syncManager.js';
-import { getAllNutriLiftProjections } from '../database/nutriLiftProjectionRepository.js';
 
 export default function SettingsTab({ t, onClose, reminders: reminderConfigs = [], onSaveReminders }) {
   const [activeSection, setActiveSection] = useState(null);
@@ -31,9 +29,6 @@ export default function SettingsTab({ t, onClose, reminders: reminderConfigs = [
   const [apiKeyDraft, setApiKeyDraft] = useState('');
   const [aiSaveError, setAiSaveError] = useState('');
   const [verifyResult, setVerifyResult] = useState(null);
-  const [nutriLiftStatus, setNutriLiftStatus] = useState('checking');
-  const [nutriLiftSyncing, setNutriLiftSyncing] = useState(false);
-  const [nutriLiftResult, setNutriLiftResult] = useState(null);
 
   const [aiSettings, setAiSettings] = useState({
     baseUrl: '',
@@ -71,9 +66,6 @@ export default function SettingsTab({ t, onClose, reminders: reminderConfigs = [
       setAiSettings({ baseUrl: config.baseUrl, model: config.model, hasKey: config.hasApiKey });
     });
 
-    getConnectorStatuses().then(statuses => {
-      setNutriLiftStatus(statuses.nutrilift?.status || statuses.nutrilift || 'disconnected');
-    }).catch(() => setNutriLiftStatus('unavailable'));
     // Load storage estimate
     if (navigator.storage && navigator.storage.estimate) {
       navigator.storage.estimate().then(estimate => {
@@ -290,6 +282,10 @@ export default function SettingsTab({ t, onClose, reminders: reminderConfigs = [
           Integrations
           <span style={rowRightStyle}>›</span>
         </div>
+        <div {...sectionRowProps('foodFitness')} style={rowStyle(false)}>
+          Food & Fitness
+          <span style={rowRightStyle}>Work in progress ›</span>
+        </div>
         <div {...sectionRowProps('notifications')} style={rowStyle(false)}>
           Notifications
           <span style={rowRightStyle}>›</span>
@@ -453,27 +449,10 @@ export default function SettingsTab({ t, onClose, reminders: reminderConfigs = [
     </div>
   );
 
-  const syncNutriLift = async () => {
-    if (nutriLiftSyncing) return;
-    setNutriLiftSyncing(true);
-    setNutriLiftResult(null);
-    try {
-      const summary = await runAllSyncs();
-      const projectionCount = (await getAllNutriLiftProjections()).length;
-      setNutriLiftResult({ success: summary.errors.length === 0, summary, projectionCount });
-      const statuses = await getConnectorStatuses();
-      setNutriLiftStatus(statuses.nutrilift?.status || statuses.nutrilift || 'connected');
-    } catch (error) {
-      setNutriLiftResult({ success: false, error: error.message });
-    } finally {
-      setNutriLiftSyncing(false);
-    }
-  };
-
   const renderIntegrationsSection = () => (
     <div style={{ padding: '0 14px', flex: 1, overflowY: 'auto' }}>
       <div style={groupStyle}>
-        <div style={{ padding: '14px', borderBottom: '1px solid var(--hairline)' }}>
+        <div style={{ padding: '14px' }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '10px' }}>
             <b style={{ fontSize: '14.5px', fontWeight: 500 }}>Health Connect</b>
             <span style={rowRightStyle}>Device integration</span>
@@ -482,36 +461,19 @@ export default function SettingsTab({ t, onClose, reminders: reminderConfigs = [
             Device health data remains local and source-owned.
           </p>
         </div>
-        <div style={{ padding: '14px' }}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '10px' }}>
-            <b style={{ fontSize: '14.5px', fontWeight: 500 }}>NutriLift</b>
-            <span style={rowRightStyle}>
-              {nutriLiftStatus === 'connected' ? '● Connected' : nutriLiftStatus}
-            </span>
-          </div>
-          <p style={{ fontSize: '13px', color: 'var(--mu)', margin: '4px 0 0', lineHeight: 1.45 }}>
-            NutriLift remains the source of truth for workouts, nutrition, measurements and recovery.
-          </p>
-          <Button
-            variant="primary"
-            style={{ width: '100%', marginTop: '12px' }}
-            onClick={syncNutriLift}
-            disabled={nutriLiftSyncing || nutriLiftStatus !== 'connected'}
-          >
-            {nutriLiftSyncing ? 'Syncing NutriLift…' : 'Sync NutriLift now'}
-          </Button>
-          {nutriLiftResult && (
-            <div role={nutriLiftResult.success ? 'status' : 'alert'} style={{ marginTop: '10px', fontSize: '12px', color: nutriLiftResult.success ? 'var(--strategy)' : 'var(--danger)' }}>
-              {nutriLiftResult.success
-                ? `Imported ${nutriLiftResult.summary.totalImported} facts · ${nutriLiftResult.projectionCount} source projections stored`
-                : `Sync failed: ${nutriLiftResult.error || nutriLiftResult.summary?.errors?.[0]?.message}`}
-            </div>
-          )}
-        </div>
       </div>
-      <p style={{ fontSize: '13px', color: 'var(--mu)', marginTop: '12px', lineHeight: 1.5 }}>
-        Imported facts keep NutriLift provenance. Actions-Tracker computes its own evidence and scores from those observations.
-      </p>
+    </div>
+  );
+
+  const renderFoodFitnessSection = () => (
+    <div style={{ padding: '0 14px', flex: 1, overflowY: 'auto' }}>
+      <div style={{ ...groupStyle, padding: '14px' }}>
+        <b style={{ fontSize: '14.5px', fontWeight: 500 }}>Work in progress</b>
+        <p style={{ fontSize: '13px', color: 'var(--mu)', margin: '8px 0 0', lineHeight: 1.45 }}>
+          Food logging and analysis, workout logging and tracking are planned as part of Actions-Tracker.
+          These features are not available yet.
+        </p>
+      </div>
     </div>
   );
 
@@ -588,6 +550,7 @@ export default function SettingsTab({ t, onClose, reminders: reminderConfigs = [
       case 'data': return 'Data';
       case 'memory': return 'Memory and privacy';
       case 'integrations': return 'Integrations';
+      case 'foodFitness': return 'Food & Fitness';
       case 'notifications': return 'Notifications';
       case 'appearance': return 'Appearance';
       default: return 'Settings';
@@ -600,6 +563,7 @@ export default function SettingsTab({ t, onClose, reminders: reminderConfigs = [
       case 'data': return 'Backup and storage';
       case 'memory': return 'What Jarvis can remember';
       case 'integrations': return 'Evidence sources';
+      case 'foodFitness': return 'Planned in-app tracking';
       case 'notifications': return 'Proactive suggestions';
       case 'appearance': return 'Diagnostics and version';
       default: return 'App configuration';
@@ -642,6 +606,7 @@ export default function SettingsTab({ t, onClose, reminders: reminderConfigs = [
       {activeSection === 'data' && renderDataSection()}
       {activeSection === 'memory' && renderMemorySection()}
       {activeSection === 'integrations' && renderIntegrationsSection()}
+      {activeSection === 'foodFitness' && renderFoodFitnessSection()}
       {activeSection === 'notifications' && renderNotificationsSection()}
       {activeSection === 'appearance' && renderAppearanceSection()}
     </BottomSheet>
