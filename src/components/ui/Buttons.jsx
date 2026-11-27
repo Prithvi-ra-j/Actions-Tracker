@@ -6,6 +6,7 @@ export function Button({
   disabled = false, 
   loading = false, 
   onClick, 
+  type,
   className = '', 
   style = {} 
 }) {
@@ -50,6 +51,7 @@ export function Button({
 
   return (
     <button
+      type={type}
       onClick={onClick}
       disabled={disabled || loading}
       style={{ ...baseStyle, ...variants[variant] }}

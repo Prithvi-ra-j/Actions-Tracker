@@ -45,4 +45,22 @@ describe('core loop UI', () => {
     expect(screen.getByText('KNOWLEDGE').getAttribute('text-anchor')).toBe('start');
     expect(screen.getByText('STRATEGY').getAttribute('text-anchor')).toBe('end');
   });
+
+  it('keeps the habit draft available when saving fails', async () => {
+    const addHabit = vi.fn().mockRejectedValue(new Error('Storage unavailable'));
+    const errorLog = vi.spyOn(console, 'error').mockImplementation(() => {});
+    try {
+      render(<TodayTab todayOccurrences={[]} onAddHabit={addHabit} />);
+      fireEvent.click(screen.getByRole('button', { name: 'Add habit' }));
+      const create = screen.getByRole('button', { name: 'Create habit' });
+      expect(create.disabled).toBe(true);
+      fireEvent.change(screen.getByLabelText('Habit name'), { target: { value: '  Read  ' } });
+      fireEvent.click(create);
+      expect((await screen.findByRole('alert')).textContent).toContain('Habit could not be saved');
+      expect(screen.getByLabelText('Habit name').value).toBe('  Read  ');
+      expect(addHabit).toHaveBeenCalledWith({ name: 'Read', domain: 'general' });
+    } finally {
+      errorLog.mockRestore();
+    }
+  });
 });

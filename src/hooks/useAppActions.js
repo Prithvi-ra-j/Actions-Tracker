@@ -36,6 +36,21 @@ export default function useAppActions({
     void recomputeStats();
   }, [recomputeStats]);
 
+  const handleAddHabit = useCallback(async (fields) => {
+    const { addHabit } = await import('../database/habitRepository.js');
+    await addHabit({ ...fields, frequency: { type: 'daily' } });
+    try {
+      const { generateOccurrencesForDate } = await import('../core/occurrenceEngine.js');
+      await generateOccurrencesForDate(today);
+      setTodayOccurrences(await loadEnrichedOccurrences(subtractDays(today, 2), today, today));
+      void recomputeStats();
+      return null;
+    } catch (error) {
+      console.error('[AppActions] Habit saved but occurrences could not be refreshed:', error);
+      return 'Habit saved, but Today could not be refreshed. Restart the app to try again.';
+    }
+  }, [today, setTodayOccurrences, recomputeStats]);
+
   const handleSaveReminders = useCallback(async (newReminders) => {
     try {
       await saveReminders(newReminders);
@@ -195,6 +210,7 @@ export default function useAppActions({
 
   return {
     handleAddEvidence,
+    handleAddHabit,
     handleSaveReminders,
     handleCompleteOccurrence,
     handleExcuseOccurrence,

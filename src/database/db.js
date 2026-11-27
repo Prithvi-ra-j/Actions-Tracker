@@ -401,8 +401,7 @@ export function dbGetAllByIndex(storeName, indexName, key) {
 /**
  * Clears every user-data store in the current database.
  *
- * This is intentionally destructive and is used only by a one-time fresh-start
- * migration when the app is being restarted from a clean baseline.
+ * This operation is intentionally destructive.
  */
 export function clearAllDatabaseData() {
   return new Promise((resolve, reject) => {

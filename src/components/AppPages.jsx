@@ -45,6 +45,7 @@ export default function AppPages({
   completionFeedback,
   jarvisContext,
   onAddEvidence,
+  onAddHabit,
   onCompleteOccurrence,
   onExcuseOccurrence,
   onOccurrenceReason,
@@ -73,6 +74,7 @@ export default function AppPages({
           today={today}
           todayOccurrences={todayOccurrences}
           onAddEvidence={onAddEvidence}
+          onAddHabit={onAddHabit}
           allQuests={allQuests}
           onCompleteOccurrence={onCompleteOccurrence}
           onExcuseOccurrence={onExcuseOccurrence}

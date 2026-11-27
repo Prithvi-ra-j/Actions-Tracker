@@ -14,7 +14,7 @@ The system uses an RPG-like axis model to track progression:
 ## Core Features
 - **Local-First & Offline**: Personal app data is stored in IndexedDB on the device, and core local workflows do not require an account. If Jarvis is enabled, prompts and selected context are sent to the configured AI provider, directly or through the optional server gateway.
 - **Jarvis Engine**: An optional AI assistant for contextual feedback and proposals. Provider calls require an internet connection and send the request context to the configured provider.
-- **Daily Check-Ins**: Complete today's scheduled habits, with earlier unresolved occurrences available separately.
+- **Daily Check-Ins**: Create daily habits directly on Today and complete them, with earlier unresolved occurrences available separately. First-run setup can be continued without Jarvis.
 - **Stat Progression**: Stats are derived from recorded activity and habit outcomes, with a ceremony when a stat crosses a title threshold. There is no XP ledger.
 - **Automatic Backup**: Backups are periodically exported as a JSON file to the device's file system for safekeeping against data corruption or app uninstalls.
 
@@ -45,4 +45,4 @@ npm run cap:android
 
 ## Data Safety
 Since Actions-Tracker stores all your data on your phone, you are responsible for it. 
-The app runs a background task to safely back up your IndexedDB data to a JSON file in your local Documents folder on Android. You can import this JSON file back into the app if you ever need to restore it.
+The app backs up IndexedDB data to JSON files in the local Documents folder on Android. On startup, an empty database is automatically restored from the latest available backup before migrations run; existing data is not automatically overwritten. You can also import a backup manually. Whether Documents files survive an uninstall depends on the device and Android storage behavior, so keep an additional copy elsewhere.

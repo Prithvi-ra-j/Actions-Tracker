@@ -170,6 +170,7 @@ export default function TodayTab({
   onExcuseOccurrence,
   onOccurrenceReason,
   onAddEvidence,
+  onAddHabit,
   allQuests,
   onGoToGoals,
   onOpenJarvis,
@@ -181,6 +182,12 @@ export default function TodayTab({
   const [evidenceType, setEvidenceType] = useState('observation');
   const [savingEvidence, setSavingEvidence] = useState(false);
   const [evidenceError, setEvidenceError] = useState('');
+  const [habitComposerOpen, setHabitComposerOpen] = useState(false);
+  const [habitName, setHabitName] = useState('');
+  const [habitDomain, setHabitDomain] = useState('general');
+  const [savingHabit, setSavingHabit] = useState(false);
+  const [habitError, setHabitError] = useState('');
+  const [habitNotice, setHabitNotice] = useState('');
 
   const mainQuest = allQuests?.find(q => q.status === 'active' && q.priority === 'main')
     || allQuests?.find(q => q.status === 'active');
@@ -249,9 +256,9 @@ export default function TodayTab({
         {occurrences.length === 0 ? (
           <EmptyState
             title="A clear day."
-            description="No habits scheduled for today. Tell Jarvis what you want to focus on."
-            actionLabel="Ask Jarvis"
-            onAction={onOpenJarvis}
+            description="No habits scheduled for today. Add a daily habit to get started."
+            actionLabel="Add habit"
+            onAction={() => setHabitComposerOpen(true)}
           />
         ) : (
           <div>
@@ -283,6 +290,7 @@ export default function TodayTab({
 
         {/* Main Quest Card */}
         <MainQuestCard quest={mainQuest} />
+        {habitNotice && <p role="alert" style={{ color: 'var(--danger)', fontSize: '13px' }}>{habitNotice}</p>}
 
         {/* Bottom CTAs */}
         <div style={{
@@ -292,6 +300,9 @@ export default function TodayTab({
             justifyContent: 'center',
             flexWrap: 'wrap',
           }}>
+            {occurrences.length > 0 && (
+              <Button variant="secondary" onClick={() => setHabitComposerOpen(true)}>Add habit</Button>
+            )}
             <button
               onClick={() => setComposerOpen(true)}
               style={{
@@ -318,6 +329,65 @@ export default function TodayTab({
             </button>
         </div>
       </section>
+
+      <BottomSheet
+        isOpen={habitComposerOpen}
+        onClose={() => { if (!savingHabit) setHabitComposerOpen(false); }}
+        title="Add daily habit"
+      >
+        <form
+          onSubmit={async e => {
+            e.preventDefault();
+            if (!habitName.trim() || savingHabit) return;
+            setSavingHabit(true);
+            setHabitError('');
+            try {
+              const notice = await onAddHabit({ name: habitName.trim(), domain: habitDomain });
+              setHabitName('');
+              setHabitDomain('general');
+              setHabitNotice(notice || '');
+              setHabitComposerOpen(false);
+            } catch (error) {
+              console.error('[TodayTab] Could not save habit:', error);
+              setHabitError('Habit could not be saved. Your entry is still here; try again.');
+            } finally {
+              setSavingHabit(false);
+            }
+          }}
+          style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}
+        >
+          <label style={{ display: 'grid', gap: '6px', color: 'var(--mu)', fontSize: '13px' }}>
+            Habit name
+            <input
+              value={habitName}
+              onChange={e => setHabitName(e.target.value)}
+              maxLength={120}
+              required
+              style={{ minHeight: '44px', padding: '0 12px', borderRadius: 'var(--r-control)', background: 'var(--s2)', color: 'var(--tx)', border: '1px solid var(--hairline)', font: 'inherit' }}
+            />
+          </label>
+          <label style={{ display: 'grid', gap: '6px', color: 'var(--mu)', fontSize: '13px' }}>
+            Habit axis
+            <select
+              value={habitDomain}
+              onChange={e => setHabitDomain(e.target.value)}
+              style={{ minHeight: '44px', padding: '0 12px', borderRadius: 'var(--r-control)', background: 'var(--s2)', color: 'var(--tx)', border: '1px solid var(--hairline)', font: 'inherit' }}
+            >
+              {['general', 'body', 'discipline', 'knowledge', 'social', 'creativity', 'strategy'].map(axis => (
+                <option key={axis} value={axis}>{axis[0].toUpperCase() + axis.slice(1)}</option>
+              ))}
+            </select>
+          </label>
+          <p style={{ margin: 0, color: 'var(--mu)', fontSize: '13px' }}>Scheduled every day.</p>
+          {habitError && <p role="alert" style={{ margin: 0, color: 'var(--danger)', fontSize: '13px' }}>{habitError}</p>}
+          <div style={{ display: 'flex', gap: '10px' }}>
+            <Button type="submit" style={{ flex: 1 }} disabled={savingHabit || !habitName.trim()}>
+              {savingHabit ? 'Saving...' : 'Create habit'}
+            </Button>
+            <Button type="button" variant="secondary" disabled={savingHabit} onClick={() => setHabitComposerOpen(false)}>Cancel</Button>
+          </div>
+        </form>
+      </BottomSheet>
 
       {/* Habit Detail Sheet */}
       <BottomSheet

@@ -23,7 +23,6 @@ import { NutriLiftConnector } from './core/sync/connectors/NutriLiftConnector.js
 import { bootstrapAnalysisScheduler } from './core/ai/analysisScheduler.js';
 import { installGlobalErrorLogging, markErrorLoggerReady } from './core/errorLogger.js';
 import { checkForUpdate } from './core/updateChecker.js';
-import { applyFreshStartReset } from './core/freshStartReset.js';
 
 // ── Helpers ─────────────────────────────────────────────────────────────────────────────
 import { computeAllStats, getThresholdTitle } from './helpers/statsEngine.js';
@@ -170,22 +169,14 @@ export default function App() {
         await saveTelemetryEvent('app_started', localDateStr(), { type: 'boot' }).catch(() => {});
         await initDB();
 
-        const didFreshStartReset = await applyFreshStartReset();
-
-        if (!didFreshStartReset) {
-          // Normal recovery/migration path. The fresh-start release has already
-          // removed the old local backup and legacy localStorage dataset.
-          await restoreLatestBackupIfDatabaseEmpty();
-
-          await markErrorLoggerReady();
-          installGlobalErrorLogging();
-          await migrateFromLocalStorage();
-          await saveTelemetryEvent('db_migration_success', localDateStr(), {}).catch(() => {});
-        } else {
-          await markErrorLoggerReady();
-          installGlobalErrorLogging();
-          await saveTelemetryEvent('fresh_start_reset_complete', localDateStr(), {}).catch(() => {});
+        const recovery = await restoreLatestBackupIfDatabaseEmpty();
+        if (recovery.reason === 'restore_error') {
+          throw recovery.error;
         }
+        await markErrorLoggerReady();
+        installGlobalErrorLogging();
+        await migrateFromLocalStorage();
+        await saveTelemetryEvent('db_migration_success', localDateStr(), {}).catch(() => {});
         // Hardcoded goal definitions are no longer seeded for new users.
         // Existing legacy state is handled by initGoals() when legacy checkbox data exists.
         await migrateAxisVocabulary();
@@ -434,6 +425,7 @@ export default function App() {
 
   const {
     handleAddEvidence,
+    handleAddHabit,
     handleSaveReminders,
     handleCompleteOccurrence,
     handleExcuseOccurrence,
@@ -508,9 +500,9 @@ export default function App() {
       <Suspense fallback={<div role="status">Loading onboarding…</div>}>
         <OnboardingFlow
           t={t}
-          onComplete={async () => {
+          onComplete={async ({ startInToday = false } = {}) => {
             setNeedsOnboarding(false);
-            setTab('jarvis');
+            setTab(startInToday ? 'daily' : 'jarvis');
 
             // Onboarding is high-value user data. Force a recovery snapshot now
             // so a later reinstall/update can restore the completed setup.
@@ -583,6 +575,7 @@ export default function App() {
             completionFeedback={completionFeedback}
             jarvisContext={jarvisContext}
             onAddEvidence={handleAddEvidence}
+            onAddHabit={handleAddHabit}
             onCompleteOccurrence={handleCompleteOccurrence}
             onExcuseOccurrence={handleExcuseOccurrence}
             onOccurrenceReason={handleOccurrenceReason}

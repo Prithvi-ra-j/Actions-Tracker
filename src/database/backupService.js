@@ -17,15 +17,7 @@ const USER_DATA_STORES = [
  * becomes the source of truth rather than being mixed with a fresh install.
  */
 async function isDatabaseEmpty() {
-  const counts = await Promise.all(
-    USER_DATA_STORES.map(async store => {
-      try {
-        return (await dbGetAll(store)).length;
-      } catch {
-        return 0;
-      }
-    })
-  );
+  const counts = await Promise.all(USER_DATA_STORES.map(async store => (await dbGetAll(store)).length));
   return counts.every(count => count === 0);
 }
 
@@ -141,4 +133,3 @@ export async function restoreLatestBackupIfDatabaseEmpty() {
     return { restored: false, reason: 'restore_error', error };
   }
 }
-
