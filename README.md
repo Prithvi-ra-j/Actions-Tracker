@@ -1,49 +1,85 @@
-# Actions-Tracker PWA
 
-Actions-Tracker is a structurally serious, local-first Personal Operating System built as a Progressive Web App (PWA) and wrapped for Android via Capacitor. It serves as an offline, private, single-device truth layer for your life data.
+# Actions Tracker
 
-## Architecture & Model
-The system uses an RPG-like axis model to track progression:
-- **Body / Strength**: Physical health, fitness, and nutrition.
-- **Knowledge**: Reading, learning, and skill acquisition.
-- **Strategy**: Planning, finances, and long-term positioning.
-- **Creativity / Art**: Making things, writing, and creative output.
-- **Social**: Relationships, community, and outreach.
-- **Discipline**: Habit consistency, routine, and self-control.
+### A character sheet for the person you're becoming.
 
-## Core Features
-- **Local-First & Offline**: Personal app data is stored in IndexedDB on the device, and core local workflows do not require an account. If Jarvis is enabled, prompts and selected context are sent to the configured AI provider, directly or through the optional server gateway.
-- **Jarvis Engine**: An optional AI assistant for contextual feedback and proposals. Provider calls require an internet connection and send the request context to the configured provider.
-- **Daily Check-Ins**: Create daily habits directly on Today and complete them, with earlier unresolved occurrences available separately. First-run setup can be continued without Jarvis.
-- **Stat Progression**: Stats are derived from recorded activity and habit outcomes, with a ceremony when a stat crosses a title threshold. There is no XP ledger.
-- **Food & Fitness**: The Settings placeholder describes planned in-app food logging and analysis and workout logging and tracking; these features are not available yet. External NutriLift sync has been removed; previously imported data remains in local backups.
-- **Automatic Backup**: Backups are periodically exported as a JSON file to the device's file system for safekeeping against data corruption or app uninstalls.
+*Powered by bad habits.*
 
-## Technical Stack
-- **Frontend**: React (Vite)
-- **Database**: IndexedDB (Native Browser / WebView)
-- **Container**: Capacitor v6 for native Android features (File System, Notifications, Status Bar, Secure Storage)
+---
 
-## Setup and Build
-**Requirements:** Node 22+
+You have 37 open tabs, a half-finished book, a plan to work out "starting Monday," and a suspicious ability to spend 45 minutes choosing what to do next.
+
+Same.
+
+**Actions Tracker is a place to turn all that intention into actual, visible action.** Make a habit. Work toward a goal. Write down what you learned. See the little things add up.
+
+No life overhaul required. Just the next move.
+
+## Picture this
+
+**Monday.** You decide you're going to walk more. You add "Go outside for ten minutes" to Today. You do it. You check it off. A tiny win, but a real one.
+
+**Wednesday.** You miss your walk because life happened. The app doesn't need you to pretend otherwise. Earlier unfinished habits are still there if you want to deal with them.
+
+**A few weeks later.** You've been walking, reading, and actually taking steps toward that goal you've been talking about for months. Instead of asking, "Am I even doing anything?", you have something to look back on.
+
+That's the idea.
+
+## Your life, but with a character sheet
+
+Games make progress feel good because you can *see* it. Real life is a little less helpful: nobody pops up to tell you that reading consistently might be paying off.
+
+Actions Tracker brings some of that visibility to six parts of your life:
+
+**Body · Knowledge · Strategy · Creativity · Social · Discipline**
+
+Your stats reflect recorded activity and habit outcomes. Your goals can have milestones. Your learning has a place to land. And when a stat crosses a title threshold, there's a little celebration.
+
+Your next quest might be "read ten pages" instead of "defeat the dragon." Honestly? Some days, both sound equally difficult.
+
+## A few things you can do right now
+
+- **Give today a job.** Create daily habits and check them off as you go.
+- **Make the big thing smaller.** Turn a goal into milestones you can work toward.
+- **Remember what you're learning.** Save topics and log practice as you explore.
+- **Look at the bigger picture.** See stats based on what you've recorded, not imaginary XP.
+- **Leave yourself a note.** Log evidence of what you did or noticed, even when it doesn't fit neatly into a checkbox.
+
+## Meet Ved
+
+Ved is our **optional AI assistant prototype**. Think of it as a brainstorming partner who's still learning the ropes: it can help you reflect, explore plans, and suggest changes. You review and approve its proposals before they're applied.
+
+No AI key? No problem. You can skip the assistant setup and use the core local tracking features without it.
+
+If you do use Ved, it needs an internet connection. Your prompts and selected context are sent to the configured AI provider, directly or through an optional gateway.
+
+## Coming to the party later
+
+We're planning a home for **food logging and analysis**, plus **workout logging and tracking**, right inside the app. For now, Food & Fitness is a work-in-progress page in Settings—not a finished feature.
+
+The old external NutriLift sync has been removed. Previously imported data remains in local backups.
+
+## Your data, your device
+
+Core tracking is local-first and doesn't require an account. On Android, the app also attempts to save JSON backups in Documents. When the database is empty on startup, it tries to restore an available backup without automatically replacing existing data.
+
+You can export and import backups yourself. **Keep an extra copy somewhere safe**: whether Documents files survive an uninstall depends on your device and Android storage behavior.
+
+## Try it out
+
+You'll need **Node.js 22 or newer**:
 
 ```bash
-# Install dependencies
 npm install
-
-# Run web version locally
 npm run dev
-
-# Build the web bundle
-npm run build
-
-# Sync with Capacitor for Android
-npm run cap:sync
-
-# Open in Android Studio
-npm run cap:android
 ```
 
-## Data Safety
-Since Actions-Tracker stores all your data on your phone, you are responsible for it. 
-The app backs up IndexedDB data to JSON files in the local Documents folder on Android. On startup, an empty database is automatically restored from the latest available backup before migrations run; existing data is not automatically overwritten. You can also import a backup manually. Whether Documents files survive an uninstall depends on the device and Android storage behavior, so keep an additional copy elsewhere.
+For a production web build, run `npm run build`. To open the Android project in Android Studio, run `npm run cap:sync` followed by `npm run cap:android`.
+
+---
+
+You don't have to become a new person overnight.
+
+Just give tomorrow-you something to thank today-you for.
+
+**Actions Tracker — powered by bad habits.**
