@@ -253,13 +253,15 @@ export default function TodayTab({
           display: 'block',
           marginBottom: '4px',
         }}>
-          Quest log
+          Today's habits
         </span>
 
         {occurrences.length === 0 ? (
           <EmptyState
-            title="A clear day."
-            description="No habits scheduled for today. Add a daily habit to get started."
+            eyebrow="A fresh start"
+            title="Make room for one good thing."
+            description="Nothing scheduled today. Start with a small habit you can come back to."
+            example="Try: a 10-minute walk after lunch."
             actionLabel="Add habit"
             actionVariant="primary"
             onAction={() => setHabitComposerOpen(true)}
@@ -329,7 +331,7 @@ export default function TodayTab({
               onPointerLeave={e => e.currentTarget.style.transform = 'scale(1)'}
             >
               <PencilSimple size={16} />
-              Log evidence
+              Log a note
             </button>
         </div>
       </section>
@@ -371,8 +373,9 @@ export default function TodayTab({
             />
           </label>
           <label style={{ display: 'grid', gap: '6px', color: 'var(--mu)', fontSize: '13px' }}>
-            Habit axis
+            Area
             <select
+              aria-label="Habit area"
               value={habitDomain}
               onChange={e => setHabitDomain(e.target.value)}
               style={{ minHeight: '44px', padding: '0 12px', borderRadius: 'var(--r-control)', background: 'var(--s2)', color: 'var(--tx)', border: '1px solid var(--hairline)', font: 'inherit' }}
@@ -489,10 +492,11 @@ export default function TodayTab({
       <BottomSheet
         isOpen={composerOpen}
         onClose={() => setComposerOpen(false)}
-        title="Log Evidence"
+        title="Log a note"
       >
         <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
           <textarea
+            aria-label="Your note"
             value={evidenceText}
             onChange={e => setEvidenceText(e.target.value)}
             placeholder="What did you do? What did you notice?"
@@ -516,7 +520,7 @@ export default function TodayTab({
           <label style={{ display: 'grid', gap: '6px', color: 'var(--mu)', fontSize: '13px' }}>
             Type
             <select
-              aria-label="Evidence type"
+              aria-label="Note type"
               value={evidenceType}
               onChange={e => setEvidenceType(e.target.value)}
               style={{ minHeight: '44px', padding: '0 12px', borderRadius: 'var(--r-control)', background: 'var(--s2)', color: 'var(--tx)', border: '1px solid var(--hairline)', font: 'inherit' }}
@@ -527,9 +531,9 @@ export default function TodayTab({
             </select>
           </label>
           <label style={{ display: 'grid', gap: '6px', color: 'var(--mu)', fontSize: '13px' }}>
-            Axis
+            Area
             <select
-              aria-label="Evidence axis"
+              aria-label="Note area"
               value={evidenceAxis}
               onChange={e => setEvidenceAxis(e.target.value)}
               style={{ minHeight: '44px', padding: '0 12px', borderRadius: 'var(--r-control)', background: 'var(--s2)', color: 'var(--tx)', border: '1px solid var(--hairline)', font: 'inherit' }}
@@ -556,7 +560,7 @@ export default function TodayTab({
                     evidenceType,
                   });
                 } catch (err) {
-                  setEvidenceError('Evidence could not be saved. Your entry is still here; try again.');
+                  setEvidenceError('Your note could not be saved. Your entry is still here; try again.');
                   setSavingEvidence(false);
                   return;
                 }
@@ -565,7 +569,7 @@ export default function TodayTab({
                 setSavingEvidence(false);
               }}
             >
-              {savingEvidence ? 'Saving...' : 'Save evidence'}
+              {savingEvidence ? 'Saving...' : 'Save note'}
             </Button>
             <Button variant="secondary" onClick={() => setComposerOpen(false)}>
               Cancel

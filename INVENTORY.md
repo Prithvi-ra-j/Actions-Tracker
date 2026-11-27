@@ -1,6 +1,13 @@
-# INVENTORY.md — Actions-Tracker (v1.5.0 in `package.json`)
+# Historical repository inventory
 
-Repository inventory started as a read-only audit on 2026-11-07. Screen loading, update-notice wiring, and related dead code were rechecked on 2026-11-08.
+> **Historical snapshot, not current documentation.** This audit describes the
+> repository as inspected on November 7–8, 2026. File references, line numbers,
+> reachability, feature behavior, and test counts below may have changed.
+> In particular, first-run setup can be skipped, daily habits can be created
+> manually, and the assistant is now called Ved. Consult [README.md](./README.md),
+> the current source, and [NEXT_RELEASE.md](./NEXT_RELEASE.md) for present status.
+
+Repository inventory started as a read-only audit on 2026-11-07. Screen loading, update-notice wiring, and related dead code were rechecked on 2026-11-08. All observations below refer to that audit unless explicitly dated otherwise.
 
 ## How to read this document
 

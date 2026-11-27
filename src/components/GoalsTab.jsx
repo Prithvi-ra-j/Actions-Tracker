@@ -274,8 +274,10 @@ export default function GoalsTab({ t, onOpenJarvis }) {
         </div>
       ) : activeGoals.length === 0 ? (
         <EmptyState
-          title="No active goals yet."
-          description="Start with an outcome that matters to you, and build from there."
+          eyebrow="The bigger picture"
+          title="Give your effort a direction."
+          description="Choose something that matters to you. You can figure out the steps as you go."
+          example="Try: run a 10K, or feel confident speaking German."
           actionLabel="Create a goal"
           actionVariant="primary"
           onAction={() => { setCreateError(''); setShowCreate(true); }}
@@ -298,34 +300,42 @@ export default function GoalsTab({ t, onOpenJarvis }) {
         title="New goal"
       >
         <div className="goal-fields" style={{ display: 'grid', gap: '12px' }}>
+          <p style={{ margin: '0 0 4px', color: 'var(--mu)', fontSize: '14px', lineHeight: 1.5 }}>
+            Start with the destination. You can add the details now or later.
+          </p>
           <label style={{ display: 'grid', gap: '6px', color: 'var(--mu)', fontSize: '13px' }}>
-            Outcome
-            <input aria-label="Goal outcome" value={goalDraft.label} onChange={e => setGoalDraft(prev => ({ ...prev, label: e.target.value }))} />
+            What are you working toward?
+            <input aria-label="Goal outcome" placeholder="e.g. Run a 10K" value={goalDraft.label} onChange={e => setGoalDraft(prev => ({ ...prev, label: e.target.value }))} />
           </label>
           <label style={{ display: 'grid', gap: '6px', color: 'var(--mu)', fontSize: '13px' }}>
-            Axis
-            <select aria-label="Goal axis" value={goalDraft.domain} onChange={e => setGoalDraft(prev => ({ ...prev, domain: e.target.value }))}>
+            Area
+            <select aria-label="Goal area" value={goalDraft.domain} onChange={e => setGoalDraft(prev => ({ ...prev, domain: e.target.value }))}>
               {['body', 'discipline', 'knowledge', 'social', 'creativity', 'strategy'].map(axis => (
                 <option key={axis} value={axis}>{axis[0].toUpperCase() + axis.slice(1)}</option>
               ))}
             </select>
           </label>
-          <label style={{ display: 'grid', gap: '6px', color: 'var(--mu)', fontSize: '13px' }}>
-            Starting point
-            <input aria-label="Goal starting point" value={goalDraft.start} onChange={e => setGoalDraft(prev => ({ ...prev, start: e.target.value }))} />
-          </label>
-          <label style={{ display: 'grid', gap: '6px', color: 'var(--mu)', fontSize: '13px' }}>
-            Desired outcome
-            <input aria-label="Goal desired outcome" value={goalDraft.end} onChange={e => setGoalDraft(prev => ({ ...prev, end: e.target.value }))} />
-          </label>
-          <label style={{ display: 'grid', gap: '6px', color: 'var(--mu)', fontSize: '13px' }}>
-            How will you know?
-            <input aria-label="Goal proof" value={goalDraft.proof} onChange={e => setGoalDraft(prev => ({ ...prev, proof: e.target.value }))} />
-          </label>
-          <label style={{ display: 'grid', gap: '6px', color: 'var(--mu)', fontSize: '13px' }}>
-            Milestones, one per line
-            <textarea aria-label="Goal milestones" value={goalDraft.targets} onChange={e => setGoalDraft(prev => ({ ...prev, targets: e.target.value }))} rows={3} />
-          </label>
+          <details className="form-details">
+            <summary>Add details and milestones (optional)</summary>
+            <div className="form-details-content">
+              <label style={{ display: 'grid', gap: '6px', color: 'var(--mu)', fontSize: '13px' }}>
+                Where are you starting?
+                <input aria-label="Goal starting point" placeholder="e.g. I can run 5K" value={goalDraft.start} onChange={e => setGoalDraft(prev => ({ ...prev, start: e.target.value }))} />
+              </label>
+              <label style={{ display: 'grid', gap: '6px', color: 'var(--mu)', fontSize: '13px' }}>
+                What would success look like?
+                <input aria-label="Goal desired outcome" placeholder="e.g. Run 10K without stopping" value={goalDraft.end} onChange={e => setGoalDraft(prev => ({ ...prev, end: e.target.value }))} />
+              </label>
+              <label style={{ display: 'grid', gap: '6px', color: 'var(--mu)', fontSize: '13px' }}>
+                How will you know you got there?
+                <input aria-label="Goal proof" placeholder="e.g. Finish a 10K event" value={goalDraft.proof} onChange={e => setGoalDraft(prev => ({ ...prev, proof: e.target.value }))} />
+              </label>
+              <label style={{ display: 'grid', gap: '6px', color: 'var(--mu)', fontSize: '13px' }}>
+                Milestones, one per line
+                <textarea aria-label="Goal milestones" placeholder={'Run 7K\nRun 8K'} value={goalDraft.targets} onChange={e => setGoalDraft(prev => ({ ...prev, targets: e.target.value }))} rows={3} />
+              </label>
+            </div>
+          </details>
           {createError && <p role="alert" style={{ margin: 0, color: 'var(--danger)', fontSize: '13px' }}>{createError}</p>}
           <Button variant="primary" disabled={savingGoal} onClick={handleCreateGoal}>
             {savingGoal ? 'Saving...' : 'Create goal'}
@@ -351,7 +361,7 @@ export default function GoalsTab({ t, onOpenJarvis }) {
                 color: 'var(--mu)',
                 marginBottom: '4px',
               }}>
-                Outcome
+                What are you working toward?
               </div>
               <div style={{ fontSize: '16px', fontWeight: 600, color: 'var(--tx)' }}>
                 {selectedGoal.label}
@@ -477,31 +487,31 @@ export default function GoalsTab({ t, onOpenJarvis }) {
       >
         <div className="goal-fields" style={{ display: 'grid', gap: '12px' }}>
           <label style={{ display: 'grid', gap: '6px', color: 'var(--mu)', fontSize: '13px' }}>
-            Outcome
+            What are you working toward?
             <input aria-label="Edit goal outcome" value={goalDraft.label} onChange={e => setGoalDraft(prev => ({ ...prev, label: e.target.value }))} />
           </label>
           <label style={{ display: 'grid', gap: '6px', color: 'var(--mu)', fontSize: '13px' }}>
-            Axis
-            <select aria-label="Edit goal axis" value={goalDraft.domain} onChange={e => setGoalDraft(prev => ({ ...prev, domain: e.target.value }))}>
+            Area
+            <select aria-label="Edit goal area" value={goalDraft.domain} onChange={e => setGoalDraft(prev => ({ ...prev, domain: e.target.value }))}>
               {['body', 'discipline', 'knowledge', 'social', 'creativity', 'strategy'].map(axis => (
                 <option key={axis} value={axis}>{axis[0].toUpperCase() + axis.slice(1)}</option>
               ))}
             </select>
           </label>
           <label style={{ display: 'grid', gap: '6px', color: 'var(--mu)', fontSize: '13px' }}>
-            Starting point
+            Where are you starting? (optional)
             <input aria-label="Edit goal starting point" value={goalDraft.start} onChange={e => setGoalDraft(prev => ({ ...prev, start: e.target.value }))} />
           </label>
           <label style={{ display: 'grid', gap: '6px', color: 'var(--mu)', fontSize: '13px' }}>
-            Desired outcome
+            What would success look like? (optional)
             <input aria-label="Edit goal desired outcome" value={goalDraft.end} onChange={e => setGoalDraft(prev => ({ ...prev, end: e.target.value }))} />
           </label>
           <label style={{ display: 'grid', gap: '6px', color: 'var(--mu)', fontSize: '13px' }}>
-            How will you know?
+            How will you know you got there? (optional)
             <input aria-label="Edit goal proof" value={goalDraft.proof} onChange={e => setGoalDraft(prev => ({ ...prev, proof: e.target.value }))} />
           </label>
           <label style={{ display: 'grid', gap: '6px', color: 'var(--mu)', fontSize: '13px' }}>
-            Milestones, one per line
+            Milestones, one per line (optional)
             <textarea aria-label="Edit goal milestones" value={goalDraft.targets} onChange={e => setGoalDraft(prev => ({ ...prev, targets: e.target.value }))} rows={3} />
           </label>
           {editError && <p role="alert" style={{ margin: 0, color: 'var(--danger)', fontSize: '13px' }}>{editError}</p>}

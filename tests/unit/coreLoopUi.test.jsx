@@ -26,7 +26,7 @@ describe('core loop UI', () => {
         onOpenJarvis={vi.fn()}
       />
     );
-    const section = screen.getByText('Quest log').closest('section');
+    const section = screen.getByText("Today's habits").closest('section');
     const earlier = container.querySelector('details');
     const todayRows = within(section).getAllByRole('checkbox').filter(box => !box.closest('details'));
     expect(todayRows).toHaveLength(1);

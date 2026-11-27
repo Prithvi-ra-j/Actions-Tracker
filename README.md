@@ -43,7 +43,7 @@ Your next quest might be "read ten pages" instead of "defeat the dragon." Honest
 - **Make the big thing smaller.** Turn a goal into milestones you can work toward.
 - **Remember what you're learning.** Save topics and log practice as you explore.
 - **Look at the bigger picture.** See stats based on what you've recorded, not imaginary XP.
-- **Leave yourself a note.** Log evidence of what you did or noticed, even when it doesn't fit neatly into a checkbox.
+- **Leave yourself a note.** Record what you did or noticed, even when it doesn't fit neatly into a checkbox.
 
 ## Meet Ved
 

@@ -27,7 +27,11 @@ git tag v1.6.0.0
 git push origin v1.6.0.0
 ```
 
-Alternatively, manually dispatch **Actions → Android Release** with `1.6.0.0`. Both paths publish; neither is a build-only check. No tag or release was created during the current completion work.
+Alternatively, manually dispatch **Actions → Android Release** with `1.6.0.0`. Both paths publish; neither is a build-only check.
+
+The build-only workflow uses Node 22, while the release workflow currently
+specifies Node 20 despite the package requiring Node 22 or newer. Resolve and
+verify that mismatch before relying on the publishing workflow.
 
 ## Data and signing safety
 

@@ -1,5 +1,9 @@
 # Testing and Calendar Integration Plan
 
+> Planning document: the phases below are proposals, not a record that all
+> checks or Google Calendar integration have been completed. Release evidence
+> and outstanding gates are tracked in [NEXT_RELEASE.md](./NEXT_RELEASE.md).
+
 ## Purpose and scope
 
 Build confidence that Actions-Tracker is correct, responsive, accessible, and
@@ -7,7 +11,7 @@ safe for a wide range of users and devices. Use deterministic synthetic data
 and independently defined expected results to expose gaps and make failures
 reproducible.
 
-The initial testing scope is the whole app **except Jarvis AI behavior**. Core
+The initial testing scope is the whole app **except Ved AI behavior**. Core
 tests must not require AI credentials or make real AI provider calls. Google
 Calendar is a separate, optional two-way integration; it is not the ground
 truth for the app's date and time tests.
@@ -171,8 +175,8 @@ Start with Phase 1 and a small Phase 2 vertical slice:
 1. Agree on core rules for habits, goals, stats, and data recovery.
 2. Write three to five hand-calculated golden scenarios.
 3. Run them through the existing test lab using isolated synthetic data, with
-   unexpected Jarvis network calls blocked.
+   unexpected Ved network calls blocked.
 4. Review discrepancies and record uncovered risks before expanding the suite.
 
 Build calendar integration after the core ground truth and data-safety
-foundation are established. Test the Jarvis AI layer separately later.
+foundation are established. Test the Ved AI layer separately later.

@@ -13,6 +13,7 @@ export default function JarvisApiSetup({ onConfigured }) {
   const [baseUrl, setBaseUrl] = useState(DEFAULT_JARVIS_BASE_URL);
   const [model, setModel] = useState(DEFAULT_JARVIS_MODEL);
   const [showKey, setShowKey] = useState(false);
+  const [advancedOpen, setAdvancedOpen] = useState(Boolean(DEFAULT_JARVIS_GATEWAY_URL));
   const [status, setStatus] = useState('idle');
   const [error, setError] = useState('');
   const [latencyMs, setLatencyMs] = useState(null);
@@ -91,14 +92,13 @@ export default function JarvisApiSetup({ onConfigured }) {
   }, [status, onConfigured]);
 
   return (
-    <main
+    <section
       aria-label="Ved setup"
       style={{
-        minHeight: '100dvh',
         boxSizing: 'border-box',
         display: 'flex',
         flexDirection: 'column',
-        padding: 'calc(28px + env(safe-area-inset-top, 0px)) 18px calc(24px + env(safe-area-inset-bottom, 0px))',
+        padding: '28px 18px calc(28px + env(safe-area-inset-bottom, 0px))',
         background: 'var(--bg)',
         color: 'var(--tx)',
         fontFamily: "var(--f, 'Geist', sans-serif)",
@@ -140,15 +140,15 @@ export default function JarvisApiSetup({ onConfigured }) {
         style={{
           width: '100%',
           maxWidth: '560px',
-          margin: 'clamp(36px, 11vh, 96px) auto 0',
+          margin: '28px auto 0',
         }}
       >
         <p style={{ margin: 0, fontSize: '15px', lineHeight: 1.6, color: 'var(--mu)' }}>
-          Connect the optional Ved prototype using a server gateway or a provider key.
-          A provider key is tested before saving; a gateway is saved for use by the app.
+          Talk through a goal, reflect on your progress, or get help planning your next step.
+          Ved is a prototype and needs an AI connection. The rest of the app works without it.
         </p>
 
-        <div style={{ marginTop: '26px' }}>
+        <div style={{ marginTop: '24px' }}>
           <label
             htmlFor="jarvis-api-key"
             style={{
@@ -158,7 +158,7 @@ export default function JarvisApiSetup({ onConfigured }) {
               fontWeight: 600,
             }}
           >
-            API key (local development)
+            Provider API key
           </label>
 
           <div
@@ -222,9 +222,17 @@ export default function JarvisApiSetup({ onConfigured }) {
               {showKey ? 'Hide' : 'Show'}
             </button>
           </div>
+          <p style={{ margin: '8px 0 0', color: 'var(--mu)', fontSize: '12px', lineHeight: 1.5 }}>
+            {baseUrl === DEFAULT_JARVIS_BASE_URL ? 'Use a Groq API key, or choose another provider below.' : 'Use a key for your configured provider.'} We test it before saving. On Android it uses secure storage; in a browser it lasts only for this session.
+          </p>
         </div>
 
-        <div style={{ marginTop: '14px', display: 'grid', gap: '12px' }}>
+        <details className="form-details" open={advancedOpen} onToggle={e => setAdvancedOpen(e.currentTarget.open)} style={{ marginTop: '20px' }}>
+          <summary>Advanced connection settings</summary>
+          <div className="form-details-content">
+          <p style={{ margin: 0, color: 'var(--mu)', fontSize: '12px', lineHeight: 1.5 }}>
+            Have a server gateway? Enter its URL below. A gateway takes precedence over the key and is saved without a connection test.
+          </p>
           <label style={{ display: 'grid', gap: '8px' }}>
             <span style={{ fontSize: '12px', color: 'var(--mu)', fontWeight: 600 }}>Server gateway (production)</span>
             <input
@@ -285,7 +293,8 @@ export default function JarvisApiSetup({ onConfigured }) {
               }}
             />
           </label>
-        </div>
+          </div>
+        </details>
 
         {status === 'success' && (
           <div
@@ -328,8 +337,8 @@ export default function JarvisApiSetup({ onConfigured }) {
         style={{
           width: '100%',
           maxWidth: '560px',
-          margin: 'auto auto 0',
-          paddingTop: '28px',
+          margin: '0 auto',
+          paddingTop: '20px',
         }}
       >
         <button
@@ -341,8 +350,8 @@ export default function JarvisApiSetup({ onConfigured }) {
             minHeight: '50px',
             border: 0,
             borderRadius: '14px',
-            background: 'var(--s2)',
-            color: 'var(--tx)',
+            background: 'var(--ac)',
+            color: 'var(--on-ac)',
             font: 'inherit',
             fontSize: '14px',
             fontWeight: 600,
@@ -350,7 +359,7 @@ export default function JarvisApiSetup({ onConfigured }) {
             opacity: status === 'testing' ? 0.6 : 1,
           }}
         >
-          {status === 'testing' ? 'Testing connection…' : 'Test connection'}
+          {status === 'testing' ? 'Connecting…' : gatewayUrl.trim() ? 'Save gateway' : 'Test and connect'}
         </button>
 
         <p
@@ -362,9 +371,9 @@ export default function JarvisApiSetup({ onConfigured }) {
             lineHeight: 1.45,
           }}
         >
-          Production gateway mode keeps provider credentials server-side. Local key mode stores the key through secure storage.
+          You can connect later. Habits, goals, and learning work without Ved.
         </p>
       </div>
-    </main>
+    </section>
   );
 }

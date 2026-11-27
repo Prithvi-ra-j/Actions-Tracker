@@ -1,23 +1,27 @@
 import React from 'react';
 import { Button } from './Buttons.jsx';
 
-export function EmptyState({ title, description, actionLabel, onAction, actionVariant = 'secondary' }) {
+export function EmptyState({ title, description, actionLabel, onAction, actionVariant = 'secondary', eyebrow, example }) {
   return (
     <div style={{
       display: 'flex',
       flexDirection: 'column',
-      alignItems: 'center',
-      justifyContent: 'center',
-      textAlign: 'center',
-      padding: '48px 24px',
+      alignItems: eyebrow ? 'flex-start' : 'center',
+      textAlign: eyebrow ? 'left' : 'center',
+      padding: eyebrow ? '30px 22px 24px' : '48px 24px',
+      background: eyebrow ? 'var(--s1)' : undefined,
+      border: eyebrow ? '1px solid var(--hairline)' : undefined,
+      borderRadius: eyebrow ? 'var(--r-container)' : undefined,
       color: 'var(--mu)'
     }}>
-      <h3 style={{ fontSize: '18px', fontWeight: 600, color: 'var(--tx)', marginBottom: '8px', margin: 0 }}>
+      {eyebrow && <span className="empty-state-eyebrow">{eyebrow}</span>}
+      <h3 style={{ fontSize: eyebrow ? '22px' : '18px', letterSpacing: eyebrow ? '-0.03em' : undefined, lineHeight: 1.2, fontWeight: 600, color: 'var(--tx)', margin: '0 0 8px' }}>
         {title}
       </h3>
-      <p style={{ fontSize: '14.5px', marginBottom: '24px', marginTop: 0, lineHeight: 1.5 }}>
+      <p style={{ fontSize: '14.5px', margin: example ? '0 0 16px' : '0 0 24px', lineHeight: 1.55, maxWidth: '40ch' }}>
         {description}
       </p>
+      {example && <p className="empty-state-example">{example}</p>}
       {actionLabel && onAction && (
         <Button onClick={onAction} variant={actionVariant}>
           {actionLabel}

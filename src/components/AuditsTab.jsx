@@ -319,10 +319,12 @@ export default function AuditsTab({ t, onOpenJarvis, isActive = true }) {
             </div>
           ) : unresolvedFindings.length === 0 ? (
             <EmptyState
-              title="No findings."
-              description={aiConfigured === false
-                ? 'Audits need an AI connection. Connect Ved to scan for contradictions and risks.'
-                : 'Run an AI audit to scan your system for contradictions and risks.'}
+              eyebrow="A closer look"
+              title={aiConfigured === null ? 'Checking Ved setup…' : aiConfigured === false ? 'Audits aren’t set up yet.' : audits.length ? 'No open findings.' : 'Ready when you are.'}
+              description={aiConfigured === null ? 'Checking whether Ved is connected.' : aiConfigured === false
+                ? 'Audits need an AI connection. Connect Ved to look for patterns and risks in your activity.'
+                : audits.length ? 'Your latest audit has no open findings. Run another when you want a fresh look.'
+                  : 'Run an AI audit to look for patterns and risks in your activity.'}
               actionLabel={aiConfigured === null ? undefined : aiConfigured ? (generating ? 'Running...' : 'Run Audit') : 'Set up Ved'}
               onAction={aiConfigured ? handleRunAudit : () => onOpenJarvis?.({ page: 'audits' })}
             />

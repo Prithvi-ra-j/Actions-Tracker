@@ -316,8 +316,10 @@ export default function LearnTab({ t, learnings = [], onAddLearning, onLogLearni
         <>
           <div style={{ height: '16px' }} />
           <EmptyState
-            title="No active topics."
-            description="Create a topic to track your learning loop — Learn, Practice, Apply, Evidence, Review."
+            eyebrow="Make it stick"
+            title="Learn something worth keeping."
+            description="Pick a topic, then keep track of what you learn and how you put it into practice."
+            example="Try: learning enough German to hold a conversation."
             actionLabel="Add topic"
             actionVariant="primary"
             onAction={() => setSheet({ type: 'create' })}
@@ -388,7 +390,7 @@ export default function LearnTab({ t, learnings = [], onAddLearning, onLogLearni
             onBlur={e => e.target.style.borderColor = 'var(--hairline)'}
           />
 
-          <div style={{ fontSize: '13px', fontWeight: 500, color: 'var(--mu)', margin: '14px 0 6px' }}>Objective</div>
+          <div style={{ fontSize: '13px', fontWeight: 500, color: 'var(--mu)', margin: '14px 0 6px' }}>What do you want to do with it? (optional)</div>
           <input
             aria-label="Learning objective"
             value={objective}
@@ -410,11 +412,12 @@ export default function LearnTab({ t, learnings = [], onAddLearning, onLogLearni
             onBlur={e => e.target.style.borderColor = 'var(--hairline)'}
           />
 
-          <div style={{ fontSize: '13px', fontWeight: 500, color: 'var(--mu)', margin: '14px 0 6px' }}>Axis</div>
-          <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginBottom: '18px' }}>
+          <div id="learning-area-label" style={{ fontSize: '13px', fontWeight: 500, color: 'var(--mu)', margin: '14px 0 6px' }}>Area</div>
+          <div role="group" aria-labelledby="learning-area-label" style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginBottom: '18px' }}>
             {axes.map(a => (
               <button
                 key={a}
+                aria-pressed={axis === a}
                 onClick={() => setAxis(a)}
                 style={{
                   minHeight: '44px',

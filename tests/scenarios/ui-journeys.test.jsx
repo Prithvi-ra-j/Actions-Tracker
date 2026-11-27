@@ -14,6 +14,7 @@ import { addLearning, getAllLearnings } from '../../src/database/learningReposit
 import { addAudit, getLatestAudit } from '../../src/database/auditRepository.js';
 import { saveConversation } from '../../src/database/jarvisConversationRepository.js';
 import { addHabit } from '../../src/database/habitRepository.js';
+import { localDateStr } from '../../src/helpers/dateHelpers.js';
 
 vi.mock('../../src/core/ai/analysisScheduler.js', () => ({
   bootstrapAnalysisScheduler: vi.fn(),
@@ -120,17 +121,17 @@ describe('UI Journeys', () => {
       axis: 'body',
       type: 'manual_evidence',
       value: 1,
-      date: '2026-09-26',
+      date: localDateStr(),
     });
     render(<App />);
     await waitForApp();
-    fireEvent.click(screen.getByRole('button', { name: 'Log evidence' }));
+    fireEvent.click(await screen.findByRole('button', { name: 'Log a note' }, { timeout: 15000 }));
     fireEvent.change(screen.getByPlaceholderText('What did you do? What did you notice?'), {
       target: { value: 'Ran 5 km and felt strong.' },
     });
-    fireEvent.change(screen.getByLabelText('Evidence type'), { target: { value: 'result' } });
-    fireEvent.change(screen.getByLabelText('Evidence axis'), { target: { value: 'discipline' } });
-    fireEvent.click(screen.getByRole('button', { name: 'Save evidence' }));
+    fireEvent.change(screen.getByLabelText('Note type'), { target: { value: 'result' } });
+    fireEvent.change(screen.getByLabelText('Note area'), { target: { value: 'discipline' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Save note' }));
 
     await waitFor(async () => {
       const logs = await getAllLogs();
@@ -144,13 +145,14 @@ describe('UI Journeys', () => {
   });
 
   it('creates a goal from the Goals form and persists its milestones', async () => {
-    await addLog({ axis: 'body', type: 'manual_evidence', value: 1, date: '2026-09-26' });
+    await addLog({ axis: 'body', type: 'manual_evidence', value: 1, date: localDateStr() });
     render(<App />);
     fireEvent.click(await waitForApp());
     fireEvent.click(screen.getByText('Goals'));
     fireEvent.click(await screen.findByRole('button', { name: 'New goal' }, { timeout: 15000 }));
     fireEvent.change(screen.getByLabelText('Goal outcome'), { target: { value: 'Run a 10K' } });
-    fireEvent.change(screen.getByLabelText('Goal axis'), { target: { value: 'body' } });
+    fireEvent.change(screen.getByLabelText('Goal area'), { target: { value: 'body' } });
+    fireEvent.click(screen.getByText('Add details and milestones (optional)'));
     fireEvent.change(screen.getByLabelText('Goal starting point'), { target: { value: '5 km with stops' } });
     fireEvent.change(screen.getByLabelText('Goal desired outcome'), { target: { value: '10 km continuously' } });
     fireEvent.change(screen.getByLabelText('Goal proof'), { target: { value: 'Complete a 10 km run' } });
@@ -209,11 +211,11 @@ describe('UI Journeys', () => {
   });
 
   it('creates a Learn topic and persists its objective and axis', async () => {
-    await addLog({ axis: 'knowledge', type: 'manual_evidence', value: 1, date: '2026-09-26' });
+    await addLog({ axis: 'knowledge', type: 'manual_evidence', value: 1, date: localDateStr() });
     render(<App />);
     await waitForApp();
     fireEvent.click(screen.getByRole('button', { name: 'Learn' }));
-    fireEvent.click(screen.getByRole('button', { name: 'Add topic' }));
+    fireEvent.click(await screen.findByRole('button', { name: 'Add topic' }, { timeout: 15000 }));
     fireEvent.change(screen.getByLabelText('Learning topic'), { target: { value: 'Clear reasoning' } });
     fireEvent.change(screen.getByLabelText('Learning objective'), { target: { value: 'Explain arguments accurately' } });
     fireEvent.click(screen.getByRole('button', { name: 'Social' }));

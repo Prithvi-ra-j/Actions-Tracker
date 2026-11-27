@@ -88,6 +88,46 @@ canvas {
   resize: vertical;
 }
 
+.empty-state-eyebrow {
+  color: var(--ac);
+  font: 600 11px 'Geist Mono', monospace;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  margin-bottom: 20px;
+}
+
+.empty-state-example {
+  width: 100%;
+  margin: 0 0 22px;
+  padding: 12px 14px;
+  border-left: 2px solid var(--ac);
+  border-radius: 0 var(--r-control) var(--r-control) 0;
+  background: var(--s2);
+  color: var(--tx);
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.form-details {
+  border: 1px solid var(--hairline);
+  border-radius: var(--r-control);
+  padding: 0 14px;
+}
+
+.form-details > summary {
+  cursor: pointer;
+  padding: 14px 0;
+  color: var(--tx);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.form-details-content {
+  display: grid;
+  gap: 12px;
+  padding: 0 0 14px;
+}
+
 .skip-link {
   position: fixed;
   top: 8px;

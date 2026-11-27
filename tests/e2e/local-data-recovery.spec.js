@@ -60,11 +60,11 @@ test('migrated local data remains after recording evidence and reloading', async
   await testLab.checkpoint('migration-loaded');
 
   const evidenceText = `Playwright evidence ${Date.now()}`;
-  await page.getByRole('button', { name: 'Log evidence' }).click();
+  await page.getByRole('button', { name: 'Log a note' }).click();
   await page.getByPlaceholder('What did you do? What did you notice?').fill(evidenceText);
-  await page.getByLabel('Evidence type').selectOption('result');
-  await page.getByLabel('Evidence axis').selectOption('discipline');
-  await page.getByRole('button', { name: 'Save evidence' }).click();
+  await page.getByLabel('Note type').selectOption('result');
+  await page.getByLabel('Note area').selectOption('discipline');
+  await page.getByRole('button', { name: 'Save note' }).click();
 
   await expect.poll(async () => (
     (await readLogs(page)).some(log => (

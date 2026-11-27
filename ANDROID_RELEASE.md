@@ -111,4 +111,6 @@ actions-tracker
 
 When the database structure changes, increment `DB_VERSION` and add a guarded IndexedDB migration. Do not create a new database name for each app version.
 
-Automatic JSON backups remain the recovery mechanism for accidental uninstall/data loss.
+Automatic JSON backups can help recover data after accidental uninstall or data loss,
+but their availability depends on the device and Android storage behavior. Keep an
+independent exported backup and verify recovery on the target device.

@@ -38,7 +38,7 @@ describe('manual habits', () => {
     fireEvent.click(await screen.findByRole('button', { name: 'Continue without Ved' }, { timeout: 15000 }));
     fireEvent.click(await screen.findByRole('button', { name: 'Add habit' }, { timeout: 15000 }));
     fireEvent.change(screen.getByLabelText('Habit name'), { target: { value: '  Walk outside  ' } });
-    fireEvent.change(screen.getByLabelText('Habit axis'), { target: { value: 'body' } });
+    fireEvent.change(screen.getByLabelText('Habit area'), { target: { value: 'body' } });
     fireEvent.click(screen.getByRole('button', { name: 'Create habit' }));
 
     const row = (await screen.findByText('Walk outside')).parentElement.parentElement;

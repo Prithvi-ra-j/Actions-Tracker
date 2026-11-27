@@ -210,8 +210,10 @@ export default function StatsTab({
     return (
       <div style={{ padding: '16px' }}>
         <EmptyState
-          title="Not enough evidence yet"
-          description="Complete some habits or log evidence to generate your stats."
+          eyebrow="Your progress"
+          title="The picture starts with today."
+          description="Complete a habit or log a note, and your stats will begin to take shape."
+          example="A walk, a practice session, or a small win all count."
           actionLabel="Go to Today"
           onAction={onGoToToday}
         />
