@@ -71,6 +71,23 @@ canvas {
   border-radius: 4px;
 }
 
+.goal-fields input,
+.goal-fields select,
+.goal-fields textarea {
+  width: 100%;
+  min-height: 48px;
+  padding: 10px 14px;
+  border: 1px solid var(--hairline);
+  border-radius: var(--r-control);
+  background: var(--s2);
+  color: var(--tx);
+  font: inherit;
+}
+
+.goal-fields textarea {
+  resize: vertical;
+}
+
 .skip-link {
   position: fixed;
   top: 8px;

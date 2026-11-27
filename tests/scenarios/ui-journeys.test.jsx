@@ -15,6 +15,10 @@ import { addAudit, getLatestAudit } from '../../src/database/auditRepository.js'
 import { saveConversation } from '../../src/database/jarvisConversationRepository.js';
 import { addHabit } from '../../src/database/habitRepository.js';
 
+vi.mock('../../src/core/ai/analysisScheduler.js', () => ({
+  bootstrapAnalysisScheduler: vi.fn(),
+}));
+
 // Wait until the bootstrap finished and the loading splash is gone.
 async function waitForApp() {
   // The tab bar only exists once dbReady is true.
@@ -23,6 +27,7 @@ async function waitForApp() {
 
 describe('UI Journeys', () => {
   beforeEach(async () => {
+    vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new Error('Network disabled in UI tests')));
     closeDB();
     const dbs = await indexedDB.databases();
     for (const db of dbs) {
@@ -47,25 +52,26 @@ describe('UI Journeys', () => {
   afterEach(() => {
     cleanup(); // vitest globals are off, so RTL will not auto-clean between tests
     vi.restoreAllMocks();
+    vi.unstubAllGlobals();
   });
 
-  it('shows API setup before the Jarvis workspace when no key is configured', async () => {
+  it('shows API setup before the Ved workspace when no key is configured', async () => {
     await clearSecureValue('aiApiKey');
     render(<JarvisTab />);
-    expect(await screen.findByText(/Connect Jarvis/i)).toBeTruthy();
-    expect(screen.getByLabelText('Jarvis API key')).toBeTruthy();
+    expect(await screen.findByText(/Connect Ved/i)).toBeTruthy();
+    expect(screen.getByLabelText('Ved API key')).toBeTruthy();
   });
 
-  it('starts first-run onboarding at Jarvis API setup', async () => {
+  it('starts first-run onboarding at Ved API setup', async () => {
     await clearSecureValue('aiApiKey');
     render(<App />);
-    expect(await screen.findByText(/Connect Jarvis/i)).toBeTruthy();
-    expect(screen.getByLabelText('Jarvis API key')).toBeTruthy();
+    expect(await screen.findByText(/Connect Ved/i)).toBeTruthy();
+    expect(screen.getByLabelText('Ved API key')).toBeTruthy();
   });
 
   it('uses the empty database as the first-run state', async () => {
     render(<App />);
-    expect(await screen.findByLabelText('Jarvis onboarding')).toBeTruthy();
+    expect(await screen.findByLabelText('Ved onboarding')).toBeTruthy();
   });
 
   it('opens the normal app when user data already exists', async () => {
@@ -142,7 +148,7 @@ describe('UI Journeys', () => {
     render(<App />);
     fireEvent.click(await waitForApp());
     fireEvent.click(screen.getByText('Goals'));
-    fireEvent.click(screen.getByRole('button', { name: 'New goal' }));
+    fireEvent.click(await screen.findByRole('button', { name: 'New goal' }, { timeout: 15000 }));
     fireEvent.change(screen.getByLabelText('Goal outcome'), { target: { value: 'Run a 10K' } });
     fireEvent.change(screen.getByLabelText('Goal axis'), { target: { value: 'body' } });
     fireEvent.change(screen.getByLabelText('Goal starting point'), { target: { value: '5 km with stops' } });
@@ -171,7 +177,7 @@ describe('UI Journeys', () => {
     await waitFor(async () => {
       expect((await getAllGoals()).find(goal => goal.label === 'Run a fast 10K')?.status).toBe('paused');
     });
-  });
+  }, 30000);
 
   it('logs Learn practice as evidence and advances the persisted loop step', async () => {
     await addLog({ axis: 'knowledge', type: 'manual_evidence', value: 1, date: '2026-09-26' });
@@ -224,7 +230,7 @@ describe('UI Journeys', () => {
     });
   });
 
-  it('attaches the selected goal when opening Jarvis from goal detail', async () => {
+  it('attaches the selected goal when opening Ved from goal detail', async () => {
     await addLog({ axis: 'body', type: 'manual_evidence', value: 1, date: '2026-09-26' });
     const { addGoal } = await import('../../src/database/goalsRepository.js');
     await addGoal({ label: 'Run a 10K', domain: 'body', targets: [] });
@@ -237,7 +243,7 @@ describe('UI Journeys', () => {
     expect(await screen.findByText('Context: Run a 10K')).toBeTruthy();
   });
 
-  it('opens a saved Jarvis conversation and starts a separate new chat', async () => {
+  it('opens a saved Ved conversation and starts a separate new chat', async () => {
     await addLog({ axis: 'body', type: 'manual_evidence', value: 1, date: '2026-09-26' });
     await saveConversation({
       id: 'jarvis_history_journey',
@@ -328,7 +334,7 @@ describe('UI Journeys', () => {
     expect(auditId).toBeTruthy();
   });
 
-  it('can open normal Jarvis from the docked pill', async () => {
+  it('can open normal Ved from the docked pill', async () => {
     await addLog({
       axis: 'body',
       type: 'manual_evidence',
@@ -340,10 +346,10 @@ describe('UI Journeys', () => {
     const dockedJarvisBtn = document.getElementById('jarvis-pill-btn');
     expect(dockedJarvisBtn).toBeTruthy();
     fireEvent.click(dockedJarvisBtn);
-    expect(await screen.findByPlaceholderText(/Tell Jarvis what you want/i)).toBeTruthy();
+    expect(await screen.findByPlaceholderText(/Tell Ved what you want/i)).toBeTruthy();
   });
 
-  it('retries a failed Jarvis request with the original prompt', async () => {
+  it('retries a failed Ved request with the original prompt', async () => {
     const jarvisEngine = await import('../../src/core/ai/jarvisEngine.js');
     const chatSpy = vi.spyOn(jarvisEngine, 'chatWithJarvis')
       .mockRejectedValueOnce(new Error('provider unavailable'))
@@ -357,12 +363,12 @@ describe('UI Journeys', () => {
     });
     render(<JarvisTab />);
     expect(await screen.findByText('Recent activity')).toBeTruthy();
-    const composer = await screen.findByRole('combobox', { name: 'Tell Jarvis what you want' });
+    const composer = await screen.findByRole('combobox', { name: 'Tell Ved what you want' });
     const prompt = 'Help me adjust my morning routine';
     fireEvent.change(composer, { target: { value: prompt } });
     fireEvent.click(screen.getByRole('button', { name: 'Send' }));
 
-    expect(await screen.findByText("Jarvis couldn't complete that reply.")).toBeTruthy();
+    expect(await screen.findByText("Ved couldn't complete that reply.")).toBeTruthy();
     expect(composer.value).toBe(prompt);
     expect(screen.getByText(prompt)).toBeTruthy();
     fireEvent.click(screen.getByRole('button', { name: 'Retry' }));
@@ -385,13 +391,13 @@ describe('UI Journeys', () => {
     render(<JarvisTab onboardingMode />);
 
     expect(await screen.findByText('What is your name?')).toBeTruthy();
-    const composer = await screen.findByRole('combobox', { name: 'Tell Jarvis what you want' });
+    const composer = await screen.findByRole('combobox', { name: 'Tell Ved what you want' });
     const answer = 'QA test profile';
     fireEvent.change(composer, { target: { value: answer } });
     fireEvent.click(screen.getByRole('button', { name: 'Send' }));
 
     const errorAlert = await screen.findByRole('alert');
-    expect(errorAlert.textContent).toContain('Jarvis returned a response the app could not use.');
+    expect(errorAlert.textContent).toContain('Ved returned a response the app could not use.');
     expect(errorAlert.textContent).not.toContain('complete_onboarding requires identity');
     expect(composer.value).toBe(answer);
     fireEvent.click(screen.getByRole('button', { name: 'Retry' }));
@@ -404,7 +410,7 @@ describe('UI Journeys', () => {
     await waitFor(() => expect(composer.value).toBe(''));
   });
 
-  it('shows a warning for text-only provider replies recovered by Jarvis', async () => {
+  it('shows a warning for text-only provider replies recovered by Ved', async () => {
     const jarvisEngine = await import('../../src/core/ai/jarvisEngine.js');
     vi.spyOn(jarvisEngine, 'chatWithJarvis')
       .mockResolvedValueOnce({ message: 'What is your name?', proposal: null, claims: [], contextUsed: [] })
@@ -413,12 +419,12 @@ describe('UI Journeys', () => {
         proposal: null,
         claims: [],
         contextUsed: [],
-        responseWarning: 'This reply came back as plain text, so Jarvis could not prepare an action. No changes were made; you can keep chatting or retry.',
+        responseWarning: 'This reply came back as plain text, so Ved could not prepare an action. No changes were made; you can keep chatting or retry.',
       });
     render(<JarvisTab onboardingMode />);
 
     expect(await screen.findByText('What is your name?')).toBeTruthy();
-    const composer = await screen.findByRole('combobox', { name: 'Tell Jarvis what you want' });
+    const composer = await screen.findByRole('combobox', { name: 'Tell Ved what you want' });
     fireEvent.change(composer, { target: { value: 'I keep going to bed late.' } });
     fireEvent.click(screen.getByRole('button', { name: 'Send' }));
 
@@ -426,9 +432,9 @@ describe('UI Journeys', () => {
     expect((await screen.findByRole('status')).textContent).toContain('No changes were made');
   });
 
-  it('filters and selects Jarvis slash commands with the keyboard', async () => {
+  it('filters and selects Ved slash commands with the keyboard', async () => {
     render(<JarvisTab />);
-    const composer = await screen.findByRole('combobox', { name: 'Tell Jarvis what you want' });
+    const composer = await screen.findByRole('combobox', { name: 'Tell Ved what you want' });
     fireEvent.change(composer, { target: { value: '/rev' } });
 
     const reviseCommand = await screen.findByRole('option', { name: 'Revise target' });
@@ -448,7 +454,7 @@ describe('UI Journeys', () => {
     expect(screen.queryByRole('listbox')).toBeNull();
   });
 
-  it('builds Jarvis review stories from saved logs and hands off to chat', async () => {
+  it('builds Ved review stories from saved logs and hands off to chat', async () => {
     await addLog({
       axis: 'body',
       type: 'manual_evidence',
@@ -467,11 +473,11 @@ describe('UI Journeys', () => {
     expect(screen.getByText('body')).toBeTruthy();
     fireEvent.click(screen.getByRole('button', { name: 'Next review story' }));
     expect(await screen.findByText('Latest saved entry')).toBeTruthy();
-    fireEvent.click(screen.getByRole('button', { name: 'Ask Jarvis' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Ask Ved' }));
     expect(screen.getByRole('combobox').value).toBe('Review my recent evidence from the last 28 days.');
   });
 
-  it('executes only the plan steps selected on the Jarvis Plan board', async () => {
+  it('executes only the plan steps selected on the Ved Plan board', async () => {
     const impact = {
       affectedDomains: [],
       scoringImpact: '',

@@ -12,7 +12,7 @@ const PAGE_LABELS = {
   stats: 'Stats',
   goals: 'Goals',
   learn: 'Learn',
-  jarvis: 'Jarvis',
+  jarvis: 'Ved',
   audits: 'Audits',
 };
 
@@ -50,6 +50,7 @@ export default function AppPages({
   onExcuseOccurrence,
   onOccurrenceReason,
   onGoToGoals,
+  onGoToToday,
   onOpenJarvis,
   onQuestsChanged,
   onClearJarvisContext,
@@ -94,6 +95,7 @@ export default function AppPages({
           allQuests={allQuests}
           allLogs={allLogs}
           axisConfigs={axisConfigs}
+          onGoToToday={onGoToToday}
           onOpenJarvis={context => onOpenJarvis(context || { page: 'stats' })}
         />
       </AppPage>
@@ -142,6 +144,7 @@ export default function AppPages({
       <AppPage id="audits" currentTab={currentTab} visitedTabs={visitedTabs}>
         <AuditsTab
           t={t}
+          isActive={currentTab === 'audits'}
           onOpenJarvis={context => onOpenJarvis(context || { page: 'audits' })}
         />
       </AppPage>

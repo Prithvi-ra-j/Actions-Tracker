@@ -1,5 +1,5 @@
 /**
- * Action Executor for Jarvis Conversational Actions
+ * Action Executor for Ved Conversational Actions
  * Respects ADR-004 (AI Write Boundary). This is the only module that translates
  * an APPROVED ActionProposal into a database write.
  */
@@ -303,7 +303,7 @@ export async function executeAction(proposal) {
     }
 
     case 'complete_onboarding': {
-      // Jarvis is allowed to establish direction, but the user still has the
+      // Ved is allowed to establish direction, but the user still has the
       // final approval boundary: this action only runs after the proposal is
       // explicitly approved in the UI.
       const now = new Date().toISOString();
@@ -394,14 +394,14 @@ export async function executeAction(proposal) {
             payload: step.payload,
             impact: {
               affectedDomains: [],
-              scoringImpact: 'Part of an approved Jarvis plan.',
+              scoringImpact: 'Part of an approved Ved plan.',
               routineImpact: 'See plan-level impact.',
               identityAlignment: '',
               disciplineImpact: '',
               risks: [],
               dependencies: [],
             },
-            reasoning: 'Approved as part of a Jarvis plan.',
+            reasoning: 'Approved as part of a Ved plan.',
             confidence: validatedProposal.confidence,
           };
           const stepResult = await executeAction(stepProposal);

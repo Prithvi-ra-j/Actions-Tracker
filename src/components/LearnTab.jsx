@@ -25,9 +25,16 @@ function TopicCard({ topic, onClick }) {
   const currentStep = LOOP_STEPS[stepIndex] || LOOP_STEPS[0];
 
   return (
-    <div
+    <button
+      type="button"
       onClick={onClick}
       style={{
+        display: 'block',
+        width: '100%',
+        textAlign: 'left',
+        border: 0,
+        font: 'inherit',
+        color: 'var(--tx)',
         background: 'var(--s1)',
         borderRadius: 'var(--r-container)',
         padding: '14px 16px',
@@ -98,7 +105,7 @@ function TopicCard({ topic, onClick }) {
       <div style={{ marginTop: '10px' }}>
         <SegmentedBar value={stepIndex + 1} segments={10} />
       </div>
-    </div>
+    </button>
   );
 }
 
@@ -258,7 +265,7 @@ function TopicSheet({ topic, onClose, onOpenJarvis, onLogPractice }) {
         >
           <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
             <Sparkle size={16} />
-            Ask Jarvis
+            Ask Ved
           </span>
         </Button>
       </div>
@@ -312,6 +319,7 @@ export default function LearnTab({ t, learnings = [], onAddLearning, onLogLearni
             title="No active topics."
             description="Create a topic to track your learning loop — Learn, Practice, Apply, Evidence, Review."
             actionLabel="Add topic"
+            actionVariant="primary"
             onAction={() => setSheet({ type: 'create' })}
           />
         </>
@@ -437,7 +445,7 @@ export default function LearnTab({ t, learnings = [], onAddLearning, onLogLearni
             }}>
               <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                 <Sparkle size={16} />
-                Ask Jarvis
+                Ask Ved
               </span>
             </Button>
           </div>
@@ -449,6 +457,7 @@ export default function LearnTab({ t, learnings = [], onAddLearning, onLogLearni
       <BottomSheet
         isOpen={sheet?.type === 'detail'}
         onClose={() => setSheet(null)}
+        label={sheet?.topic?.concept || 'Topic details'}
       >
         {sheet?.topic && (
           <TopicSheet

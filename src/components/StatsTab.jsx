@@ -171,19 +171,12 @@ function AxisSheet({ axisKey, stats, axisDetails, snapshots, onOpenJarvis, onClo
           </span>
         </Button>
       </div>
-      <Button
-        variant="secondary"
-        style={{ width: '100%', fontSize: '14px' }}
-        onClick={onClose}
-      >
-        Audit this metric
-      </Button>
     </div>
   );
 }
 
 export default function StatsTab({
-  t, stats, axisDetails, snapshot, allQuests, allLogs, axisConfigs, onOpenJarvis,
+  t, stats, axisDetails, snapshot, allQuests, allLogs, axisConfigs, onOpenJarvis, onGoToToday,
 }) {
   const [selectedAxis, setSelectedAxis] = useState(null);
   const [snapshots, setSnapshots] = useState([]);
@@ -219,6 +212,8 @@ export default function StatsTab({
         <EmptyState
           title="Not enough evidence yet"
           description="Complete some habits or log evidence to generate your stats."
+          actionLabel="Go to Today"
+          onAction={onGoToToday}
         />
       </div>
     );
@@ -247,10 +242,16 @@ export default function StatsTab({
           const deltaStr = delta >= 0 ? `+${delta}` : `${delta}`;
 
           return (
-            <div
+            <button
+              type="button"
               key={axis.key}
               onClick={() => setSelectedAxis(axis.key)}
               style={{
+                width: '100%',
+                padding: 0,
+                background: 'transparent',
+                border: 0,
+                font: 'inherit',
                 display: 'flex',
                 justifyContent: 'space-between',
                 alignItems: 'center',
@@ -277,7 +278,7 @@ export default function StatsTab({
                   {deltaStr}
                 </span>
               </span>
-            </div>
+            </button>
           );
         })}
       </div>

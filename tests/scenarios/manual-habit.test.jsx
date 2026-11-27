@@ -10,6 +10,7 @@ vi.mock('../../src/database/backupService.js', () => ({
 }));
 vi.mock('../../src/native/notifications.js', () => ({ scheduleAllReminders: vi.fn() }));
 vi.mock('../../src/core/updateChecker.js', () => ({ checkForUpdate: vi.fn().mockResolvedValue(null) }));
+vi.mock('../../src/core/ai/analysisScheduler.js', () => ({ bootstrapAnalysisScheduler: vi.fn() }));
 
 import App from '../../src/App.jsx';
 import { clearAllDatabaseData, closeDB, initDB } from '../../src/database/db.js';
@@ -32,9 +33,9 @@ describe('manual habits', () => {
     cleanup();
   });
 
-  it('creates and completes a daily habit without configuring Jarvis', async () => {
+  it('creates and completes a daily habit without configuring Ved', async () => {
     render(<App />);
-    fireEvent.click(await screen.findByRole('button', { name: 'Continue without Jarvis' }, { timeout: 15000 }));
+    fireEvent.click(await screen.findByRole('button', { name: 'Continue without Ved' }, { timeout: 15000 }));
     fireEvent.click(await screen.findByRole('button', { name: 'Add habit' }, { timeout: 15000 }));
     fireEvent.change(screen.getByLabelText('Habit name'), { target: { value: '  Walk outside  ' } });
     fireEvent.change(screen.getByLabelText('Habit axis'), { target: { value: 'body' } });
@@ -56,6 +57,22 @@ describe('manual habits', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Create habit' }));
     expect(await screen.findByText('Read')).toBeTruthy();
     expect(await getAllHabits()).toHaveLength(2);
+  }, 30000);
+
+  it('offers manual goals and explains audit setup without an AI connection', async () => {
+    render(<App />);
+    fireEvent.click(await screen.findByRole('button', { name: 'Continue without Ved' }, { timeout: 15000 }));
+    fireEvent.click(await screen.findByRole('button', { name: 'Goals' }));
+    fireEvent.click(await screen.findByRole('button', { name: 'Create a goal' }, { timeout: 15000 }));
+    expect(screen.getByRole('dialog', { name: 'New goal' })).toBeTruthy();
+    expect(screen.getByLabelText('Goal outcome').closest('.goal-fields')).toBeTruthy();
+    fireEvent.click(screen.getByRole('button', { name: 'Close dialog' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Audits' }));
+    expect(await screen.findByText(/Audits need an AI connection/, {}, { timeout: 15000 })).toBeTruthy();
+    expect(screen.queryByRole('button', { name: 'Run Audit' })).toBeNull();
+    expect(screen.queryByRole('button', { name: 'Domain' })).toBeNull();
+    fireEvent.click(screen.getByRole('button', { name: 'Set up Ved' }));
+    expect(await screen.findByRole('heading', { name: 'Connect Ved' })).toBeTruthy();
   }, 30000);
 
 });

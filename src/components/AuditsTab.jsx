@@ -5,6 +5,7 @@ import { EmptyState } from './ui/States.jsx';
 import { SegmentedBar } from './ui/Indicators.jsx';
 import { EvidenceSheet } from './EvidenceSheet.jsx';
 import { Sparkle } from '@phosphor-icons/react';
+import { hasJarvisApiKey } from '../core/ai/jarvisConfig.js';
 
 // Severity stripe colors per design guide
 const SEVERITY_COLORS = {
@@ -18,9 +19,16 @@ function FindingCard({ finding, onClick }) {
   const stripeColor = SEVERITY_COLORS[severity] || 'var(--mu)';
 
   return (
-    <div
+    <button
+      type="button"
       onClick={onClick}
       style={{
+        display: 'block',
+        width: '100%',
+        textAlign: 'left',
+        border: 0,
+        font: 'inherit',
+        color: 'var(--tx)',
         background: 'var(--s1)',
         borderRadius: 'var(--r-container)',
         padding: '14px 14px 12px 18px',
@@ -51,7 +59,7 @@ function FindingCard({ finding, onClick }) {
       <p style={{ margin: '4px 0 0', fontSize: '12.5px', color: 'var(--mu)', lineHeight: 1.5 }}>
         {finding.text}
       </p>
-    </div>
+    </button>
   );
 }
 
@@ -111,7 +119,7 @@ function FindingSheet({ finding, onClose, onOpenJarvis, ignoreMode, onToggleIgno
           Possible correction
         </div>
         <p style={{ margin: 0, fontSize: '14px', color: 'var(--tx)', lineHeight: 1.5 }}>
-          Review the related goal and adjust the target timeline, or send to Jarvis to design a plan.
+          Review the related goal and adjust the target timeline, or send to Ved to design a plan.
         </p>
       </div>
 
@@ -146,7 +154,7 @@ function FindingSheet({ finding, onClose, onOpenJarvis, ignoreMode, onToggleIgno
         >
           <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
             <Sparkle size={16} />
-            Send to Jarvis
+            Send to Ved
           </span>
         </Button>
       </div>
@@ -166,7 +174,7 @@ function FindingSheet({ finding, onClose, onOpenJarvis, ignoreMode, onToggleIgno
   );
 }
 
-export default function AuditsTab({ t, onOpenJarvis }) {
+export default function AuditsTab({ t, onOpenJarvis, isActive = true }) {
   const [audits, setAudits] = useState([]);
   const [loading, setLoading] = useState(true);
   const [generating, setGenerating] = useState(false);
@@ -176,8 +184,21 @@ export default function AuditsTab({ t, onOpenJarvis }) {
   const [showEvidence, setShowEvidence] = useState(false);
   const [toast, setToast] = useState(null);
   const [ignoreMode, setIgnoreMode] = useState(false);
+  const [aiConfigured, setAiConfigured] = useState(null);
 
   useEffect(() => { loadAudits(); }, []);
+  useEffect(() => {
+    if (!isActive) return undefined;
+    let active = true;
+    setAiConfigured(null);
+    hasJarvisApiKey().then(configured => {
+      if (active) setAiConfigured(configured);
+    }).catch(err => {
+      console.error('[Audits] Could not check AI configuration:', err);
+      if (active) setError('Could not check AI setup. Please try again.');
+    });
+    return () => { active = false; };
+  }, [isActive]);
 
   async function loadAudits() {
     try {
@@ -194,7 +215,9 @@ export default function AuditsTab({ t, onOpenJarvis }) {
   }
 
   async function handleRunAudit() {
+    if (generating) return;
     setGenerating(true);
+    setError(null);
     try {
       const { runMonthlyAudit } = await import('../core/ai/auditEngine.js');
       await runMonthlyAudit();
@@ -231,7 +254,7 @@ export default function AuditsTab({ t, onOpenJarvis }) {
     setToast(state.status === 'ignored' ? 'Finding moved to Resolved.' : 'Finding restored.');
   }
 
-  const filters = ['unresolved', 'resolved', 'domain'];
+  const filters = ['unresolved', 'resolved'];
 
   return (
     <div style={{ padding: '0 14px 24px' }}>
@@ -275,7 +298,7 @@ export default function AuditsTab({ t, onOpenJarvis }) {
 
       {/* Error banner */}
       {error && (
-        <div style={{
+        <div role="alert" style={{
           marginBottom: '14px',
           padding: '12px 14px',
           background: 'color-mix(in srgb, var(--danger) 15%, transparent)',
@@ -297,9 +320,11 @@ export default function AuditsTab({ t, onOpenJarvis }) {
           ) : unresolvedFindings.length === 0 ? (
             <EmptyState
               title="No findings."
-              description="Run an audit to scan your system for contradictions and risks."
-              actionLabel={generating ? 'Running...' : 'Run Audit'}
-              onAction={handleRunAudit}
+              description={aiConfigured === false
+                ? 'Audits need an AI connection. Connect Ved to scan for contradictions and risks.'
+                : 'Run an AI audit to scan your system for contradictions and risks.'}
+              actionLabel={aiConfigured === null ? undefined : aiConfigured ? (generating ? 'Running...' : 'Run Audit') : 'Set up Ved'}
+              onAction={aiConfigured ? handleRunAudit : () => onOpenJarvis?.({ page: 'audits' })}
             />
           ) : (
             <>
@@ -336,16 +361,11 @@ export default function AuditsTab({ t, onOpenJarvis }) {
         ))
       )}
 
-      {activeFilter === 'domain' && (
-        <div style={{ color: 'var(--mu)', fontSize: '14px', padding: '24px 0', textAlign: 'center' }}>
-          Domain-level filtering is unavailable because findings do not yet store a domain association.
-        </div>
-      )}
-
       {/* Finding Detail Sheet */}
       <BottomSheet
         isOpen={!!selectedFinding}
         onClose={() => setSelectedFinding(null)}
+        label={selectedFinding?.type || 'Audit finding'}
       >
         {selectedFinding && (
           <FindingSheet

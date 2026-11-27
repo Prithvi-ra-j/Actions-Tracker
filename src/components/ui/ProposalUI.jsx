@@ -89,7 +89,7 @@ export function ActionProposalCard({ proposal, onApply, onEdit, onDismiss, onUnd
     payload.name ||
     payload.title ||
     payload.label ||
-    (actionType === 'complete_onboarding' ? 'Complete Jarvis onboarding' : actionType.replaceAll('_', ' '));
+    (actionType === 'complete_onboarding' ? 'Complete Ved onboarding' : actionType.replaceAll('_', ' '));
   const proposalDescription = {
     complete_onboarding: 'Saves your profile, focus areas, baseline and desired direction.',
     add_habit: 'Creates a new habit',
@@ -244,7 +244,7 @@ export function ImpactDetailSheet({ proposal, impact, onApply, onEdit, onDismiss
   
   if (!proposal) return null;
   return (
-    <BottomSheet isOpen={!!proposal} onClose={onDismiss}>
+    <BottomSheet isOpen={!!proposal} onClose={onDismiss} label="What will change">
       <h3 className="h3">What will change</h3>
       <div style={{ marginTop: '14px', backgroundColor: 'var(--s1)', borderRadius: '16px', padding: '8px', boxShadow: 'inset 0 0 0 1px var(--ln)' }}>
         {proposal.actionType === 'complete_onboarding' ? (
@@ -252,7 +252,7 @@ export function ImpactDetailSheet({ proposal, impact, onApply, onEdit, onDismiss
             <EntityRow
               title="Profile"
               leftElement={<span className="mono" style={{ color: 'var(--ac)' }}>+</span>}
-              label="Stores your Jarvis profile and constraints"
+              label="Stores your Ved profile and constraints"
             />
             <EntityRow
               title="Focus"
@@ -324,7 +324,7 @@ export function EditProposalSheet({ proposal, onSave, onCancel, onDismiss }) {
   // Real implementation would parse proposal schema and render inputs dynamically.
   // For the UI step, we just show a placeholder representation.
   return (
-    <BottomSheet isOpen={!!proposal} onClose={onDismiss}>
+    <BottomSheet isOpen={!!proposal} onClose={onDismiss} label="Edit proposal">
       <h3 className="h3">Edit proposal</h3>
       <p style={{ fontSize: '13.5px', color: 'var(--mu)' }}>{proposal.name}</p>
       

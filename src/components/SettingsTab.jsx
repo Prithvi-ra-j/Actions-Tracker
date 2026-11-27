@@ -342,7 +342,7 @@ export default function SettingsTab({ t, onClose, reminders: reminderConfigs = [
       <div style={headerLabelStyle}>What needs AI?</div>
       <div style={groupStyle}>
         <div style={{ padding: '14px', fontSize: '13px', color: 'var(--mu)', lineHeight: 1.5 }}>
-          Local tracking, stats, and streaks work without an AI connection. AI is only used when you explicitly Ask Jarvis, run Audits, or generate impact projections.
+          Local tracking, stats, and streaks work without an AI connection. AI is only used when you explicitly Ask Ved, run Audits, or generate impact projections.
         </div>
       </div>
     </div>
@@ -415,8 +415,8 @@ export default function SettingsTab({ t, onClose, reminders: reminderConfigs = [
     <div style={{ padding: '0 14px', flex: 1, overflowY: 'auto' }}>
       <div style={groupStyle}>
         <div style={rowStyle(false)}>
-          Let Jarvis save memories
-          <button type="button" role="switch" aria-checked={saveMemories} aria-label="Let Jarvis save memories" onClick={() => savePreference('jarvisSaveMemories', saveMemories, setSaveMemories)} style={{ marginLeft: 'auto', minWidth: '44px', minHeight: '32px', border: 0, borderRadius: 'var(--r-control)', background: saveMemories ? 'var(--ac)' : 'var(--s2)', color: saveMemories ? 'var(--on-ac)' : 'var(--tx)', cursor: 'pointer' }}>{saveMemories ? 'On' : 'Off'}</button>
+          Let Ved save memories
+          <button type="button" role="switch" aria-checked={saveMemories} aria-label="Let Ved save memories" onClick={() => savePreference('jarvisSaveMemories', saveMemories, setSaveMemories)} style={{ marginLeft: 'auto', minWidth: '44px', minHeight: '32px', border: 0, borderRadius: 'var(--r-control)', background: saveMemories ? 'var(--ac)' : 'var(--s2)', color: saveMemories ? 'var(--on-ac)' : 'var(--tx)', cursor: 'pointer' }}>{saveMemories ? 'On' : 'Off'}</button>
         </div>
         <div style={rowStyle(true)}>
           Attach selected page context
@@ -496,7 +496,7 @@ export default function SettingsTab({ t, onClose, reminders: reminderConfigs = [
 
       <div style={headerLabelStyle}>Preview</div>
       <div style={{ ...groupStyle, padding: '14px' }}>
-        <span style={{ fontFamily: "'Geist Mono', monospace", fontSize: '11.5px', color: 'var(--mu)' }}>Jarvis</span>
+        <span style={{ fontFamily: "'Geist Mono', monospace", fontSize: '11.5px', color: 'var(--mu)' }}>Ved</span>
         <p style={{ color: 'var(--tx)', margin: '4px 0 0', fontSize: '13px', lineHeight: 1.5 }}>Your evening routine was missed four times this week. Want me to check whether the schedule still fits?</p>
         <div style={{ display: 'flex', gap: '8px', marginTop: '14px' }}>
           <Button variant="primary" style={{ flex: 1, fontSize: '13px' }}>Review</Button>
@@ -561,7 +561,7 @@ export default function SettingsTab({ t, onClose, reminders: reminderConfigs = [
     switch (activeSection) {
       case 'ai': return 'Connection and keys';
       case 'data': return 'Backup and storage';
-      case 'memory': return 'What Jarvis can remember';
+      case 'memory': return 'What Ved can remember';
       case 'integrations': return 'Evidence sources';
       case 'foodFitness': return 'Planned in-app tracking';
       case 'notifications': return 'Proactive suggestions';
@@ -571,7 +571,7 @@ export default function SettingsTab({ t, onClose, reminders: reminderConfigs = [
   };
 
   return (
-    <BottomSheet isOpen={true} onClose={onClose}>
+    <BottomSheet isOpen={true} onClose={onClose} label={getSectionTitle()}>
       <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: '24px' }}>
         <div>
           <h2 style={{ margin: 0, fontSize: '26px', fontWeight: 600, letterSpacing: '-0.02em', lineHeight: 1.1 }}>

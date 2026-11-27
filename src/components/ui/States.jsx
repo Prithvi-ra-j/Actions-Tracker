@@ -1,7 +1,7 @@
 import React from 'react';
 import { Button } from './Buttons.jsx';
 
-export function EmptyState({ title, description, actionLabel, onAction }) {
+export function EmptyState({ title, description, actionLabel, onAction, actionVariant = 'secondary' }) {
   return (
     <div style={{
       display: 'flex',
@@ -19,7 +19,7 @@ export function EmptyState({ title, description, actionLabel, onAction }) {
         {description}
       </p>
       {actionLabel && onAction && (
-        <Button onClick={onAction} variant="secondary">
+        <Button onClick={onAction} variant={actionVariant}>
           {actionLabel}
         </Button>
       )}

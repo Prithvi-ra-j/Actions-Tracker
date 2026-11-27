@@ -1,5 +1,5 @@
 /**
- * Impact Engine for Jarvis Conversational Actions
+ * Impact Engine for Ved Conversational Actions
  * Deterministically computes the impact of an AI proposal on the system state.
  */
 
@@ -194,9 +194,9 @@ export function computeImpact(proposal, currentState) {
 
     case 'complete_onboarding':
       impact.affectedDomains.push(...(Array.isArray(payload.focusAxes) ? payload.focusAxes : []));
-      impact.scoringImpact = 'Seeds the starting score from Jarvis baseline assessments; those baseline values fade as real activity accumulates. It does not create habits, quests, or a schedule.';
+      impact.scoringImpact = 'Seeds the starting score from Ved baseline assessments; those baseline values fade as real activity accumulates. It does not create habits, quests, or a schedule.';
       impact.identityAlignment = 'Stores the user-defined identity and desired direction.';
-      impact.routineImpact = 'No routine is invented during onboarding; Jarvis designs execution later through conversation.';
+      impact.routineImpact = 'No routine is invented during onboarding; Ved designs execution later through conversation.';
       impact.dependencies = ['User review and approval of the onboarding summary and baseline assessments.'];
       break;
 
@@ -209,7 +209,7 @@ export function computeImpact(proposal, currentState) {
       break;
 
     case 'update_experiment':
-      impact.scoringImpact = 'Updates experiment state or results so Jarvis can evaluate the hypothesis against observed evidence.';
+      impact.scoringImpact = 'Updates experiment state or results so Ved can evaluate the hypothesis against observed evidence.';
       break;
   }
   

@@ -1,4 +1,4 @@
-import React, { lazy, Suspense, useEffect, useState, useCallback, useMemo } from 'react';
+import React, { lazy, Suspense, useEffect, useState, useCallback, useMemo, useRef, useLayoutEffect } from 'react';
 import { THEMES, ACCENT } from './constants.js';
 import { localDateStr, subtractDays } from './helpers/dateHelpers.js';
 import { loadEnrichedOccurrences } from './core/appData.js';
@@ -119,8 +119,18 @@ export default function App() {
     return window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
   });
   const [showSettings, setShowSettings] = useState(false);
+  const settingsWasOpen = useRef(false);
   const [expanded,     setExpanded]     = useState(null); // expanded goal index
   const [jarvisContext, setJarvisContext] = useState(null);
+
+  useLayoutEffect(() => {
+    if (showSettings) {
+      settingsWasOpen.current = true;
+    } else if (settingsWasOpen.current) {
+      settingsWasOpen.current = false;
+      document.getElementById('settings-btn')?.focus();
+    }
+  }, [showSettings]);
 
   // ── Data state (loaded from DB on mount; written back on every change) ─────
   const [allLogs,          setAllLogs]          = useState([]);
@@ -403,7 +413,7 @@ export default function App() {
     }
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Refresh the execution view after Jarvis writes a habit. The original
+  // Refresh the execution view after Ved writes a habit. The original
   // callback only recomputed stats, leaving today's occurrence list stale.
   const refreshAfterJarvisAction = useCallback(async () => {
     try {
@@ -417,7 +427,7 @@ export default function App() {
       setTodayOccurrences(enriched);
       await recomputeStats();
     } catch (err) {
-      console.error('[App] Failed to refresh after Jarvis action:', err);
+      console.error('[App] Failed to refresh after Ved action:', err);
     }
   }, [today, recomputeStats]);
 
@@ -476,7 +486,7 @@ export default function App() {
       case 'stats': return 'Stats';
       case 'learn': return 'Learn';
       case 'goals': return 'Goals';
-      case 'jarvis': return 'Jarvis';
+      case 'jarvis': return 'Ved';
       case 'audits': return 'Audits';
       default: return 'Actions';
     }
@@ -576,6 +586,7 @@ export default function App() {
             onExcuseOccurrence={handleExcuseOccurrence}
             onOccurrenceReason={handleOccurrenceReason}
             onGoToGoals={() => handleTabChange('goals')}
+            onGoToToday={() => handleTabChange('daily')}
             onOpenJarvis={handleOpenJarvis}
             onQuestsChanged={refreshAfterJarvisAction}
             onClearJarvisContext={() => setJarvisContext(null)}

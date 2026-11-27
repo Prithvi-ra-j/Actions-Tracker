@@ -28,9 +28,16 @@ function GoalCard({ goal, onClick }) {
     : 'General';
 
   return (
-    <div
+    <button
+      type="button"
       onClick={onClick}
       style={{
+        display: 'block',
+        width: '100%',
+        textAlign: 'left',
+        border: 0,
+        font: 'inherit',
+        color: 'var(--tx)',
         background: 'var(--s1)',
         borderRadius: 'var(--r-container)',
         padding: '14px 16px',
@@ -84,7 +91,7 @@ function GoalCard({ goal, onClick }) {
       <div style={{ marginTop: '10px' }}>
         <SegmentedBar value={progress} segments={10} />
       </div>
-    </div>
+    </button>
   );
 }
 
@@ -268,9 +275,10 @@ export default function GoalsTab({ t, onOpenJarvis }) {
       ) : activeGoals.length === 0 ? (
         <EmptyState
           title="No active goals yet."
-          description="Tell Jarvis what you want to change. Your direction becomes a system."
-          actionLabel="Ask Jarvis"
-          onAction={onOpenJarvis}
+          description="Start with an outcome that matters to you, and build from there."
+          actionLabel="Create a goal"
+          actionVariant="primary"
+          onAction={() => { setCreateError(''); setShowCreate(true); }}
         />
       ) : (
         <div>
@@ -289,7 +297,7 @@ export default function GoalsTab({ t, onOpenJarvis }) {
         onClose={() => setShowCreate(false)}
         title="New goal"
       >
-        <div style={{ display: 'grid', gap: '12px' }}>
+        <div className="goal-fields" style={{ display: 'grid', gap: '12px' }}>
           <label style={{ display: 'grid', gap: '6px', color: 'var(--mu)', fontSize: '13px' }}>
             Outcome
             <input aria-label="Goal outcome" value={goalDraft.label} onChange={e => setGoalDraft(prev => ({ ...prev, label: e.target.value }))} />
@@ -467,7 +475,7 @@ export default function GoalsTab({ t, onOpenJarvis }) {
         onClose={() => setIsEditing(false)}
         title="Edit Goal"
       >
-        <div style={{ display: 'grid', gap: '12px' }}>
+        <div className="goal-fields" style={{ display: 'grid', gap: '12px' }}>
           <label style={{ display: 'grid', gap: '6px', color: 'var(--mu)', fontSize: '13px' }}>
             Outcome
             <input aria-label="Edit goal outcome" value={goalDraft.label} onChange={e => setGoalDraft(prev => ({ ...prev, label: e.target.value }))} />

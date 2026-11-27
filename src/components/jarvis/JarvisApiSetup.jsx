@@ -73,7 +73,7 @@ export default function JarvisApiSetup({ onConfigured }) {
       setStatus('success');
     } catch (err) {
       setStatus('error');
-      setError(err?.message || 'Could not save Jarvis configuration.');
+      setError(err?.message || 'Could not save Ved configuration.');
     }
   };
 
@@ -81,7 +81,7 @@ export default function JarvisApiSetup({ onConfigured }) {
     if (status !== 'success') return undefined;
 
     // Connection setup is the first-run gate. Once the provider is verified
-    // and saved, move directly into Jarvis onboarding instead of requiring a
+    // and saved, move directly into Ved onboarding instead of requiring a
     // second button click.
     const timer = window.setTimeout(() => {
       onConfigured?.();
@@ -92,7 +92,7 @@ export default function JarvisApiSetup({ onConfigured }) {
 
   return (
     <main
-      aria-label="Jarvis setup"
+      aria-label="Ved setup"
       style={{
         minHeight: '100dvh',
         boxSizing: 'border-box',
@@ -114,10 +114,10 @@ export default function JarvisApiSetup({ onConfigured }) {
       >
         <div>
           <div style={{ color: 'var(--ac)', fontSize: '11px', fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase' }}>
-            Jarvis
+            Ved
           </div>
           <h1 style={{ margin: '6px 0 0', fontSize: '28px', lineHeight: 1.1, letterSpacing: '-0.03em' }}>
-            Connect Jarvis
+            Connect Ved
           </h1>
         </div>
         <div
@@ -132,7 +132,7 @@ export default function JarvisApiSetup({ onConfigured }) {
             fontSize: '11px',
           }}
         >
-          First-time setup
+          Optional prototype
         </div>
       </div>
 
@@ -144,7 +144,8 @@ export default function JarvisApiSetup({ onConfigured }) {
         }}
       >
         <p style={{ margin: 0, fontSize: '15px', lineHeight: 1.6, color: 'var(--mu)' }}>
-          Use the server gateway in production, or enter a provider key for local development. Jarvis verifies the connection before onboarding.
+          Connect the optional Ved prototype using a server gateway or a provider key.
+          A provider key is tested before saving; a gateway is saved for use by the app.
         </p>
 
         <div style={{ marginTop: '26px' }}>
@@ -174,7 +175,7 @@ export default function JarvisApiSetup({ onConfigured }) {
           >
             <input
               id="jarvis-api-key"
-              aria-label="Jarvis API key"
+              aria-label="Ved API key"
               type={showKey ? 'text' : 'password'}
               value={apiKey}
               onChange={e => {
@@ -227,7 +228,7 @@ export default function JarvisApiSetup({ onConfigured }) {
           <label style={{ display: 'grid', gap: '8px' }}>
             <span style={{ fontSize: '12px', color: 'var(--mu)', fontWeight: 600 }}>Server gateway (production)</span>
             <input
-              aria-label="Jarvis server gateway URL"
+              aria-label="Ved server gateway URL"
               value={gatewayUrl}
               onChange={e => setGatewayUrl(e.target.value)}
               placeholder="/api/jarvis"
@@ -242,7 +243,7 @@ export default function JarvisApiSetup({ onConfigured }) {
           <label style={{ display: 'grid', gap: '8px' }}>
             <span style={{ fontSize: '12px', color: 'var(--mu)', fontWeight: 600 }}>Provider endpoint (local)</span>
             <input
-              aria-label="Jarvis provider endpoint"
+              aria-label="Ved provider endpoint"
               value={baseUrl}
               onChange={e => setBaseUrl(e.target.value)}
               style={{
@@ -265,7 +266,7 @@ export default function JarvisApiSetup({ onConfigured }) {
           <label style={{ display: 'grid', gap: '8px' }}>
             <span style={{ fontSize: '12px', color: 'var(--mu)', fontWeight: 600 }}>Model</span>
             <input
-              aria-label="Jarvis model"
+              aria-label="Ved model"
               value={model}
               onChange={e => setModel(e.target.value)}
               style={{
@@ -299,7 +300,9 @@ export default function JarvisApiSetup({ onConfigured }) {
               lineHeight: 1.4,
             }}
           >
-            Connection verified{latencyMs != null ? ` · ${latencyMs} ms` : ''}. Starting Jarvis…
+            {gatewayUrl.trim()
+              ? 'Gateway saved. Starting Ved…'
+              : `Connection verified${latencyMs != null ? ` · ${latencyMs} ms` : ''}. Starting Ved…`}
           </div>
         )}
 

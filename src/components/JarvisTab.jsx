@@ -51,7 +51,7 @@ const MODES = [
 ];
 
 const COMMANDS = [
-  { id: 'ask', label: 'Ask Jarvis', description: 'Ask a question about your system', icon: '?', prompt: 'Ask Jarvis' },
+  { id: 'ask', label: 'Ask Ved', description: 'Ask a question about your system', icon: '?', prompt: 'Ask Ved' },
   { id: 'habit', label: 'Create habit', description: 'Add a recurring habit', icon: '↻', prompt: 'Create a habit' },
   { id: 'quest', label: 'Create quest', description: 'Add a measurable quest or benchmark', icon: '◇', prompt: 'Create a quest' },
   { id: 'goal', label: 'Create goal', description: 'Define or update a goal', icon: '◎', prompt: 'Create a goal' },
@@ -59,7 +59,7 @@ const COMMANDS = [
   { id: 'plan', label: 'Build a plan', description: 'Turn a ready plan into app changes', icon: '▱', prompt: 'Build and apply this plan' },
   { id: 'learn', label: 'Add learning', description: 'Capture a learning item or study plan', icon: '▤', prompt: 'Add learning' },
   { id: 'evidence', label: 'Log evidence', description: 'Record an observation, result, or reflection', icon: '✓', prompt: 'Log this evidence' },
-  { id: 'memory', label: 'Save memory', description: 'Ask Jarvis to remember durable context', icon: '⌘', prompt: 'Save this as a memory' },
+  { id: 'memory', label: 'Save memory', description: 'Ask Ved to remember durable context', icon: '⌘', prompt: 'Save this as a memory' },
   { id: 'experiment', label: 'Run experiment', description: 'Create or update a personal experiment', icon: '◇', prompt: 'Create an experiment' },
   { id: 'target', label: 'Revise target', description: 'Change what success means', icon: '⊙', prompt: 'Revise my target' },
   { id: 'review', label: 'Review my system', description: 'Find trends, gaps, and bottlenecks', icon: '◌', prompt: 'Review my system' },
@@ -109,8 +109,8 @@ export default function JarvisTab({ t, isActive = true, onQuestsChanged, onboard
   const createdAtRef = useRef(null);
   const onboardingStartedRef = useRef(false);
 
-  // The app keeps Jarvis mounted while switching tabs. Draft text must not
-  // leak from a previous visit into the next visible Jarvis session.
+  // The app keeps Ved mounted while switching tabs. Draft text must not
+  // leak from a previous visit into the next visible Ved session.
   useEffect(() => {
     if (isActive) return;
     setInput('');
@@ -197,7 +197,7 @@ export default function JarvisTab({ t, isActive = true, onQuestsChanged, onboard
           } catch (err) {
             if (!cancelled) {
               recordAppError(err, { source: 'jarvis_ui', operation: 'start_onboarding' });
-              setError('Jarvis could not start the onboarding interview. Check your provider connection, then retry.');
+              setError('Ved could not start the onboarding interview. Check your provider connection, then retry.');
               onboardingStartedRef.current = false;
             }
           } finally {
@@ -267,7 +267,7 @@ export default function JarvisTab({ t, isActive = true, onQuestsChanged, onboard
   if (apiConfigured === null) {
     return (
       <div
-        aria-label="Loading Jarvis"
+        aria-label="Loading Ved"
         style={{
           width: '100%',
           height: '100%',
@@ -280,7 +280,7 @@ export default function JarvisTab({ t, isActive = true, onQuestsChanged, onboard
           fontSize: '13px',
         }}
       >
-        Loading Jarvis…
+        Loading Ved…
       </div>
     );
   }
@@ -331,19 +331,19 @@ export default function JarvisTab({ t, isActive = true, onQuestsChanged, onboard
       // Preserve the exact prompt so retry cannot silently erase user intent.
       setInput(msg);
       const providerErrorMessage = err?.status === 429
-        ? 'Jarvis is temporarily rate-limited. Wait a moment, then retry; your answer is still in the composer.'
+        ? 'Ved is temporarily rate-limited. Wait a moment, then retry; your answer is still in the composer.'
         : err?.status === 401
-          ? 'The AI provider rejected the saved credentials. Check the Jarvis connection settings, then retry.'
+          ? 'The AI provider rejected the saved credentials. Check the Ved connection settings, then retry.'
           : err?.status === 404
-            ? 'The selected AI model is unavailable at this endpoint. Check the Jarvis connection settings.'
-            : 'Jarvis could not complete the request. Check your connection and retry.';
+            ? 'The selected AI model is unavailable at this endpoint. Check the Ved connection settings.'
+            : 'Ved could not complete the request. Check your connection and retry.';
       if (activeOnboardingMode) {
         if (err?.status === 429 || err?.status === 401 || err?.status === 404) {
             setError(providerErrorMessage);
         } else if (err?.name === 'ZodError' || err?.issues?.length) {
-            setError('Jarvis returned a response the app could not use. Your answer is still in the composer; retry to try again.');
+            setError('Ved returned a response the app could not use. Your answer is still in the composer; retry to try again.');
         } else {
-            setError('Jarvis could not complete the request. Your answer is still in the composer; check your connection and retry.');
+            setError('Ved could not complete the request. Your answer is still in the composer; check your connection and retry.');
         }
       } else {
         setError(providerErrorMessage);
@@ -512,7 +512,7 @@ export default function JarvisTab({ t, isActive = true, onQuestsChanged, onboard
       });
     } catch (err) {
       recordAppError(err, { source: 'jarvis_ui', operation: 'save_executed_proposal' });
-      setError('Changes were applied, but Jarvis could not save this conversation update.');
+      setError('Changes were applied, but Ved could not save this conversation update.');
     }
     try {
       if (proposal.actionType === 'add_quest' || proposal.actionType === 'modify_quest' || proposal.actionType === 'archive_quest') {
@@ -556,7 +556,7 @@ export default function JarvisTab({ t, isActive = true, onQuestsChanged, onboard
       });
     } catch (err) {
       recordAppError(err, { source: 'jarvis_ui', operation: 'save_undone_proposal' });
-      setError('The change was undone, but Jarvis could not save this conversation update.');
+      setError('The change was undone, but Ved could not save this conversation update.');
     } finally {
       setUndoingProposalId(null);
     }
@@ -565,7 +565,7 @@ export default function JarvisTab({ t, isActive = true, onQuestsChanged, onboard
   return (
     <div
       className="jarvis-screen"
-      aria-label={activeOnboardingMode ? 'Jarvis onboarding' : 'Jarvis workspace'}
+      aria-label={activeOnboardingMode ? 'Ved onboarding' : 'Ved workspace'}
       style={{
         width: '100%',
         height: '100%',
@@ -580,7 +580,7 @@ export default function JarvisTab({ t, isActive = true, onQuestsChanged, onboard
       }}
     >
 
-      {/* ✦ Jarvis header — wordmark left, mode pill right */}
+      {/* ✦ Ved header — wordmark left, mode pill right */}
       <div
         className="jarvis-screen__header"
         style={{
@@ -604,7 +604,7 @@ export default function JarvisTab({ t, isActive = true, onQuestsChanged, onboard
           }} />
         )}
         <b style={{ fontSize: '17px', fontWeight: 600, letterSpacing: '-0.01em' }}>
-          ✦ Jarvis
+          ✦ Ved
         </b>
 
         {!activeOnboardingMode && (
@@ -645,7 +645,7 @@ export default function JarvisTab({ t, isActive = true, onQuestsChanged, onboard
         </div>
       </div>
 
-      {/* Jarvis scan keyframe */}
+      {/* Ved scan keyframe */}
       <style>{`@keyframes jarvis-scan{from{background-position:-40% 0}to{background-position:140% 0}}`}</style>
 
       {/* Context chip (when context is attached) */}
@@ -691,7 +691,7 @@ export default function JarvisTab({ t, isActive = true, onQuestsChanged, onboard
               setActiveConversationId(conversation.id);
               setSheet(null);
             }} style={{ padding: '12px 14px', textAlign: 'left', border: '1px solid var(--hairline)', borderRadius: 'var(--r-container)', background: 'var(--s2)', color: 'var(--tx)', cursor: 'pointer' }}>
-              <strong style={{ display: 'block', fontSize: '14px' }}>{conversation.title || 'Jarvis conversation'}</strong>
+              <strong style={{ display: 'block', fontSize: '14px' }}>{conversation.title === 'Jarvis' ? 'Ved' : conversation.title || 'Ved conversation'}</strong>
               <span style={{ color: 'var(--mu)', fontSize: '12px' }}>{new Date(conversation.updatedAt).toLocaleString()}</span>
             </button>
           ))}
@@ -737,7 +737,7 @@ export default function JarvisTab({ t, isActive = true, onQuestsChanged, onboard
                 <>
                   <h3 style={{ margin: '8px 0 4px', fontSize: '22px' }}>Latest saved entry</h3>
                   <p style={{ margin: 0, color: 'var(--mu)', fontSize: '14px' }}>{reviewStories.latestDate || 'No date recorded'}</p>
-                  <p style={{ margin: '10px 0 0', fontSize: '14px' }}>Ask Jarvis to interpret this evidence in context before changing your system.</p>
+                  <p style={{ margin: '10px 0 0', fontSize: '14px' }}>Ask Ved to interpret this evidence in context before changing your system.</p>
                 </>
               )}
             </div>
@@ -746,14 +746,14 @@ export default function JarvisTab({ t, isActive = true, onQuestsChanged, onboard
               {reviewStoryIndex < 2 ? (
                 <button type="button" aria-label="Next review story" onClick={() => setReviewStoryIndex(index => Math.min(2, index + 1))} style={{ flex: 1, minHeight: '44px', border: 0, borderRadius: 'var(--r-control)', background: 'var(--ac)', color: 'var(--on-ac)' }}>Next</button>
               ) : (
-                <button type="button" onClick={() => { setInput('Review my recent evidence from the last 28 days.'); setSheet(null); }} style={{ flex: 1, minHeight: '44px', border: 0, borderRadius: 'var(--r-control)', background: 'var(--ac)', color: 'var(--on-ac)' }}>Ask Jarvis</button>
+                <button type="button" onClick={() => { setInput('Review my recent evidence from the last 28 days.'); setSheet(null); }} style={{ flex: 1, minHeight: '44px', border: 0, borderRadius: 'var(--r-control)', background: 'var(--ac)', color: 'var(--on-ac)' }}>Ask Ved</button>
               )}
             </div>
           </div>
         ) : (
           <div>
             <p style={{ margin: '0 0 12px', color: 'var(--mu)' }}>No saved log entries in the last 28 days.</p>
-            <button type="button" onClick={() => { setInput('Review my recent evidence.'); setSheet(null); }} style={{ minHeight: '44px', padding: '0 14px', border: 0, borderRadius: 'var(--r-control)', background: 'var(--ac)', color: 'var(--on-ac)' }}>Ask Jarvis</button>
+            <button type="button" onClick={() => { setInput('Review my recent evidence.'); setSheet(null); }} style={{ minHeight: '44px', padding: '0 14px', border: 0, borderRadius: 'var(--r-control)', background: 'var(--ac)', color: 'var(--on-ac)' }}>Ask Ved</button>
           </div>
         )}
       </BottomSheet>
@@ -855,11 +855,11 @@ export default function JarvisTab({ t, isActive = true, onQuestsChanged, onboard
             }}>
               {activeOnboardingMode
                 ? "I'll ask a few focused questions about who you are, your constraints, priorities and where you want to go."
-                : 'Tell Jarvis what you want to understand, plan, change or record.'}
+                : 'Tell Ved what you want to understand, plan, change or record.'}
             </p>
 
               {!activeOnboardingMode && homeFeedItems.length > 0 && (
-                <section aria-label="Jarvis home feed" style={{ width: '100%', maxWidth: '520px', margin: '22px auto 0', textAlign: 'left' }}>
+                <section aria-label="Ved home feed" style={{ width: '100%', maxWidth: '520px', margin: '22px auto 0', textAlign: 'left' }}>
                   <h3 style={{ margin: '0 0 8px', fontFamily: "'Geist Mono', monospace", color: 'var(--mu)', fontSize: '12px', fontWeight: 500 }}>Recent activity</h3>
                   <div style={{ display: 'grid', gap: '8px' }}>
                     {homeFeedItems.map(item => (
@@ -1101,12 +1101,12 @@ export default function JarvisTab({ t, isActive = true, onQuestsChanged, onboard
         }}>
           {activeOnboardingMode ? (
             <>
-              <strong>{input.trim() ? "Jarvis couldn't process that answer." : "Jarvis couldn't start onboarding."}</strong>
+              <strong>{input.trim() ? "Ved couldn't process that answer." : "Ved couldn't start onboarding."}</strong>
               <div style={{ marginTop: '5px', color: 'var(--mu)' }}>{error}</div>
             </>
           ) : (
             <>
-              <strong>Jarvis couldn't complete that reply.</strong> Your message is still in the composer; no changes were made.
+              <strong>Ved couldn't complete that reply.</strong> Your message is still in the composer; no changes were made.
               <div style={{ marginTop: '5px', color: 'var(--mu)' }}>{error}</div>
             </>
           )}
@@ -1181,7 +1181,7 @@ export default function JarvisTab({ t, isActive = true, onQuestsChanged, onboard
         <input
           name="jarvis-prompt"
           role="combobox"
-          aria-label="Tell Jarvis what you want"
+          aria-label="Tell Ved what you want"
           aria-autocomplete="list"
           aria-expanded={commandMenuOpen}
           aria-controls={commandMenuOpen ? 'jarvis-command-list' : undefined}
@@ -1206,7 +1206,7 @@ export default function JarvisTab({ t, isActive = true, onQuestsChanged, onboard
             lineHeight: 1.35,
             fontFamily: 'inherit',
           }}
-          placeholder="Tell Jarvis what you want"
+          placeholder="Tell Ved what you want"
           value={input}
           onChange={e => {
             setInput(e.target.value);

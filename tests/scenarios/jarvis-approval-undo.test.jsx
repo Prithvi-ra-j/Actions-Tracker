@@ -26,7 +26,7 @@ async function clearDatabase() {
   }
 }
 
-describe('Jarvis proposal approval and undo journey', () => {
+describe('Ved proposal approval and undo journey', () => {
   beforeEach(async () => {
     await clearDatabase();
     localStorage.setItem('actions_tracker_fresh_start_2026_09_26', '1');
@@ -84,7 +84,7 @@ describe('Jarvis proposal approval and undo journey', () => {
     expect(await findText('Recent activity')).toBeTruthy();
     const composer = await findRole(
       'combobox',
-      { name: 'Tell Jarvis what you want' }
+      { name: 'Tell Ved what you want' }
     );
     fireEvent.change(composer, { target: { value: 'Create a daily reading habit.' } });
     fireEvent.click(screen.getByRole('button', { name: 'Send' }));

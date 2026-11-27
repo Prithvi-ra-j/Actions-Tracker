@@ -5,7 +5,7 @@ export function EvidenceSheet({ isOpen, onClose, title, evidenceIds = [], eviden
   if (!isOpen) return null;
 
   return (
-    <BottomSheet isOpen={isOpen} onClose={onClose}>
+    <BottomSheet isOpen={isOpen} onClose={onClose} label="Supporting evidence">
       <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', paddingBottom: '16px' }}>
         <h3 style={{ font: '600 22px/1.15 var(--f)', letterSpacing: '-.02em', margin: '4px 0 2px' }}>
           Based on...

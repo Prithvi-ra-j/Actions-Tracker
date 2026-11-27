@@ -11,8 +11,11 @@ export const JARVIS_API_KEY_STORAGE_KEY = 'aiApiKey';
 export const DEFAULT_JARVIS_GATEWAY_URL = import.meta.env.VITE_AI_GATEWAY_URL || '';
 
 export async function hasJarvisApiKey() {
-  const key = await getSecureValue(JARVIS_API_KEY_STORAGE_KEY);
-  return Boolean(DEFAULT_JARVIS_GATEWAY_URL || key);
+  const [key, gatewayUrl] = await Promise.all([
+    getSecureValue(JARVIS_API_KEY_STORAGE_KEY),
+    getSetting('aiGatewayUrl'),
+  ]);
+  return Boolean(DEFAULT_JARVIS_GATEWAY_URL || gatewayUrl || key);
 }
 
 export async function getJarvisConfig() {
@@ -32,7 +35,7 @@ export async function getJarvisConfig() {
 }
 
 export async function saveJarvisConfig({ apiKey, baseUrl, model, gatewayUrl }) {
-  if (!apiKey && !gatewayUrl) throw new Error('Jarvis API key or server gateway is required.');
+  if (!apiKey && !gatewayUrl) throw new Error('Ved API key or server gateway is required.');
 
   if (gatewayUrl) await setSetting('aiGatewayUrl', gatewayUrl);
   if (apiKey) await setSecureValue(JARVIS_API_KEY_STORAGE_KEY, apiKey);

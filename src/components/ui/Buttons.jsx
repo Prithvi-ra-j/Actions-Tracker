@@ -103,7 +103,7 @@ export function IconButton({
   );
 }
 
-export function ContextualJarvisCTA({ label = 'Ask Jarvis', onClick, contextIcon }) {
+export function ContextualJarvisCTA({ label = 'Ask Ved', onClick, contextIcon }) {
   return (
     <button
       onClick={onClick}

@@ -41,7 +41,7 @@ export default function AppShell({
     >
       <a className="skip-link" href="#main-content">Skip to main content</a>
 
-      {/* App header — sticky. Hidden on Jarvis tab (it has its own inline header) */}
+      {/* App header — sticky. Hidden on Ved tab (it has its own inline header) */}
       {currentTab !== 'jarvis' && (
         <AppHeader
           title={headerTitle}
@@ -103,7 +103,7 @@ export default function AppShell({
         {children}
       </main>
 
-      {/* Docked "Ask Jarvis" pill — accent, 44px, 14px above bar, right edge */}
+      {/* Docked "Ask Ved" pill — accent, 44px, 14px above bar, right edge */}
       {currentTab !== 'jarvis' && (
         <div style={{
           position: 'fixed',
@@ -130,15 +130,15 @@ export default function AppShell({
               height: '44px',
               padding: '0 18px',
               borderRadius: 'var(--r-control)',
-              backgroundColor: 'var(--ac)',
-              color: 'var(--on-ac)',
-              border: 'none',
+              backgroundColor: 'var(--s2)',
+              color: 'var(--tx)',
+              border: '1px solid var(--hairline)',
               pointerEvents: 'auto',
               fontFamily: 'inherit',
               fontSize: '13.5px',
               fontWeight: 600,
               cursor: 'pointer',
-              boxShadow: '0 4px 16px rgba(224, 118, 58, 0.35)',
+              boxShadow: '0 4px 16px rgba(0, 0, 0, 0.2)',
               transition: 'transform 0.12s',
             }}
             onPointerDown={e => e.currentTarget.style.transform = 'scale(0.95)'}
@@ -146,7 +146,7 @@ export default function AppShell({
             onPointerLeave={e => e.currentTarget.style.transform = 'scale(1)'}
           >
             <Sparkle size={16} weight="fill" />
-            Ask Jarvis
+            Ask Ved
           </button>
         </div>
       )}

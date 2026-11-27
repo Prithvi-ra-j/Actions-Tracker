@@ -77,7 +77,10 @@ function QuestRow({ occ, onComplete, onTap, showDate = false }) {
         onChange={e => { e.stopPropagation(); if (!isDone && !isExcused) onComplete(occ.id); }}
         disabled={isExcused}
       />
-      <div style={{ flex: 1, minWidth: 0 }}>
+      <button type="button" style={{
+        flex: 1, minWidth: 0, padding: '8px 0', textAlign: 'left',
+        border: 0, background: 'transparent', color: 'var(--tx)', font: 'inherit', cursor: 'pointer',
+      }}>
         <div style={{
           fontSize: '15px',
           fontWeight: 500,
@@ -111,7 +114,7 @@ function QuestRow({ occ, onComplete, onTap, showDate = false }) {
             {axisLabel}
           </div>
         )}
-      </div>
+      </button>
       {/* XP is omitted until a real progression source exists. */}
       <span style={{
         fontFamily: "'Geist Mono', monospace",
@@ -236,7 +239,7 @@ export default function TodayTab({
               padding: 0,
             }}
           >
-            Ask Jarvis
+            Ask Ved
           </button>
         </div>
       )}
@@ -258,6 +261,7 @@ export default function TodayTab({
             title="A clear day."
             description="No habits scheduled for today. Add a daily habit to get started."
             actionLabel="Add habit"
+            actionVariant="primary"
             onAction={() => setHabitComposerOpen(true)}
           />
         ) : (
@@ -301,7 +305,7 @@ export default function TodayTab({
             flexWrap: 'wrap',
           }}>
             {occurrences.length > 0 && (
-              <Button variant="secondary" onClick={() => setHabitComposerOpen(true)}>Add habit</Button>
+              <Button variant="primary" onClick={() => setHabitComposerOpen(true)}>Add habit</Button>
             )}
             <button
               onClick={() => setComposerOpen(true)}
@@ -475,7 +479,7 @@ export default function TodayTab({
               }}
             >
               <Sparkle size={16} />
-              Ask Jarvis about this habit
+              Ask Ved about this habit
             </button>
           </div>
         )}

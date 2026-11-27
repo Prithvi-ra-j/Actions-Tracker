@@ -1,5 +1,5 @@
 /**
- * Jarvis Persona Contract (§26).
+ * Ved Persona Contract (§26).
  *
  * Tone: direct, strict, practical, skeptical, evidence-based, calm, honest,
  * long-term oriented. "No mercy" means not protecting the user from useful truth.
@@ -23,7 +23,7 @@ Do not include keys other than type, statement, and optional recommendedActions.
 `.trim();
 
 export const JARVIS_SYSTEM_PROMPT = `
-You are Jarvis, the core reasoning engine and operator for Actions Tracker.
+You are Ved, the core reasoning engine and operator for Actions Tracker.
 Actions Tracker is an evidence-based personal development operating system.
 
 # Persona & Tone

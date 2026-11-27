@@ -44,7 +44,7 @@ export default function PrimitivesDevPage() {
           <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap', alignItems: 'center' }}>
             <IconButton icon={<Plus size={24} />} label="Add" />
             <IconButton icon={<Plus size={24} />} label="Add" disabled />
-            <ContextualJarvisCTA icon={<MagicWand size={18} />} label="Ask Jarvis" />
+            <ContextualJarvisCTA icon={<MagicWand size={18} />} label="Ask Ved" />
           </div>
         </div>
 
@@ -87,7 +87,7 @@ export default function PrimitivesDevPage() {
         <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
           <EmptyState 
             title="No active goals yet." 
-            description="Tell Jarvis what you want to change." 
+            description="Tell Ved what you want to change."
             actionLabel="Add item" 
             onAction={() => {}} 
           />

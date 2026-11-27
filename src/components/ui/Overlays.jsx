@@ -1,15 +1,54 @@
-import React, { useEffect, useState, useRef } from 'react';
+import React, { useEffect, useState, useRef, useId, useLayoutEffect } from 'react';
 import { Button } from './Buttons.jsx';
 
-export function BottomSheet({ isOpen, onClose, title, children }) {
-  const previousFocusRef = useRef(null);
-  
-  useEffect(() => {
-    if (isOpen) {
-      previousFocusRef.current = document.activeElement;
-    } else if (previousFocusRef.current) {
-      previousFocusRef.current.focus();
-    }
+const openSheets = [];
+const focusableSelector = 'button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), a[href], [tabindex]:not([tabindex="-1"])';
+
+export function BottomSheet({ isOpen, onClose, title, label, children }) {
+  const sheetRef = useRef(null);
+  const onCloseRef = useRef(onClose);
+  const titleId = useId();
+  onCloseRef.current = onClose;
+
+  useLayoutEffect(() => {
+    if (!isOpen) return undefined;
+    const sheet = sheetRef.current;
+    const previousFocus = document.activeElement;
+    openSheets.push(sheet);
+    sheet.querySelector(focusableSelector)?.focus();
+
+    const onKeyDown = event => {
+      if (openSheets[openSheets.length - 1] !== sheet) return;
+      if (event.key === 'Escape') {
+        event.preventDefault();
+        event.stopPropagation();
+        onCloseRef.current();
+      } else if (event.key === 'Tab') {
+        const focusable = [...sheet.querySelectorAll(focusableSelector)]
+          .filter(element => !element.closest('[hidden], [inert], [aria-hidden="true"]'));
+        const first = focusable[0];
+        const last = focusable[focusable.length - 1];
+        if (!first) {
+          event.preventDefault();
+          sheet.focus();
+        } else if (event.shiftKey && (document.activeElement === first || !sheet.contains(document.activeElement))) {
+          event.preventDefault();
+          last.focus();
+        } else if (!event.shiftKey && (document.activeElement === last || !sheet.contains(document.activeElement))) {
+          event.preventDefault();
+          first.focus();
+        }
+      }
+    };
+    document.addEventListener('keydown', onKeyDown);
+    return () => {
+      document.removeEventListener('keydown', onKeyDown);
+      const index = openSheets.indexOf(sheet);
+      if (index !== -1) openSheets.splice(index, 1);
+      if (previousFocus?.isConnected && (!openSheets.length || openSheets[openSheets.length - 1].contains(previousFocus))) {
+        previousFocus.focus();
+      }
+    };
   }, [isOpen]);
 
   if (!isOpen) return null;
@@ -27,8 +66,12 @@ export function BottomSheet({ isOpen, onClose, title, children }) {
         }}
       />
       <div 
+        ref={sheetRef}
         role="dialog"
         aria-modal="true"
+        aria-labelledby={title ? titleId : undefined}
+        aria-label={title ? undefined : (label || 'Details')}
+        tabIndex={-1}
         style={{
           position: 'fixed',
           left: 0, right: 0, bottom: 0,
@@ -49,7 +92,14 @@ export function BottomSheet({ isOpen, onClose, title, children }) {
           width: '32px', height: '4px', backgroundColor: 'var(--s2)', 
           borderRadius: '2px', margin: '0 auto 24px', opacity: 0.5
         }} />
-        {title && <h2 style={{ margin: '0 0 16px 0', fontSize: '20px', fontWeight: 600 }}>{title}</h2>}
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px', marginBottom: '16px' }}>
+          {title ? <h2 id={titleId} style={{ margin: 0, fontSize: '20px', fontWeight: 600 }}>{title}</h2> : <span />}
+          <button type="button" onClick={onClose} aria-label="Close dialog" style={{
+            minWidth: '44px', minHeight: '44px', border: '1px solid var(--hairline)',
+            borderRadius: 'var(--r-control)', background: 'var(--s2)', color: 'var(--tx)',
+            fontSize: '22px', cursor: 'pointer',
+          }}>×</button>
+        </div>
         <div>{children}</div>
       </div>
       <style>{`
@@ -102,6 +152,19 @@ export function ConfirmDialog({ isOpen, onClose, onConfirm, title, description, 
           onPointerDown={() => setHolding(true)}
           onPointerUp={() => setHolding(false)}
           onPointerLeave={() => setHolding(false)}
+          onKeyDown={event => {
+            if ((event.key === 'Enter' || event.key === ' ') && !event.repeat) {
+              event.preventDefault();
+              setHolding(true);
+            }
+          }}
+          onKeyUp={event => {
+            if (event.key === 'Enter' || event.key === ' ') {
+              event.preventDefault();
+              setHolding(false);
+            }
+          }}
+          onBlur={() => setHolding(false)}
           style={{
             position: 'relative',
             height: '48px',
