@@ -273,8 +273,8 @@ function _computeRate(occurrences) {
   const rate        = denominator > 0 ? completed / denominator : 0;
 
   // Confidence is how much of the expected window has a known outcome
-  const totalScheduled = expected + excused + unknown;
-  const knownCount     = completed + missed + excused;
+  const totalScheduled = expected + unknown;
+  const knownCount     = completed + missed;
   const confidence     = totalScheduled > 0 ? knownCount / totalScheduled : 0;
 
   return {

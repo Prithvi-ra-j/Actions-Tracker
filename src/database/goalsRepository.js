@@ -7,7 +7,8 @@
  * Target state should now be managed directly on the Goal object or via Facts.
  */
 
-import { dbGet, dbPut, dbDelete, dbGetAllByIndex, dbGetAll } from './db.js';
+import { dbGet, dbPut, dbGetAllByIndex, writeSequence } from './db.js';
+import { getLocalTimezone, localDateStr } from '../helpers/dateHelpers.js';
 import { createGoal } from '../models/lifeObjectSchema.js';
 import { GOALS as LEGACY_GOALS } from '../constants.js';
 
@@ -60,20 +61,52 @@ export async function addGoal(goalData) {
  * Updates an existing goal.
  */
 export async function updateGoal(id, fields) {
-  const existing = await getGoal(id);
-  if (!existing) throw new Error(`[goalsRepository] Goal not found: ${id}`);
-
-  const updated = {
-    ...existing,
-    ...fields,
-    updatedAt: new Date().toISOString(),
-  };
-
-  await dbPut(STORE, updated);
+  let updated;
+  await writeSequence([STORE, 'facts'], tx => {
+    const store = tx.objectStore(STORE);
+    const request = store.get(id);
+    request.onsuccess = () => {
+      const existing = request.result;
+      if (!existing || existing.type !== GOAL_TYPE) {
+        tx.abort();
+        return;
+      }
+      updated = { ...existing, ...fields, updatedAt: new Date().toISOString() };
+      recordRemovedMilestones(tx, existing, updated.targets || []);
+      store.put(updated);
+    };
+  });
   return updated;
 }
 
-
 export async function deleteGoal(id) {
-  await dbDelete(STORE, id);
+  await writeSequence([STORE, 'facts'], tx => {
+    const store = tx.objectStore(STORE);
+    const request = store.get(id);
+    request.onsuccess = () => {
+      const existing = request.result;
+      if (!existing || existing.type !== GOAL_TYPE) {
+        tx.abort();
+        return;
+      }
+      recordRemovedMilestones(tx, existing, []);
+      store.delete(id);
+    };
+  });
+}
+
+function recordRemovedMilestones(tx, goal, nextTargets) {
+  const retained = new Set(nextTargets.filter(target => target.completed && target.completionId)
+    .map(target => target.completionId));
+  for (const target of goal.targets || []) {
+    if (!target.completed || !target.completionId || retained.has(target.completionId)) continue;
+    const now = new Date();
+    tx.objectStore('facts').add({
+      id: crypto.randomUUID(), schemaVersion: 1, type: 'correction', objectId: goal.id, value: null,
+      meta: { action: 'remove_milestone', completionId: target.completionId,
+        goalLabel: goal.label, previousTarget: target },
+      source: { type: 'user' }, context: {}, occurredAt: now.toISOString(), recordedAt: now.toISOString(),
+      localDate: localDateStr(now), timezone: getLocalTimezone(),
+    });
+  }
 }

@@ -1,10 +1,13 @@
-import React, { useState, useCallback } from 'react';
-import { formatDisplayDate, localDateStr } from '../helpers/dateHelpers.js';
+import React, { useState, useCallback, useEffect } from 'react';
+import { formatDisplayDate, localDateStr, subtractDays } from '../helpers/dateHelpers.js';
+import { dbGetAll } from '../database/db.js';
+import { getAllSettings, setSetting } from '../database/settingsRepository.js';
 import { getGracePrompt } from '../core/occurrenceEngine.js';
 import { BottomSheet } from './ui/Overlays.jsx';
 import { Button } from './ui/Buttons.jsx';
 import { EmptyState } from './ui/States.jsx';
-import { SegmentedBar } from './ui/Indicators.jsx';
+import HabitEditor from './HabitEditor.jsx';
+import AttributionFields from './AttributionFields.jsx';
 import { Sparkle, Warning, PencilSimple } from '@phosphor-icons/react';
 import { attributeLabel } from '../constants.js';
 
@@ -18,10 +21,11 @@ const AXIS_COLORS = {
   strategy:   'var(--strategy)',
 };
 
-function SquareCheckbox({ checked, onChange, disabled }) {
+function SquareCheckbox({ checked, onChange, disabled, label }) {
   return (
     <button
       aria-checked={checked}
+      aria-label={label}
       role="checkbox"
       onClick={!disabled ? onChange : undefined}
       disabled={disabled}
@@ -54,7 +58,7 @@ function SquareCheckbox({ checked, onChange, disabled }) {
   );
 }
 
-function QuestRow({ occ, onComplete, onTap, showDate = false }) {
+function QuestRow({ occ, onComplete, onTap, showDate = false, tinyVersion = '' }) {
   const isDone = occ.status === 'completed';
   const isExcused = occ.status === 'excused';
   const axisColor = AXIS_COLORS[occ.axis?.toLowerCase()] || 'var(--mu)';
@@ -62,7 +66,6 @@ function QuestRow({ occ, onComplete, onTap, showDate = false }) {
 
   return (
     <div
-      onClick={() => onTap(occ)}
       style={{
         display: 'flex',
         alignItems: 'center',
@@ -75,10 +78,11 @@ function QuestRow({ occ, onComplete, onTap, showDate = false }) {
     >
       <SquareCheckbox
         checked={isDone}
+        label={`${isDone ? 'Completed' : 'Complete'} ${occ.habitTitle || 'habit'}`}
         onChange={e => { e.stopPropagation(); if (!isDone && !isExcused) onComplete(occ.id); }}
-        disabled={isExcused}
+        disabled={isExcused || isDone}
       />
-      <button type="button" style={{
+      <button type="button" onClick={() => onTap(occ)} style={{
         flex: 1, minWidth: 0, padding: '8px 0', textAlign: 'left',
         border: 0, background: 'transparent', color: 'var(--tx)', font: 'inherit', cursor: 'pointer',
       }}>
@@ -98,6 +102,10 @@ function QuestRow({ occ, onComplete, onTap, showDate = false }) {
             {formatDisplayDate(occ.scheduledFor.split('T')[0])}
           </div>
         )}
+        {tinyVersion && !isDone && !isExcused && <div style={{ fontSize: '12px', color: 'var(--mu)' }}>
+          Tiny version: {tinyVersion}
+        </div>}
+        {isDone && occ.completionVersion === 'tiny' && <div style={{ fontSize: '12px', color: 'var(--mu)' }}>Tiny version completed</div>}
         {axisLabel && (
           <div style={{
             fontFamily: "'Geist Mono', monospace",
@@ -124,44 +132,8 @@ function QuestRow({ occ, onComplete, onTap, showDate = false }) {
         color: 'var(--mu)',
         flexShrink: 0,
       }}>
-        {isDone ? 'Done' : ''}
+        {isDone ? 'Done' : isExcused ? occ.reason === 'rest_day' ? 'Rested' : 'Excused' : ''}
       </span>
-    </div>
-  );
-}
-
-function MainQuestCard({ quest }) {
-  if (!quest) return null;
-  // Progress: use quest.progress / quest.maxProgress, clamped to 10 segments
-  const filled = Math.round(Math.min(10, Math.max(0, ((quest.progress || 0) / (quest.maxProgress || 10)) * 10)));
-
-  return (
-    <div style={{
-      background: 'var(--s1)',
-      borderRadius: 'var(--r-container)',
-      padding: '14px 16px',
-      boxShadow: 'inset 0 0 0 1px var(--hairline)',
-      marginTop: '16px',
-    }}>
-      <span style={{
-        fontFamily: "'Geist Mono', monospace",
-        fontSize: '11.5px',
-        color: 'var(--mu)',
-      }}>
-        Main quest
-      </span>
-      <h3 style={{
-        margin: '6px 0 0',
-        fontSize: '18px',
-        fontWeight: 600,
-        letterSpacing: '-0.02em',
-        color: 'var(--tx)',
-      }}>
-        {quest.title}
-      </h3>
-      <div style={{ marginTop: '10px' }}>
-        <SegmentedBar value={filled} segments={10} />
-      </div>
     </div>
   );
 }
@@ -175,43 +147,104 @@ export default function TodayTab({
   onOccurrenceReason,
   onAddEvidence,
   onAddHabit,
-  allQuests,
-  onGoToGoals,
+  habits = [],
+  onUpdateHabit,
+  onRestDay,
   onOpenJarvis,
 }) {
   const [selectedHabit, setSelectedHabit] = useState(null);
   const [composerOpen, setComposerOpen] = useState(false);
   const [evidenceText, setEvidenceText] = useState('');
   const [evidenceAxis, setEvidenceAxis] = useState('body');
+  const [evidenceSecondary, setEvidenceSecondary] = useState('');
+  const [evidenceShare, setEvidenceShare] = useState(50);
   const [evidenceType, setEvidenceType] = useState('observation');
   const [savingEvidence, setSavingEvidence] = useState(false);
   const [evidenceError, setEvidenceError] = useState('');
   const [habitComposerOpen, setHabitComposerOpen] = useState(false);
   const [habitName, setHabitName] = useState('');
   const [habitDomain, setHabitDomain] = useState('general');
+  const [habitSecondary, setHabitSecondary] = useState('');
+  const [habitShare, setHabitShare] = useState(50);
   const [savingHabit, setSavingHabit] = useState(false);
   const [habitError, setHabitError] = useState('');
   const [habitNotice, setHabitNotice] = useState('');
+  const [managerOpen, setManagerOpen] = useState(false);
+  const [editingHabitId, setEditingHabitId] = useState(null);
+  const [usualLoad, setUsualLoad] = useState(null);
+  const [loadError, setLoadError] = useState('');
+  const [loadRetry, setLoadRetry] = useState(0);
+  const [tinyMode, setTinyMode] = useState(false);
+  const [tinyBusy, setTinyBusy] = useState(false);
 
-  const mainQuest = allQuests?.find(q => q.status === 'active' && q.priority === 'main')
-    || allQuests?.find(q => q.status === 'active');
+  useEffect(() => {
+    let cancelled = false;
+    async function loadUsual() {
+      try {
+        const [history, settings] = await Promise.all([dbGetAll('habitOccurrences'), getAllSettings()]);
+        const restDates = new Set(Object.keys(settings).filter(key => key.startsWith('restDay:') && settings[key] === 'true')
+          .map(key => key.slice('restDay:'.length)));
+        if (settings.restDay) restDates.add(settings.restDay);
+        for (const occurrence of history) {
+          if (occurrence.reason === 'rest_day') restDates.add(occurrence.scheduledFor.split('T')[0]);
+        }
+        const days = new Map();
+        for (const occurrence of history) {
+          const date = occurrence.scheduledFor.split('T')[0];
+          if (occurrence.status !== 'completed' || date < subtractDays(today, 28) || date >= today || restDates.has(date)) continue;
+          days.set(date, (days.get(date) || 0) + 1);
+        }
+        const values = [...days.values()].sort((a, b) => a - b);
+        const mid = Math.floor(values.length / 2);
+        const median = values.length % 2 ? values[mid] : (values[mid - 1] + values[mid]) / 2;
+        if (!cancelled) {
+          setUsualLoad(values.length >= 5 ? median : null);
+          setTinyMode(settings[`tinyDay:${today}`] === 'true');
+          setLoadError('');
+        }
+      } catch (error) {
+        console.error('[TodayTab] Could not load usual habit load:', error);
+        if (!cancelled) setLoadError('Could not load your usual habit load.');
+      }
+    }
+    loadUsual();
+    return () => { cancelled = true; };
+  }, [today, todayOccurrences, loadRetry]);
 
-  const occurrences = (todayOccurrences || []).filter(occ => occ.scheduledFor.split('T')[0] === today);
+  const occurrences = (todayOccurrences || []).filter(occ =>
+    occ.scheduledFor.split('T')[0] === today && occ.reason !== 'schedule_changed');
   const earlierOccurrences = (todayOccurrences || []).filter(occ => {
     const date = occ.scheduledFor.split('T')[0];
     return date < today && (occ.status === 'expected' || occ.status === 'unknown');
   });
-  const overloaded = occurrences.length > 6;
+  const planned = occurrences.filter(occ => occ.status !== 'excused').length;
+  const loadLabel = usualLoad === null ? null : planned > usualLoad * 1.5 ? 'Heavy' : planned < usualLoad * 0.5 ? 'Light' : 'Typical';
+  const allDone = occurrences.length > 0 && occurrences.every(occ => ['completed', 'excused'].includes(occ.status));
 
   const handleComplete = useCallback((id) => {
-    onCompleteOccurrence(id);
-  }, [onCompleteOccurrence]);
+    const occurrence = (todayOccurrences || []).find(item => item.id === id);
+    onCompleteOccurrence(id, { tiny: tinyMode && occurrence?.scheduledFor.split('T')[0] === today });
+  }, [onCompleteOccurrence, tinyMode, today, todayOccurrences]);
+
+  async function changeTinyMode() {
+    setTinyBusy(true);
+    setLoadError('');
+    try {
+      await setSetting(`tinyDay:${today}`, !tinyMode);
+      setTinyMode(!tinyMode);
+    } catch (error) {
+      console.error('[TodayTab] Could not update tiny versions:', error);
+      setLoadError('Could not change your plan. Please try again.');
+    } finally {
+      setTinyBusy(false);
+    }
+  }
 
   return (
     <div style={{ padding: '0 14px 24px', display: 'flex', flexDirection: 'column' }}>
 
-      {/* Overloaded day strip */}
-      {overloaded && (
+      {loadError && <p role="alert">{loadError} <button type="button" onClick={() => setLoadRetry(value => value + 1)}>Retry</button></p>}
+      {loadLabel && (
         <div style={{
           display: 'flex',
           alignItems: 'center',
@@ -226,7 +259,7 @@ export default function TodayTab({
           fontWeight: 500,
         }}>
           <Warning size={16} weight="fill" />
-          <span>Heavy day. Review workload?</span>
+          <span>{loadLabel} plan compared with your recorded active days.</span>
           {onOpenJarvis && <button
             onClick={onOpenJarvis}
             style={{
@@ -244,6 +277,17 @@ export default function TodayTab({
           </button>}
         </div>
       )}
+      {loadLabel === 'Heavy' && <details style={{ marginBottom: '12px' }}>
+        <summary>See tiny versions</summary>
+        {habits.filter(habit => habit.tinyVersion && occurrences.some(occ => occ.habitId === habit.id && occ.status !== 'excused'))
+          .map(habit => <p key={habit.id}>{habit.name}: {habit.tinyVersion}</p>)}
+        {!habits.some(habit => habit.tinyVersion && occurrences.some(occ => occ.habitId === habit.id && occ.status !== 'excused')) &&
+          <p>Set a tiny version in Manage habits, or take a rest day if you need one.</p>}
+      </details>}
+      {(loadLabel === 'Heavy' || tinyMode) && <button type="button" disabled={tinyBusy} onClick={changeTinyMode}
+        style={{ marginBottom: '12px', alignSelf: 'flex-start' }}>
+        {tinyMode ? 'Use regular versions today' : 'Use tiny versions today'}
+      </button>}
 
       {/* Quest Log */}
       <section>
@@ -269,14 +313,23 @@ export default function TodayTab({
           />
         ) : (
           <div>
-            {occurrences.map(occ => (
-              <QuestRow
-                key={occ.id}
-                occ={occ}
-                onComplete={handleComplete}
-                onTap={setSelectedHabit}
-              />
-            ))}
+            {allDone && <p role="status">All done for today. Rest is part of discipline.</p>}
+            {[
+              ['morning', 'Morning'], ['afternoon', 'Afternoon'],
+              ['evening', 'Evening'], ['other', 'Any time'],
+            ].map(([slot, label]) => {
+              const group = occurrences.filter(occ => slot === 'other'
+                ? !['morning', 'afternoon', 'evening'].includes(occ.timeSlot)
+                : occ.timeSlot === slot);
+              if (!group.length) return null;
+              return <div key={slot}>
+                <h3 style={{ fontSize: '13px', color: 'var(--mu)', margin: '14px 0 2px' }}>{label}</h3>
+                {group.map(occ => (
+                  <QuestRow key={occ.id} occ={occ} onComplete={handleComplete} onTap={setSelectedHabit}
+                    tinyVersion={tinyMode ? habits.find(habit => habit.id === occ.habitId)?.tinyVersion : ''} />
+                ))}
+              </div>;
+            })}
           </div>
         )}
 
@@ -295,8 +348,6 @@ export default function TodayTab({
           </details>
         )}
 
-        {/* Main Quest Card */}
-        <MainQuestCard quest={mainQuest} />
         {habitNotice && <p role="alert" style={{ color: 'var(--danger)', fontSize: '13px' }}>{habitNotice}</p>}
 
         {/* Bottom CTAs */}
@@ -310,6 +361,9 @@ export default function TodayTab({
             {occurrences.length > 0 && (
               <Button variant="primary" onClick={() => setHabitComposerOpen(true)}>Add habit</Button>
             )}
+            <Button variant="secondary" onClick={() => { setEditingHabitId(null); setManagerOpen(true); }}>Manage habits</Button>
+            <Button variant="secondary" onClick={onRestDay}>Rest day</Button>
+            <span style={{ alignSelf: 'center', color: 'var(--mu)', fontSize: '13px' }}>Rest is part of discipline.</span>
             <button
               onClick={() => setComposerOpen(true)}
               style={{
@@ -337,6 +391,9 @@ export default function TodayTab({
         </div>
       </section>
 
+      <HabitEditor habits={habits} open={managerOpen} selectedId={editingHabitId} onSelect={setEditingHabitId}
+        onSave={onUpdateHabit} onClose={() => { setManagerOpen(false); setEditingHabitId(null); }} />
+
       <BottomSheet
         isOpen={habitComposerOpen}
         onClose={() => { if (!savingHabit) setHabitComposerOpen(false); }}
@@ -345,13 +402,16 @@ export default function TodayTab({
         <form
           onSubmit={async e => {
             e.preventDefault();
-            if (!habitName.trim() || savingHabit) return;
+            if (!habitName.trim() || habitDomain === 'general' || savingHabit) return;
             setSavingHabit(true);
             setHabitError('');
             try {
-              const notice = await onAddHabit({ name: habitName.trim(), domain: habitDomain });
+              const notice = await onAddHabit({ name: habitName.trim(), domain: habitDomain,
+                secondaryDomain: habitSecondary || null, primaryShare: habitSecondary ? habitShare : 100 });
               setHabitName('');
               setHabitDomain('general');
+              setHabitSecondary('');
+              setHabitShare(50);
               setHabitNotice(notice || '');
               setHabitComposerOpen(false);
             } catch (error) {
@@ -373,23 +433,12 @@ export default function TodayTab({
               style={{ minHeight: '44px', padding: '0 12px', borderRadius: 'var(--r-control)', background: 'var(--s2)', color: 'var(--tx)', border: '1px solid var(--hairline)', font: 'inherit' }}
             />
           </label>
-          <label style={{ display: 'grid', gap: '6px', color: 'var(--mu)', fontSize: '13px' }}>
-            Area
-            <select
-              aria-label="Habit area"
-              value={habitDomain}
-              onChange={e => setHabitDomain(e.target.value)}
-              style={{ minHeight: '44px', padding: '0 12px', borderRadius: 'var(--r-control)', background: 'var(--s2)', color: 'var(--tx)', border: '1px solid var(--hairline)', font: 'inherit' }}
-            >
-              {['general', 'body', 'discipline', 'knowledge', 'social', 'creativity', 'strategy'].map(axis => (
-                <option key={axis} value={axis}>{attributeLabel(axis)}</option>
-              ))}
-            </select>
-          </label>
+          <AttributionFields primary={habitDomain} secondary={habitSecondary} share={habitShare}
+            onPrimary={setHabitDomain} onSecondary={setHabitSecondary} onShare={setHabitShare} />
           <p style={{ margin: 0, color: 'var(--mu)', fontSize: '13px' }}>Scheduled every day.</p>
           {habitError && <p role="alert" style={{ margin: 0, color: 'var(--danger)', fontSize: '13px' }}>{habitError}</p>}
           <div style={{ display: 'flex', gap: '10px' }}>
-            <Button type="submit" style={{ flex: 1 }} disabled={savingHabit || !habitName.trim()}>
+            <Button type="submit" style={{ flex: 1 }} disabled={savingHabit || !habitName.trim() || habitDomain === 'general'}>
               {savingHabit ? 'Saving...' : 'Create habit'}
             </Button>
             <Button type="button" variant="secondary" disabled={savingHabit} onClick={() => setHabitComposerOpen(false)}>Cancel</Button>
@@ -409,6 +458,13 @@ export default function TodayTab({
               {attributeLabel(selectedHabit.axis)} • Status: {selectedHabit.status}
             </div>
             {selectedHabit.timeSlot && <div>Preferred time: {attributeLabel(selectedHabit.timeSlot)}</div>}
+            {habits.find(habit => habit.id === selectedHabit.habitId)?.tinyVersion &&
+              <div>Tiny version: {habits.find(habit => habit.id === selectedHabit.habitId).tinyVersion}</div>}
+            {habits.some(habit => habit.id === selectedHabit.habitId) && <Button variant="secondary" onClick={() => {
+              setEditingHabitId(selectedHabit.habitId);
+              setSelectedHabit(null);
+              setManagerOpen(true);
+            }}>Edit habit</Button>}
             {getGracePrompt(selectedHabit.status, selectedHabit.graceState) && (
               <div style={{ fontSize: '13px', color: 'var(--mu)' }}>
                 {getGracePrompt(selectedHabit.status, selectedHabit.graceState)}
@@ -421,7 +477,7 @@ export default function TodayTab({
                   variant="primary"
                   style={{ flex: 1 }}
                   onClick={() => {
-                    onCompleteOccurrence(selectedHabit.id);
+                    handleComplete(selectedHabit.id);
                     setSelectedHabit(null);
                   }}
                 >
@@ -532,19 +588,8 @@ export default function TodayTab({
               ))}
             </select>
           </label>
-          <label style={{ display: 'grid', gap: '6px', color: 'var(--mu)', fontSize: '13px' }}>
-            Area
-            <select
-              aria-label="Note area"
-              value={evidenceAxis}
-              onChange={e => setEvidenceAxis(e.target.value)}
-              style={{ minHeight: '44px', padding: '0 12px', borderRadius: 'var(--r-control)', background: 'var(--s2)', color: 'var(--tx)', border: '1px solid var(--hairline)', font: 'inherit' }}
-            >
-              {['body', 'discipline', 'knowledge', 'social', 'creativity', 'strategy'].map(axis => (
-                <option key={axis} value={axis}>{attributeLabel(axis)}</option>
-              ))}
-            </select>
-          </label>
+          <AttributionFields primary={evidenceAxis} secondary={evidenceSecondary} share={evidenceShare}
+            onPrimary={setEvidenceAxis} onSecondary={setEvidenceSecondary} onShare={setEvidenceShare} />
           {evidenceError && <p role="alert" style={{ margin: 0, color: 'var(--danger)', fontSize: '13px' }}>{evidenceError}</p>}
           <div style={{ display: 'flex', gap: '10px' }}>
             <Button
@@ -560,6 +605,8 @@ export default function TodayTab({
                     content: evidenceText.trim(),
                     axis: evidenceAxis,
                     evidenceType,
+                    secondary: evidenceSecondary || null,
+                    primaryShare: evidenceSecondary ? evidenceShare : 100,
                   });
                 } catch (err) {
                   setEvidenceError('Your note could not be saved. Your entry is still here; try again.');
@@ -567,6 +614,8 @@ export default function TodayTab({
                   return;
                 }
                 setEvidenceText('');
+                setEvidenceSecondary('');
+                setEvidenceShare(50);
                 setComposerOpen(false);
                 setSavingEvidence(false);
               }}

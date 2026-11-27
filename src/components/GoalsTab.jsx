@@ -8,6 +8,7 @@ import { Checkbox } from './ui/Inputs.jsx';
 import { Sparkle, PencilSimple, Plus } from '@phosphor-icons/react';
 import { EvidenceSheet } from './EvidenceSheet.jsx';
 import { attributeLabel } from '../constants.js';
+import { localDateStr } from '../helpers/dateHelpers.js';
 
 // Axis dot color map (dots only, per design rules)
 const AXIS_COLORS = {
@@ -105,6 +106,10 @@ export default function GoalsTab({ t, onOpenJarvis }) {
   const [savingGoal, setSavingGoal] = useState(false);
   const [createError, setCreateError] = useState('');
   const [editError, setEditError] = useState('');
+  const [milestoneError, setMilestoneError] = useState('');
+  const [savingMilestone, setSavingMilestone] = useState(false);
+  const [deleteError, setDeleteError] = useState('');
+  const [deletingGoal, setDeletingGoal] = useState(false);
   const [goalDraft, setGoalDraft] = useState({ label: '', domain: 'body', start: '', end: '', proof: '', targets: '' });
 
   useEffect(() => {
@@ -116,6 +121,7 @@ export default function GoalsTab({ t, onOpenJarvis }) {
       const { getAllGoals } = await import('../database/goalsRepository.js');
       const data = await getAllGoals();
       setGoals(data);
+      setSelectedGoal(previous => previous ? data.find(goal => goal.id === previous.id) || null : null);
     } catch (err) {
       console.error(err);
     } finally {
@@ -125,10 +131,16 @@ export default function GoalsTab({ t, onOpenJarvis }) {
 
   async function handleToggleTarget(goalId, targetIndex) {
     const goal = goals.find(g => g.id === goalId);
-    if (!goal) return;
+    if (!goal || savingMilestone) return;
+    setSavingMilestone(true);
+    setMilestoneError('');
 
     const newTargets = [...goal.targets];
-    newTargets[targetIndex] = { ...newTargets[targetIndex], completed: !newTargets[targetIndex].completed };
+    const target = newTargets[targetIndex];
+    newTargets[targetIndex] = target.completed
+      ? { ...target, completed: false, completionId: null, completedOn: null, completedAxis: null }
+      : { ...target, completed: true, completionId: crypto.randomUUID(),
+        completedOn: localDateStr(), completedAxis: goal.domain };
 
     // Optimistic update
     setGoals(prev => prev.map(g => g.id === goalId ? { ...g, targets: newTargets } : g));
@@ -141,23 +153,30 @@ export default function GoalsTab({ t, onOpenJarvis }) {
       await updateGoal(goalId, { targets: newTargets });
     } catch (err) {
       console.error(err);
-      loadGoals(); // rollback
+      setMilestoneError('Could not update the milestone. Please try again.');
+      await loadGoals();
+    } finally {
+      setSavingMilestone(false);
     }
   }
 
   async function handleDeleteGoal() {
-    if (!selectedGoal) return;
+    if (!selectedGoal || deletingGoal) return;
     const id = selectedGoal.id;
-    setSelectedGoal(null);
-    setIsEditing(false);
-    setShowConfirmDelete(false);
-    setGoals(prev => prev.filter(g => g.id !== id));
+    setDeletingGoal(true);
+    setDeleteError('');
     try {
       const { deleteGoal } = await import('../database/goalsRepository.js');
       await deleteGoal(id);
+      setSelectedGoal(null);
+      setIsEditing(false);
+      setGoals(prev => prev.filter(g => g.id !== id));
     } catch (err) {
-      console.error(err);
-      loadGoals();
+      console.error('[GoalsTab] Could not delete goal:', err);
+      setDeleteError('Could not delete this goal or correct its milestones. Please try again.');
+    } finally {
+      setShowConfirmDelete(false);
+      setDeletingGoal(false);
     }
   }
 
@@ -198,6 +217,17 @@ export default function GoalsTab({ t, onOpenJarvis }) {
     setSavingGoal(true);
     setEditError('');
     try {
+      const unmatchedTargets = [...(selectedGoal.targets || [])];
+      const nextTargets = goalDraft.targets.split('\n').map(text => text.trim()).filter(Boolean)
+        .map(text => {
+          const index = unmatchedTargets.findIndex(target => target.text === text);
+          const existing = index < 0 ? null : unmatchedTargets.splice(index, 1)[0];
+          return existing ? { ...existing, text } : { text, metric: '', completed: false };
+        });
+      if (unmatchedTargets.some(target => target.completed && target.completionId) &&
+          !window.confirm('Editing or removing a completed milestone removes its recorded completion from growth and saves a correction. Continue?')) {
+        return;
+      }
       const { updateGoal } = await import('../database/goalsRepository.js');
       const updated = await updateGoal(selectedGoal.id, {
         label: goalDraft.label.trim(),
@@ -205,11 +235,7 @@ export default function GoalsTab({ t, onOpenJarvis }) {
         start: goalDraft.start.trim(),
         end: goalDraft.end.trim(),
         proof: goalDraft.proof.trim(),
-        targets: goalDraft.targets.split('\n').map(text => text.trim()).filter(Boolean)
-          .map(text => {
-            const existing = selectedGoal.targets?.find(target => target.text === text);
-            return { text, metric: existing?.metric || '', completed: !!existing?.completed };
-          }),
+        targets: nextTargets,
       });
       setGoals(prev => prev.map(goal => goal.id === updated.id ? updated : goal));
       setSelectedGoal(updated);
@@ -350,6 +376,7 @@ export default function GoalsTab({ t, onOpenJarvis }) {
       >
         {selectedGoal && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '18px' }}>
+            {deleteError && <p role="alert">{deleteError}</p>}
 
             {/* Outcome */}
             <div>
@@ -400,6 +427,8 @@ export default function GoalsTab({ t, onOpenJarvis }) {
                   Milestones
                 </div>
                 <div>
+                  {milestoneError && <p role="alert">{milestoneError}</p>}
+                  <p style={{ color: 'var(--mu)', fontSize: '13px' }}>Mark a milestone when achieved. New completions are credited to this goal's area; removing one corrects its history.</p>
                   {selectedGoal.targets.map((target, idx) => (
                     <EntityRow
                       key={idx}
@@ -414,6 +443,7 @@ export default function GoalsTab({ t, onOpenJarvis }) {
                       rightElement={
                         <Checkbox
                           checked={!!target.completed}
+                          disabled={savingMilestone}
                           onChange={() => handleToggleTarget(selectedGoal.id, idx)}
                         />
                       }
@@ -521,7 +551,7 @@ export default function GoalsTab({ t, onOpenJarvis }) {
           <Button
             variant="secondary"
             style={{ width: '100%', color: 'var(--danger)' }}
-            onClick={() => { setIsEditing(false); setShowConfirmDelete(true); }}
+            onClick={() => { setDeleteError(''); setIsEditing(false); setShowConfirmDelete(true); }}
           >
             Delete Goal
           </Button>
@@ -533,7 +563,7 @@ export default function GoalsTab({ t, onOpenJarvis }) {
         onClose={() => setShowConfirmDelete(false)}
         onConfirm={handleDeleteGoal}
         title="Delete Goal"
-        description="This will permanently remove this goal and its milestones."
+        description="This will permanently remove this goal and its milestones. Credited milestone completions will be corrected and removed from growth totals."
       />
 
       <EvidenceSheet

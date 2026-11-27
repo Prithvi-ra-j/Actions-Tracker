@@ -58,6 +58,17 @@ export const ActionProposalSchema = z.object({
   if (proposal.actionType === 'add_habit' && !FrequencyRuleSchema.safeParse(proposal.payload.frequency).success) {
     context.addIssue({ code: z.ZodIssueCode.custom, path: ['payload', 'frequency'], message: 'add_habit requires a valid frequency rule' });
   }
+  if (proposal.actionType === 'modify_habit') {
+    if ('frequency' in proposal.payload && !FrequencyRuleSchema.safeParse(proposal.payload.frequency).success) {
+      context.addIssue({ code: z.ZodIssueCode.custom, path: ['payload', 'frequency'], message: 'Invalid habit frequency' });
+    }
+    if ('status' in proposal.payload && !['active', 'paused', 'archived'].includes(proposal.payload.status)) {
+      context.addIssue({ code: z.ZodIssueCode.custom, path: ['payload', 'status'], message: 'Invalid habit status' });
+    }
+    if ('reminder' in proposal.payload) {
+      context.addIssue({ code: z.ZodIssueCode.custom, path: ['payload', 'reminder'], message: 'Change reminders in the habit editor' });
+    }
+  }
   if (proposal.actionType === 'add_quest' && typeof proposal.payload.title !== 'string') {
     context.addIssue({ code: z.ZodIssueCode.custom, path: ['payload', 'title'], message: 'add_quest requires payload.title' });
   }

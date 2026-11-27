@@ -4,7 +4,7 @@
  * an APPROVED ActionProposal into a database write.
  */
 
-import { addHabit, updateHabit, getHabit, archiveHabit as dbArchiveHabit } from '../../database/habitRepository.js';
+import { addHabit, updateHabit, getHabit } from '../../database/habitRepository.js';
 import { addQuest, deleteQuest } from '../../database/questBoardRepository.js';
 import { addGoal, getGoal, updateGoal, deleteGoal } from '../../database/goalsRepository.js';
 import { addLearning, updateLearning, deleteLearning } from '../../database/learningRepository.js';
@@ -20,6 +20,28 @@ import { ActionProposalSchema } from './actionSchemas.js';
 import { addLog, deleteLog } from '../../database/logsRepository.js';
 import { getSetting } from '../../database/settingsRepository.js';
 import { beginProposalExecution, finishProposalExecution } from '../../database/proposalExecutionRepository.js';
+import { saveHabitSchedule } from '../dailyHabits.js';
+import { containsQuestAction } from './questAvailability.js';
+
+async function reconcileHabitChanges(habit) {
+  const warnings = [];
+  try {
+    await generateOccurrencesForDate(localDateStr());
+  } catch (error) {
+    console.error('[actionExecutor] Habit saved but occurrences could not be refreshed:', error);
+    warnings.push('Today could not be refreshed; restart the app.');
+  }
+  if (habit.reminder?.number) {
+    try {
+      const { scheduleHabitReminder } = await import('../../native/habitReminders.js');
+      await scheduleHabitReminder(habit, { cancelSnooze: true });
+    } catch (error) {
+      console.error('[actionExecutor] Habit saved but reminder could not be scheduled:', error);
+      warnings.push('The habit reminder could not be updated; check notification settings.');
+    }
+  }
+  return warnings;
+}
 
 function requireId(payload, actionType) {
   if (!payload.id || typeof payload.id !== 'string') {
@@ -30,6 +52,9 @@ function requireId(payload, actionType) {
 
 export async function validateActionPreconditions(proposal) {
   const validatedProposal = ActionProposalSchema.parse(proposal);
+  if (containsQuestAction(validatedProposal)) {
+    throw new Error('Quest actions are temporarily unavailable. No changes were made.');
+  }
   const existingHabitActions = new Set([
     'modify_habit', 'pause_habit', 'archive_habit', 'modify_roadmap', 'update_mastery_level',
   ]);
@@ -38,6 +63,10 @@ export async function validateActionPreconditions(proposal) {
     const habitId = requireId(validatedProposal.payload, validatedProposal.actionType);
     const habit = await getHabit(habitId);
     if (!habit) throw new Error(`Habit ${habitId} no longer exists; proposal is stale`);
+    if (validatedProposal.actionType === 'modify_habit' && validatedProposal.payload.status === 'active' &&
+        habit.reminder?.enabled && !habit.reminder.number) {
+      throw new Error('Resume this habit in the editor to configure its reminder permission.');
+    }
     if (validatedProposal.actionType === 'update_mastery_level' && !habit.masteryRoadmap) {
       throw new Error(`Habit ${habitId} has no mastery roadmap`);
     }
@@ -152,22 +181,22 @@ export async function executeAction(proposal) {
     case 'modify_habit': {
       const id = requireId(payload, actionType);
       const { id: ignoredId, ...updates } = payload;
-      await updateHabit(id, updates);
-      result = { ...result, id };
+      const habit = await saveHabitSchedule(before, updates, localDateStr());
+      result = { ...result, id, warnings: await reconcileHabitChanges(habit) };
       break;
     }
     
     case 'pause_habit': {
       const id = requireId(payload, actionType);
-      await updateHabit(id, { status: 'paused' });
-      result = { ...result, id };
+      const habit = await saveHabitSchedule(before, { status: 'paused' }, localDateStr());
+      result = { ...result, id, warnings: await reconcileHabitChanges(habit) };
       break;
     }
     
     case 'archive_habit': {
       const id = requireId(payload, actionType);
-      await dbArchiveHabit(id);
-      result = { ...result, id };
+      const habit = await saveHabitSchedule(before, { status: 'archived' }, localDateStr());
+      result = { ...result, id, warnings: await reconcileHabitChanges(habit) };
       break;
     }
     
@@ -409,12 +438,23 @@ export async function executeAction(proposal) {
           if (stepResult.actionFactId) childActionFactIds.push(stepResult.actionFactId);
         }
       } catch (error) {
+        const rollbackFailures = [];
         for (const childFactId of [...childActionFactIds].reverse()) {
-          try { await undoAction(childFactId); } catch (rollbackError) { console.error('[actionExecutor] Plan rollback failed:', rollbackError); }
+          try {
+            const undone = await undoAction(childFactId);
+            rollbackFailures.push(...undone.warnings);
+          } catch (rollbackError) {
+            console.error('[actionExecutor] Plan rollback failed:', rollbackError);
+            rollbackFailures.push(rollbackError.message || 'A step could not be undone.');
+          }
+        }
+        if (rollbackFailures.length) {
+          throw new Error(`Plan failed: ${error.message}. Rollback needs attention: ${rollbackFailures.join(' ')}`, { cause: error });
         }
         throw new Error(`Plan failed and completed steps were rolled back: ${error.message}`, { cause: error });
       }
-      result = { ...result, id: `plan_${Date.now()}`, childActionFactIds, childResults };
+      result = { ...result, id: `plan_${Date.now()}`, childActionFactIds, childResults,
+        warnings: childResults.flatMap(child => child.warnings || []) };
       break;
     }
 
@@ -474,12 +514,17 @@ export async function undoAction(actionFactId) {
   if (!actionFact?.type?.startsWith('jarvis_action.')) throw new Error('Action fact not found');
   const actionType = actionFact.type.replace('jarvis_action.', '');
   const { before, result } = actionFact.meta || {};
+  const warnings = [];
 
   if (actionType === 'add_habit') {
     const habit = await getHabit(result?.id);
-    if (habit) await dbArchiveHabit(result.id);
+    if (habit) {
+      const saved = await saveHabitSchedule(habit, { status: 'archived' }, localDateStr());
+      warnings.push(...await reconcileHabitChanges(saved));
+    }
   } else if (['modify_habit', 'pause_habit', 'archive_habit', 'modify_roadmap', 'update_mastery_level'].includes(actionType) && before?.id) {
-    await updateHabit(before.id, before);
+    const saved = await saveHabitSchedule(before, before, localDateStr());
+    warnings.push(...await reconcileHabitChanges(saved));
   } else if (actionType === 'add_goal') {
     await deleteGoal(result.id);
   } else if (actionType === 'modify_goal' && before?.id) {
@@ -518,7 +563,8 @@ export async function undoAction(actionFactId) {
     if (result?.id) await rejectMemory(result.id);
   } else if (actionType === 'create_plan') {
     for (const childFactId of [...(result?.childActionFactIds || [])].reverse()) {
-      try { await undoAction(childFactId); } catch (error) { console.error('[actionExecutor] Plan child undo failed:', error); }
+      const child = await undoAction(childFactId);
+      warnings.push(...child.warnings);
     }
   } else {
     throw new Error(`Undo is not supported for ${actionType}`);
@@ -530,5 +576,5 @@ export async function undoAction(actionFactId) {
     value: 1,
     meta: { undoneActionFactId: actionFactId, source: 'jarvis_conversational' },
   });
-  return { undoneActionFactId: actionFactId };
+  return { undoneActionFactId: actionFactId, warnings };
 }

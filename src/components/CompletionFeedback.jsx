@@ -1,10 +1,10 @@
 import React, { useEffect } from 'react';
 import { ACCENT } from '../constants.js';
 
-export default function CompletionFeedback({ feedback, onDismiss }) {
+export default function CompletionFeedback({ feedback, onDismiss, onUndo }) {
   useEffect(() => {
     if (!feedback) return undefined;
-    const timer = setTimeout(onDismiss, 2200);
+    const timer = setTimeout(onDismiss, 5000);
     return () => clearTimeout(timer);
   }, [feedback, onDismiss]);
 
@@ -31,6 +31,7 @@ export default function CompletionFeedback({ feedback, onDismiss }) {
         Vote cast
       </div>
       <div style={{ marginTop: '0.25rem', fontSize: '0.9rem' }}>{feedback.habitTitle}</div>
+      {feedback.occurrence && <button type="button" onClick={() => onUndo(feedback)} style={{ marginTop: '8px' }}>Undo</button>}
       <style>{`@keyframes completionFeedbackIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }`}</style>
     </div>
   );

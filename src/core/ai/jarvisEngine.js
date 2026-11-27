@@ -9,6 +9,7 @@ import { JARVIS_INSIGHT_SYSTEM_PROMPT, JARVIS_SYSTEM_PROMPT } from './jarvisPers
 import { assembleContext } from './contextBuilder.js';
 import { AIInsightSchema } from './aiSchemas.js';
 import { ActionProposalSchema } from './actionSchemas.js';
+import { containsQuestAction } from './questAvailability.js';
 import { validateClaimSupport } from './contextBuilder.js';
 import { z } from 'zod';
 
@@ -290,6 +291,10 @@ export async function chatWithJarvis(userMessage, history = [], modificationCont
     // Normalize the common null-proposal case before schema validation and
     // deterministically retain the target ID during proposal modifications.
     const normalized = normalizeConversationalResponse(responseObj, modificationContext);
+    if (containsQuestAction(normalized.proposal)) {
+      normalized.proposal = null;
+      normalized.responseWarning = 'Quest actions are temporarily unavailable. No changes were made.';
+    }
     const validated = ConversationalResponseSchema.parse(normalized);
     // During Ved onboarding, the conversation is itself collecting new user
     // information. Those answers are not yet persisted evidence, so requiring

@@ -18,7 +18,7 @@ vi.mock('../../src/core/ai/analysisScheduler.js', () => ({ bootstrapAnalysisSche
 import App from '../../src/App.jsx';
 import { clearAllDatabaseData, closeDB, initDB } from '../../src/database/db.js';
 import { getAllHabits } from '../../src/database/habitRepository.js';
-import { clearSecureValue } from '../../src/native/secureStorage.js';
+import { clearSecureValue, setSecureValue } from '../../src/native/secureStorage.js';
 import { getReminders, getSetting } from '../../src/database/settingsRepository.js';
 import { requestNotificationPermission, scheduleAllReminders } from '../../src/native/notifications.js';
 
@@ -120,6 +120,17 @@ describe('manual habits', () => {
     expect((await screen.findByRole('alert')).textContent).toContain('permission was not granted');
     expect((await getReminders())[0].enabled).toBe(false);
     expect(await getSetting('firstHabitReminderPrompt')).toBe('pending');
+  }, 30000);
+
+  it('reveals Ved actions after a connection is added in Settings', async () => {
+    render(<App />);
+    await finishOnboarding();
+    expect(screen.queryByRole('button', { name: 'Ask Ved' })).toBeNull();
+    fireEvent.click(screen.getByRole('button', { name: 'Open Settings' }));
+    await screen.findByText('AI & Provider');
+    await setSecureValue('aiApiKey', 'synthetic-key');
+    fireEvent.click(screen.getByRole('button', { name: 'Close dialog' }));
+    expect(await screen.findByRole('button', { name: 'Ask Ved' }, { timeout: 15000 })).toBeTruthy();
   }, 30000);
 
 });

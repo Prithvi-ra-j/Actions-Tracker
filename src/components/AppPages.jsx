@@ -34,6 +34,9 @@ export default function AppPages({
   dark,
   today,
   todayOccurrences,
+  habits,
+  onUpdateHabit,
+  onRestDay,
   books,
   learnings,
   stats,
@@ -47,6 +50,8 @@ export default function AppPages({
   onAddEvidence,
   onAddHabit,
   onCompleteOccurrence,
+  onCorrectCompletion,
+  onRefreshScores,
   onExcuseOccurrence,
   onOccurrenceReason,
   onGoToGoals,
@@ -75,6 +80,9 @@ export default function AppPages({
           t={t}
           today={today}
           todayOccurrences={todayOccurrences}
+          habits={habits}
+          onUpdateHabit={onUpdateHabit}
+          onRestDay={onRestDay}
           onAddEvidence={onAddEvidence}
           onAddHabit={onAddHabit}
           allQuests={allQuests}
@@ -89,6 +97,9 @@ export default function AppPages({
       <AppPage id="stats" currentTab={currentTab} visitedTabs={visitedTabs}>
         <StatsTab
           t={t}
+          today={today}
+          isActive={currentTab === 'stats'}
+          todayOccurrences={todayOccurrences}
           dark={dark}
           stats={stats}
           axisDetails={axisDetails}
@@ -97,6 +108,8 @@ export default function AppPages({
           allLogs={allLogs}
           axisConfigs={axisConfigs}
           onGoToToday={onGoToToday}
+          onCorrectCompletion={onCorrectCompletion}
+          onRefreshScores={onRefreshScores}
           onOpenJarvis={vedConfigured ? context => onOpenJarvis(context || { page: 'stats' }) : undefined}
         />
       </AppPage>

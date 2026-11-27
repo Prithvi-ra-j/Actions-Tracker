@@ -30,7 +30,7 @@ export const GOALS = [
     label: "Track I",
     color: "#c1442c",
     icon: "⚔",
-    start: "Inconsistent. Some activity but no real structure.",
+    start: "Beginning to build a routine.",
     end: "A man who trains. It shows.",
     targets: [
       { text: "Train 4x per week for 90 consecutive days", metric: "90 days" },
@@ -62,7 +62,7 @@ export const GOALS = [
     label: "Track III",
     color: "#d99a2b",
     icon: "◈",
-    start: "Dormant since school. Nothing made since.",
+    start: "Beginning to make space for creativity.",
     end: "A man who has finished something and put it in the world.",
     targets: [
       { text: "Fill one sketchbook — any quality, any subject", metric: "1 sketchbook" },

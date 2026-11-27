@@ -1,12 +1,17 @@
-import { getAllHabits } from '../database/habitRepository.js';
-import { addOccurrence, getOccurrencesByDateRange, updateOccurrence } from '../database/habitOccurrenceRepository.js';
-import { localDateStr } from '../helpers/dateHelpers.js';
-import { addLog } from '../database/logsRepository.js';
+import { createOccurrenceRecord } from '../database/habitOccurrenceRepository.js';
+import { daysBetween, localDateStr, parseLocalDate, subtractDays } from '../helpers/dateHelpers.js';
+import { writeSequence } from '../database/db.js';
+
+export function isHabitDue(frequency, dayOfWeek) {
+  const rule = frequency || { type: 'daily' };
+  if ((rule.type === 'weekly' || rule.type === 'custom') && Array.isArray(rule.days)) {
+    return rule.days.includes(dayOfWeek);
+  }
+  return true;
+}
 
 export function getGraceState(scheduledFor, currentDateStr) {
-  const scheduled = new Date(`${scheduledFor}T00:00:00`);
-  const current = new Date(`${currentDateStr}T00:00:00`);
-  const daysLate = Math.floor((current - scheduled) / 86400000);
+  const daysLate = daysBetween(scheduledFor.split('T')[0], currentDateStr);
   if (daysLate <= 0) return { daysLate: 0, state: 'scheduled' };
   if (daysLate === 1) return { daysLate, state: 'grace_day_one' };
   if (daysLate === 2) return { daysLate, state: 'grace_day_two' };
@@ -15,10 +20,10 @@ export function getGraceState(scheduledFor, currentDateStr) {
 
 export function getGracePrompt(status, graceState) {
   if (status === 'expected' && graceState === 'grace_day_one') {
-    return 'You missed yesterday. You still have today.';
+    return 'This was scheduled yesterday. You can still complete it.';
   }
   if (status === 'expected' && graceState === 'grace_day_two') {
-    return 'You missed yesterday and today. Tomorrow is the day that matters.';
+    return 'This is still available if you want to complete it.';
   }
   if (status === 'unknown' && graceState === 'grace_expired') {
     return 'Pattern forming. What is getting in the way?';
@@ -32,31 +37,34 @@ export function getGracePrompt(status, graceState) {
  */
 async function evaluatePastOccurrences(currentDateStr) {
   try {
-    // Let's just look at the last 7 days for efficiency
-    const d = new Date(currentDateStr);
-    d.setDate(d.getDate() - 7);
-    const startStr = d.toISOString().split('T')[0];
-
-    const pastOccurrences = await getOccurrencesByDateRange(startStr, currentDateStr);
+    const startStr = subtractDays(currentDateStr, 7);
     let unknownCount = 0;
-
-    for (const occ of pastOccurrences) {
-      if (occ.scheduledFor < currentDateStr && occ.status === 'expected') {
-        const grace = getGraceState(occ.scheduledFor, currentDateStr);
-        if (grace.state === 'grace_expired') {
-          await updateOccurrence(occ.id, { status: 'unknown', reason: 'grace_window_expired', graceDays: 2 });
-          unknownCount++;
-        } else {
-          await updateOccurrence(occ.id, { graceState: grace.state, graceDays: 2 });
+    await writeSequence(['habitOccurrences'], tx => {
+      const request = tx.objectStore('habitOccurrences').openCursor();
+      request.onsuccess = () => {
+        const cursor = request.result;
+        if (!cursor) return;
+        const occ = cursor.value;
+        const date = occ.scheduledFor.split('T')[0];
+        if (date >= startStr && date < currentDateStr && occ.status === 'expected') {
+          const grace = getGraceState(date, currentDateStr);
+          if (grace.state === 'grace_expired') {
+            cursor.update({ ...occ, status: 'unknown', reason: 'grace_window_expired', graceDays: 2 });
+            unknownCount++;
+          } else {
+            cursor.update({ ...occ, graceState: grace.state, graceDays: 2 });
+          }
         }
-      }
-    }
+        cursor.continue();
+      };
+    });
     
     if (unknownCount > 0) {
       console.log(`[occurrenceEngine] Evaluated ${unknownCount} past occurrences as unknown.`);
     }
   } catch (err) {
     console.error('[occurrenceEngine] Failed to evaluate past occurrences:', err);
+    throw err;
   }
 }
 
@@ -71,45 +79,41 @@ export async function generateOccurrencesForDate(dateStr = localDateStr()) {
     // First, sweep for missed habits from yesterday
     await evaluatePastOccurrences(dateStr);
 
-    const habits = await getAllHabits();
-    const activeHabits = habits.filter(h => h.status === 'active');
-
-    // Get existing occurrences for today to prevent duplicates
-    const existingOccurrences = await getOccurrencesByDateRange(dateStr, dateStr);
-    const existingHabitIds = new Set(existingOccurrences.map(o => o.habitId));
-
-    const dateObj = new Date(dateStr);
+    const dateObj = parseLocalDate(dateStr);
+    if (!dateObj) throw new Error(`Invalid occurrence date: ${dateStr}`);
     const dayOfWeek = dateObj.getDay(); // 0 = Sun, 1 = Mon, ..., 6 = Sat
-
     let generatedCount = 0;
-
-    for (const habit of activeHabits) {
-      if (existingHabitIds.has(habit.id)) {
-        continue; // Already scheduled
-      }
-
-      const freq = habit.frequency || { type: 'daily' };
-      let isDue = false;
-
-      if (freq.type === 'daily') {
-        isDue = true;
-      } else if (freq.type === 'weekly' && Array.isArray(freq.days)) {
-        // days is an array of integers 0-6
-        isDue = freq.days.includes(dayOfWeek);
-      } else {
-        // Fallback for custom or missing
-        isDue = true; 
-      }
-
-      if (isDue) {
-        await addOccurrence({
-          habitId: habit.id,
-          scheduledFor: dateStr,
-          status: 'expected',
-        });
-        generatedCount++;
-      }
-    }
+    await writeSequence(['habits', 'habitOccurrences', 'settings'], tx => {
+      const occurrenceStore = tx.objectStore('habitOccurrences');
+      const habitsRequest = tx.objectStore('habits').getAll();
+      const occurrencesRequest = occurrenceStore.getAll();
+      const restRequest = tx.objectStore('settings').get('restDay');
+      restRequest.onsuccess = () => {
+        const existing = new Map(occurrencesRequest.result
+          .filter(occ => occ.scheduledFor.split('T')[0] === dateStr).map(occ => [occ.habitId, occ]));
+        const restDay = restRequest.result?.value === dateStr;
+        for (const habit of habitsRequest.result) {
+          if (habit.status !== 'active') continue;
+          if (!isHabitDue(habit.frequency, dayOfWeek)) continue;
+          const previous = existing.get(habit.id);
+          if (previous) {
+            if (previous.status === 'excused' && previous.reason === 'schedule_changed') {
+              const { schedulePreviousStatus, schedulePreviousReason, ...record } = previous;
+              occurrenceStore.put({ ...record, status: restDay ? 'excused' : schedulePreviousStatus || 'expected',
+                reason: restDay ? 'rest_day' : schedulePreviousReason ?? null });
+            }
+            continue;
+          }
+          occurrenceStore.put(createOccurrenceRecord({
+            habitId: habit.id,
+            scheduledFor: dateStr,
+            status: restDay ? 'excused' : 'expected',
+            reason: restDay ? 'rest_day' : '',
+          }));
+          generatedCount++;
+        }
+      };
+    });
 
     console.log(`[occurrenceEngine] Generated ${generatedCount} occurrences for ${dateStr}`);
     return generatedCount;

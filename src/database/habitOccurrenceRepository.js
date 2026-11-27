@@ -46,10 +46,10 @@ function now() {
  *   supportingFactIds?: string[],
  *   reason?:           string,
  * }} fields
- * @returns {Promise<string>} The generated occurrence ID
+ * @returns {object} The occurrence record
  */
-export async function addOccurrence(fields) {
-  const record = {
+export function createOccurrenceRecord(fields) {
+  return {
     id:                fields.id ?? generateId(),
     schemaVersion:     SCHEMA_VERSION,
     habitId:           fields.habitId,
@@ -61,6 +61,10 @@ export async function addOccurrence(fields) {
     supportingFactIds: fields.supportingFactIds ?? [],
     reason:            fields.reason            ?? null,
   };
+}
+
+export async function addOccurrence(fields) {
+  const record = createOccurrenceRecord(fields);
   await dbPut(STORE, record);
   return record.id;
 }

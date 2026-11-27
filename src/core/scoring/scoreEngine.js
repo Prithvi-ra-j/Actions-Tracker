@@ -40,11 +40,19 @@ import { getOccurrencesForHabit } from '../../database/habitOccurrenceRepository
 import { getAllHabits }           from '../../database/habitRepository.js';
 import { getAllLearnings }        from '../../database/learningRepository.js';
 import { getAllBooks }            from '../../database/booksRepository.js';
+import { getAllSettings }        from '../../database/settingsRepository.js';
+import { getEffectiveFacts } from '../facts/effectiveFacts.js';
 
 const SCORE_ENGINE_VERSION = '1.0';
 
 function periodDate(value) {
   return /^\d{4}-\d{2}-\d{2}$/.test(value) ? value : localDateStr(new Date(value));
+}
+
+async function getEffectiveFactsInPeriod(period, domain) {
+  const allFacts = await getAllFacts();
+  return getEffectiveFacts(allFacts).filter(fact => fact.occurredAt >= period.start && fact.occurredAt <= period.end &&
+    fact.meta?.domain === domain && !fact.meta?.secondaryDomain);
 }
 
 // ─── Public API ────────────────────────────────────────────────────────────────
@@ -189,25 +197,33 @@ async function _buildProjection(domain, period) {
 }
 
 async function _buildDisciplineProjection(period) {
-  // 1. Load all active habits and their occurrences in the period
+  // 1. Load recorded occurrences in the period, excluding rest dates
   const habits = await getAllHabits();
-  const activeHabits = habits.filter(h => h.status === 'active');
+  const settings = await getAllSettings();
+  const restDates = new Set(Object.keys(settings).filter(key => key.startsWith('restDay:') && settings[key] === 'true')
+    .map(key => key.slice('restDay:'.length)));
+  if (settings.restDay) restDates.add(settings.restDay);
 
   const allOccurrences = [];
-  for (const habit of activeHabits) {
+  for (const habit of habits) {
     const occs = await getOccurrencesForHabit(habit.id);
     // Filter to period
     const startDate = periodDate(period.start);
     const endDate = periodDate(period.end);
+    for (const occurrence of occs) {
+      if (occurrence.reason === 'rest_day') restDates.add(occurrence.scheduledFor.split('T')[0]);
+    }
     const inWindow = occs.filter(o => {
       const date = o.scheduledFor.split('T')[0];
-      return date >= startDate && date <= endDate;
+      const attribution = o.attribution || { primary: habit.domain, secondary: habit.secondaryDomain };
+      return date >= startDate && date <= endDate && attribution.primary === 'discipline' && !attribution.secondary;
     });
     allOccurrences.push(...inWindow);
   }
 
   // 2. Collect signals from domain engine
-  const signals = disciplineEngine.collectSignals(allOccurrences);
+  const signals = disciplineEngine.collectSignals(allOccurrences.filter(occ =>
+    !restDates.has(occ.scheduledFor.split('T')[0])));
 
   // 3. Calculate preliminary projection (for coverage/confidence)
   const projection = disciplineEngine.calculateScore(signals, period);
@@ -217,16 +233,14 @@ async function _buildDisciplineProjection(period) {
 
 async function _buildKnowledgeProjection(period) {
   // 1. Load facts in period
-  const allFacts = await getAllFacts();
-  const facts = allFacts.filter(f =>
-    f.occurredAt >= period.start && f.occurredAt <= period.end
-  );
+  const facts = await getEffectiveFactsInPeriod(period, 'knowledge');
 
   // 2. Load learnings (all time — mastery accumulates)
-  const learnings = await getAllLearnings();
+  const learnings = (await getAllLearnings()).filter(learning =>
+    learning.tags?.[0]?.toLowerCase() === 'knowledge');
 
   // 3. Load books
-  const books = await getAllBooks().catch(() => []);
+  const books = (await getAllBooks()).filter(book => book.domain === 'knowledge' && !book.secondaryDomain);
 
   // 4. Collect signals from domain engine
   const signals = knowledgeEngine.collectSignals({ facts, learnings, books });
@@ -238,32 +252,28 @@ async function _buildKnowledgeProjection(period) {
 }
 
 async function _buildBodyProjection(period) {
-  const allFacts = await getAllFacts();
-  const facts = allFacts.filter(f => f.occurredAt >= period.start && f.occurredAt <= period.end);
+  const facts = await getEffectiveFactsInPeriod(period, 'body');
   const signals = bodyEngine.collectSignals({ facts });
   const projection = bodyEngine.calculateScore(signals, period);
   return projection;
 }
 
 async function _buildStrategyProjection(period) {
-  const allFacts = await getAllFacts();
-  const facts = allFacts.filter(f => f.occurredAt >= period.start && f.occurredAt <= period.end);
+  const facts = await getEffectiveFactsInPeriod(period, 'strategy');
   const signals = strategyEngine.collectSignals({ facts });
   const projection = strategyEngine.calculateScore(signals, period);
   return projection;
 }
 
 async function _buildCreativityProjection(period) {
-  const allFacts = await getAllFacts();
-  const facts = allFacts.filter(f => f.occurredAt >= period.start && f.occurredAt <= period.end);
+  const facts = await getEffectiveFactsInPeriod(period, 'creativity');
   const signals = creativityEngine.collectSignals({ facts });
   const projection = creativityEngine.calculateScore(signals, period);
   return projection;
 }
 
 async function _buildSocialProjection(period) {
-  const allFacts = await getAllFacts();
-  const facts = allFacts.filter(f => f.occurredAt >= period.start && f.occurredAt <= period.end);
+  const facts = await getEffectiveFactsInPeriod(period, 'social');
   const signals = socialEngine.collectSignals({ facts });
   const projection = socialEngine.calculateScore(signals, period);
   return projection;

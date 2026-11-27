@@ -74,7 +74,7 @@ For an attribute, take weekly **effort-weighted activity** `a_w` over the last u
 2. **During calibration:** Today works fully. A small "day 3 of 7" ring on Stats; scores greyed.
 3. **Day 7: the Baseline Report** — the payoff and the shareable moment. Example: *"Your usual: 4 habits a day · you do best in the evening · Sundays are your quietest day · you usually restart within 1 day after a miss."* This is useful with **no AI**.
 4. **Today "Load" strip (convenience feature):** compares today's plan to your usual — Light / Typical / Heavy. If heavy: one tap to switch to tiny versions or a light day. This directly serves the "overloaded day" scenario.
-5. **Stats (after calibration):** per attribute, a **lifetime bar** (only grows) and a **momentum word** (Building / Steady / Resting), plus "what moved it".
+5. **Stats (after calibration):** per attribute, a **lifetime bar** (unchanged by time, but correctable) and a **momentum word** (Building / Steady / Resting), plus "what moved it".
 6. **Optional day-28 note:** "Your baseline has settled. Here is how it compares with week 1." (Growth shown as *your own* change.)
 
 ## 7. Why relative scoring is dangerous (and the guardrails)
@@ -82,13 +82,13 @@ For an attribute, take weekly **effort-weighted activity** `a_w` over the last u
 | Risk | Guardrail |
 |---|---|
 | **Low baseline inflates praise.** If you do little in week 1, "Building" is easy | Always show **lifetime** (absolute) next to momentum; allow goal-anchored targets that don't depend on the baseline |
-| **Baseline drift erases progress.** If you improve, today's effort now reads as "Steady" | Lifetime never decreases; slow EMA; the Baseline Report archives each version (old baseline stays viewable) |
+| **Baseline drift erases progress.** If you improve, today's effort now reads as "Steady" | Lifetime does not decrease with time or a baseline change; explicit corrections can remove mistaken records. Use a slow EMA and archive baseline versions. |
 | **Gaming / sandbagging** | Low stakes (no ranking, no leaderboard); optional minimum floor per attribute so the words can't be trivially earned |
 | **Life events** (new job, illness, travel, new baby) | A **"Life changed" button** that pauses learning and, if chosen, starts a fresh baseline while keeping history |
 | **Too few data points** | Active-day gating, median/MAD instead of mean, confidence shown honestly |
 | **Showing a number that implies judgement** | Words, not numbers, in the main view; numbers only in detail |
 
-Never let relative scores become the only measure. The philosophy doc's "lifetime growth vs current momentum" is exactly this split: **lifetime = absolute and monotonic, momentum = relative to your baseline.**
+Never let relative scores become the only measure. The split is **lifetime = effective cumulative history, momentum = relative to your baseline**. Lifetime is monotonic only in the absence of explicit corrections; an immediate undo removes the check-in, and later corrections retain an audit record.
 
 ## 8. Edge cases
 

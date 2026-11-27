@@ -9,10 +9,10 @@ import { getRoutineConfig } from '../database/routineRepository.js';
 import { getAllHabits } from '../database/habitRepository.js';
 import { getAllLogs } from '../database/logsRepository.js';
 import { getAllAxisConfigs } from '../database/axisConfigRepository.js';
-import { getAllQuests } from '../database/questBoardRepository.js';
 import { computeAllStats, computeAxisDetails } from '../helpers/statsEngine.js';
 import { recordAppError } from '../core/errorLogger.js';
 import { hasJarvisApiKey } from '../core/ai/jarvisConfig.js';
+import { containsQuestAction } from '../core/ai/questAvailability.js';
 import JarvisApiSetup from './jarvis/JarvisApiSetup.jsx';
 import { BottomSheet } from './ui/Overlays.jsx';
 import { ActionProposalCard, ImpactDetailSheet, EditProposalSheet } from './ui/ProposalUI.jsx';
@@ -53,7 +53,6 @@ const MODES = [
 const COMMANDS = [
   { id: 'ask', label: 'Ask Ved', description: 'Ask a question about your system', icon: '?', prompt: 'Ask Ved' },
   { id: 'habit', label: 'Create habit', description: 'Add a recurring habit', icon: '↻', prompt: 'Create a habit' },
-  { id: 'quest', label: 'Create quest', description: 'Add a measurable quest or benchmark', icon: '◇', prompt: 'Create a quest' },
   { id: 'goal', label: 'Create goal', description: 'Define or update a goal', icon: '◎', prompt: 'Create a goal' },
   { id: 'routine', label: 'Adjust routine', description: 'Change the daily/weekly routine', icon: '◷', prompt: 'Adjust my routine' },
   { id: 'plan', label: 'Build a plan', description: 'Turn a ready plan into app changes', icon: '▱', prompt: 'Build and apply this plan' },
@@ -223,7 +222,7 @@ export default function JarvisTab({ t, isActive = true, onQuestsChanged, onboard
 
     (async () => {
       try {
-        const [logs, quests] = await Promise.all([getAllLogs(), getAllQuests()]);
+        const logs = await getAllLogs();
         if (cancelled) return;
         const evidenceItems = logs
           .filter(log => log.meta?.content || log.meta?.text)
@@ -238,17 +237,7 @@ export default function JarvisTab({ t, isActive = true, onQuestsChanged, onboard
               prompt: `Review this saved evidence: ${text}`,
             };
           });
-        const questItems = quests
-          .filter(quest => quest.status === 'active' && quest.title)
-          .map(quest => ({
-            id: `quest-${quest.id}`,
-            kind: 'Active quest',
-            title: quest.title,
-            detail: quest.axis || quest.domain || '',
-            timestamp: String(quest.updatedAt || quest.createdAt || ''),
-            prompt: `Help me review this quest: ${quest.title}`,
-          }));
-        setHomeFeedItems([...evidenceItems, ...questItems]
+        setHomeFeedItems(evidenceItems
           .sort((left, right) => right.timestamp.localeCompare(left.timestamp))
           .slice(0, 6));
       } catch (err) {
@@ -440,7 +429,7 @@ export default function JarvisTab({ t, isActive = true, onQuestsChanged, onboard
   ));
   const commandGroups = [
     { group: 'Think', commands: filteredCommands.filter(command => ['ask', 'review', 'audit'].includes(command.id)) },
-    { group: 'Change', commands: filteredCommands.filter(command => ['habit', 'quest', 'goal', 'routine', 'plan', 'experiment', 'target'].includes(command.id)) },
+    { group: 'Change', commands: filteredCommands.filter(command => ['habit', 'goal', 'routine', 'plan', 'experiment', 'target'].includes(command.id)) },
     { group: 'Record', commands: filteredCommands.filter(command => ['evidence', 'memory', 'learn'].includes(command.id)) },
   ];
 
@@ -515,9 +504,8 @@ export default function JarvisTab({ t, isActive = true, onQuestsChanged, onboard
       setError('Changes were applied, but Ved could not save this conversation update.');
     }
     try {
-      if (proposal.actionType === 'add_quest' || proposal.actionType === 'modify_quest' || proposal.actionType === 'archive_quest') {
-        onQuestsChanged && onQuestsChanged();
-      }
+      if (onQuestsChanged) await onQuestsChanged();
+      if (result.warnings?.length) setError(`Changes were applied, but ${result.warnings.join(' ')}`);
       if (activeOnboardingMode && proposal.actionType === 'complete_onboarding') {
         onOnboardingComplete && onOnboardingComplete();
       }
@@ -534,7 +522,9 @@ export default function JarvisTab({ t, isActive = true, onQuestsChanged, onboard
     if (!proposal || !actionFactId || undoingProposalId === proposal.id) return;
     setUndoingProposalId(proposal.id);
     try {
-      await undoAction(actionFactId);
+      const result = await undoAction(actionFactId);
+      if (onQuestsChanged) await onQuestsChanged();
+      if (result.warnings?.length) setError(`The change was undone, but ${result.warnings.join(' ')}`);
     } catch (err) {
       recordAppError(err, { source: 'jarvis_ui', operation: 'undo_proposal' });
       setError(err?.message || 'The change could not be undone.');
@@ -1024,7 +1014,7 @@ export default function JarvisTab({ t, isActive = true, onQuestsChanged, onboard
                     )}
 
                     {/* Proposal card */}
-                    {msg.proposal && (
+                    {msg.proposal && !containsQuestAction(msg.proposal) && (
                       <ActionProposalCard
                         proposal={msg.proposal}
                         status={msg.proposalStatus}
@@ -1052,7 +1042,8 @@ export default function JarvisTab({ t, isActive = true, onQuestsChanged, onboard
                         }}
                       />
                     )}
-                    {msg.proposal?.actionType === 'create_plan' && ['pending','awaiting_approval'].includes(msg.proposalStatus) && (
+                    {containsQuestAction(msg.proposal) && <p>Quest actions are temporarily unavailable. This saved proposal cannot be applied.</p>}
+                    {msg.proposal?.actionType === 'create_plan' && !containsQuestAction(msg.proposal) && ['pending','awaiting_approval'].includes(msg.proposalStatus) && (
                       <button type="button" onClick={() => openPlanBoard(msg.proposal)} style={{ minHeight: '40px', marginTop: '8px', padding: '0 12px', border: '1px solid var(--hairline)', borderRadius: 'var(--r-control)', background: 'var(--s1)', color: 'var(--tx)' }}>
                         Open plan board
                       </button>

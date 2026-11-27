@@ -24,14 +24,12 @@ import { installGlobalErrorLogging, markErrorLoggerReady } from './core/errorLog
 import { checkForUpdate } from './core/updateChecker.js';
 
 // ── Helpers ─────────────────────────────────────────────────────────────────────────────
-import { computeAllStats, getThresholdTitle } from './helpers/statsEngine.js';
 
 // ── Native ────────────────────────────────────────────────────────────────────
 import { scheduleAllReminders, requestNotificationPermission } from './native/notifications.js';
 import { registerBackHandler, setupStatusBar } from './native/backButton.js';
 
 // ── Components ────────────────────────────────────────────────────────────────
-import LevelUpCeremony   from './components/LevelUpCeremony.jsx';
 import CompletionFeedback from './components/CompletionFeedback.jsx';
 import ProofFearCheckin  from './components/ProofFearCheckin.jsx';
 import UpdateBanner      from './components/UpdateBanner.jsx';
@@ -40,38 +38,6 @@ import AppPages          from './components/AppPages.jsx';
 
 const OnboardingFlow = lazy(() => import('./components/onboarding/OnboardingFlow.jsx'));
 const SettingsTab = lazy(() => import('./components/SettingsTab.jsx'));
-
-// ── Phase 4 helpers ───────────────────────────────────────────────────────────
-
-const AXIS_COLORS = {
-  body:       '#c1442c',
-  discipline: '#c1442c',
-  knowledge:  '#4a7ba6',
-  social:     '#ff9500',
-  creativity: '#d99a2b',
-  strategy:   '#4f8a5f',
-};
-
-/**
- * Compares old threshold titles to new ones and returns an array of level-up
- * events. Only fires when the title changed AND the value went up.
- * @param {{ [axis]: string }} oldTitles  — persisted titles from settings
- * @param {{ [axis]: number }} newStats
- */
-function detectLevelUps(oldTitles, newStats) {
-  const AXES = ['body', 'discipline', 'knowledge', 'social', 'creativity', 'strategy'];
-  const events = [];
-  for (const axis of AXES) {
-    const newVal   = Math.round(newStats[axis] ?? 0);
-    const newTitle = getThresholdTitle(axis, newVal);
-    const oldTitle = oldTitles[axis] ?? getThresholdTitle(axis, 0);
-    // Only fire if the title is different AND value increased (not an onboarding artifact)
-    if (newTitle !== oldTitle && newVal > 0) {
-      events.push({ axis, value: newVal, newTitle, color: AXIS_COLORS[axis] || '#ff9500' });
-    }
-  }
-  return events;
-}
 
 // ─────────────────────────────────────────────────────────────────────────────
 
@@ -88,6 +54,9 @@ async function getScoresAsync() {
     try {
       const { runScoreProjection } = await import('./core/scoring/scoreEngine.js');
       const projection = await runScoreProjection(domain, period);
+      if (projection.warnings?.some(warning => warning.includes('pipeline_error:'))) {
+        throw new Error(projection.warnings.join('; '));
+      }
       stats[domain] = projection.value;
       details[domain] = {
         components: projection.components,
@@ -99,8 +68,8 @@ async function getScoresAsync() {
       };
     } catch (e) {
       console.warn(`[App] Failed to project ${domain}`, e);
-      stats[domain] = 0;
-      details[domain] = { components: [], scoreSource: 'canonical', coverage: 0, confidence: 0, warnings: ['projection_failed'] };
+      stats[domain] = null;
+      details[domain] = { components: [], scoreSource: null, coverage: null, confidence: null, warnings: ['projection_failed'] };
     }
   }
   return { stats, details };
@@ -150,9 +119,10 @@ export default function App() {
   const [latestSnapshot,   setLatestSnapshot]     = useState(null);
 
   // ── Phase 4/5 engagement state ────────────────────────────────────────────────────
-  // levelUpQueue: array of { axis, value, newTitle, color } — shown one at a time
-  const [levelUpQueue,     setLevelUpQueue]       = useState([]);
   const [completionFeedback, setCompletionFeedback] = useState(null);
+  const [habitSummaries, setHabitSummaries] = useState([]);
+  const [dailyError, setDailyError] = useState('');
+  const [dailyNotice, setDailyNotice] = useState('');
   const [reminderPromptPending, setReminderPromptPending] = useState(false);
   const [reminderError, setReminderError] = useState('');
   const [reminderSaving, setReminderSaving] = useState(false);
@@ -160,12 +130,59 @@ export default function App() {
 
   // ── Phase 7: Learn tab state ───────────────────────────────────────────────
   const [todayOccurrences, setTodayOccurrences] = useState([]);
+  const [today, setToday] = useState(() => localDateStr());
   const [books,            setBooks]            = useState([]);
   const [learnings,        setLearnings]        = useState([]);
 
   // ── Derived values ─────────────────────────────────────────────────────────
   const t          = dark ? THEMES.dark : THEMES.light;
-  const today      = localDateStr();
+  useEffect(() => {
+    let timer;
+    const updateDate = () => {
+      const now = new Date();
+      setToday(localDateStr(now));
+      const next = new Date(now);
+      next.setHours(24, 0, 0, 100);
+      clearTimeout(timer);
+      timer = setTimeout(updateDate, next.getTime() - now.getTime());
+    };
+    const onVisibilityChange = () => {
+      if (document.visibilityState === 'visible') updateDate();
+    };
+    updateDate();
+    document.addEventListener('visibilitychange', onVisibilityChange);
+    return () => {
+      clearTimeout(timer);
+      document.removeEventListener('visibilitychange', onVisibilityChange);
+    };
+  }, []);
+
+  const previousToday = useRef(today);
+  useEffect(() => {
+    if (!dbReady || needsOnboarding || previousToday.current === today) return;
+    previousToday.current = today;
+    setDailyNotice('');
+    let cancelled = false;
+    (async () => {
+      try {
+        const { generateOccurrencesForDate } = await import('./core/occurrenceEngine.js');
+        const { loadHabitSummaries } = await import('./core/dailyHabits.js');
+        await generateOccurrencesForDate(today);
+        const [occurrences, habits] = await Promise.all([
+          loadEnrichedOccurrences(subtractDays(today, 2), today, today),
+          loadHabitSummaries(),
+        ]);
+        if (!cancelled) {
+          setTodayOccurrences(occurrences);
+          setHabitSummaries(habits);
+        }
+      } catch (error) {
+        console.error('[App] Could not refresh the new day:', error);
+        if (!cancelled) setDailyError('Could not load today’s habits. Restart the app to try again.');
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [dbReady, needsOnboarding, today]);
   const todayRecord = useMemo(() => {
     const rec = { body: false, philosophy: false, art: false, history: false };
     const dayLogs = allLogs.filter(l => l.type === 'daily_checkbox' && l.date === today);
@@ -240,10 +257,31 @@ export default function App() {
         }
 
         setReminderPromptPending(await getSetting('firstHabitReminderPrompt') === 'pending');
-        setVedConfigured(await hasJarvisApiKey());
         const todayStr = localDateStr();
         const enrichedOccs = await loadEnrichedOccurrences(subtractDays(todayStr, 2), todayStr, todayStr);
         setTodayOccurrences(enrichedOccs);
+        const { loadHabitSummaries } = await import('./core/dailyHabits.js');
+        setHabitSummaries(await loadHabitSummaries());
+        try {
+          const { getAllHabits } = await import('./database/habitRepository.js');
+          const habitsWithReminders = (await getAllHabits()).filter(habit => habit.reminder?.number);
+          if (habitsWithReminders.length) {
+            const { scheduleHabitReminder } = await import('./native/habitReminders.js');
+            const failed = [];
+            for (const habit of habitsWithReminders) {
+              try {
+                await scheduleHabitReminder(habit);
+              } catch (error) {
+                console.error('[App] Could not restore reminder for habit:', habit.id, error);
+                failed.push(habit.name);
+              }
+            }
+            if (failed.length) setDailyError(`Could not restore reminders for: ${failed.join(', ')}. Check notification settings.`);
+          }
+        } catch (error) {
+          console.error('[App] Could not restore habit reminders:', error);
+          setDailyError('Some habit reminders could not be restored. Check notification settings and edit the affected habits.');
+        }
 
         if (darkPref === 'true') setDark(true);
         if (savedReminders?.length) {
@@ -258,20 +296,6 @@ export default function App() {
         const { stats: initialStats, details } = await getScoresAsync();
         setStats(initialStats);
         setAxisDetails(details);
-
-        // ── Level-up detection (spec §11) ─────────────────────────────────────
-        const savedTitlesRaw = await getSetting('lastStatTitles');
-        const savedTitles = savedTitlesRaw ? JSON.parse(savedTitlesRaw) : {};
-        const newLevelUps = detectLevelUps(savedTitles, initialStats);
-        if (newLevelUps.length > 0) {
-          setLevelUpQueue(newLevelUps);
-        }
-        // Always persist current titles so next comparison is accurate
-        const currentTitles = {};
-        for (const axis of ['body', 'discipline', 'knowledge', 'social', 'creativity', 'strategy']) {
-          currentTitles[axis] = getThresholdTitle(axis, Math.round(initialStats[axis] ?? 0));
-        }
-        await setSetting('lastStatTitles', JSON.stringify(currentTitles));
 
         // ── Phase 5: Sunday Reflection state ──────────────────────────────────
 
@@ -309,7 +333,11 @@ export default function App() {
         }
 
         // Weekly auto-snapshot (spec §10) — write if 7+ days since last
-        await checkAndWriteWeeklySnapshot(initialStats, details, today);
+        if (Object.values(initialStats).every(Number.isFinite)) {
+          await checkAndWriteWeeklySnapshot(initialStats, details, today);
+        } else {
+          setDailyError('Some progress scores could not be calculated. Open Stats for details and try again later.');
+        }
         const snap = await getLatestSnapshot();
         setLatestSnapshot(snap);
 
@@ -389,7 +417,6 @@ export default function App() {
       const freshConfigs = await getAllAxisConfigs();
       await syncQuestProgress(freshLogs);
       const freshQuests = await getAllQuests();
-      const today = localDateStr();
       setAllLogs(freshLogs);
       setAxisConfigs(freshConfigs);
       setAllQuests(freshQuests);
@@ -398,23 +425,13 @@ export default function App() {
       
       setStats(newStats);
       setAxisDetails(newDetails);
-
-      // ── Level-up detection (spec §11) ────────────────────────────────
-      const savedTitlesRaw = await getSetting('lastStatTitles');
-      const savedTitles = savedTitlesRaw ? JSON.parse(savedTitlesRaw) : {};
-      const newLevelUps = detectLevelUps(savedTitles, newStats);
-      if (newLevelUps.length > 0) {
-        setLevelUpQueue(q => [...q, ...newLevelUps]);
+      if (Object.values(newStats).some(value => !Number.isFinite(value))) {
+        setDailyError('Some progress scores could not be calculated. Open Stats for details and try again later.');
       }
-      // Always persist current titles
-      const currentTitles = {};
-      for (const axis of ['body', 'discipline', 'knowledge', 'social', 'creativity', 'strategy']) {
-        currentTitles[axis] = getThresholdTitle(axis, Math.round(newStats[axis] ?? 0));
-      }
-      await setSetting('lastStatTitles', JSON.stringify(currentTitles));
 
     } catch (err) {
       console.error('[App] recomputeStats failed:', err);
+      setDailyError('Some progress data could not be refreshed. Restart the app to try again.');
     }
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -430,9 +447,12 @@ export default function App() {
         today
       );
       setTodayOccurrences(enriched);
+      const { loadHabitSummaries } = await import('./core/dailyHabits.js');
+      setHabitSummaries(await loadHabitSummaries());
       await recomputeStats();
     } catch (err) {
       console.error('[App] Failed to refresh after Ved action:', err);
+      setDailyError('Changes were applied, but Today could not be refreshed. Restart the app to reload it.');
     }
   }, [today, recomputeStats]);
 
@@ -441,6 +461,10 @@ export default function App() {
     handleAddHabit,
     handleSaveReminders,
     handleCompleteOccurrence,
+    handleUndoCompletion,
+    handleCorrectCompletion,
+    handleRestDay,
+    handleUpdateHabit,
     handleExcuseOccurrence,
     handleOccurrenceReason,
     handleAddLearning,
@@ -458,7 +482,11 @@ export default function App() {
     setLearnings,
     setBooks,
     recomputeStats,
+    setHabitSummaries,
+    setDailyError,
+    setDailyNotice,
   });
+  const dismissCompletionFeedback = useCallback(() => setCompletionFeedback(null), []);
 
   async function handleFirstReminder(enable) {
     setReminderSaving(true);
@@ -530,7 +558,7 @@ export default function App() {
 
   const getHeaderSubline = () => {
     if (tab === 'daily') return localDateStr();
-    if (tab === 'stats') return 'Last 30 days';
+    if (tab === 'stats') return 'Your growth';
     if (tab === 'goals') return `${lifeGoals.length} active`;
     if (tab === 'learn') return `${learnings.length} active topics`;
     if (tab === 'audits') return '';
@@ -551,6 +579,8 @@ export default function App() {
               const { generateOccurrencesForDate } = await import('./core/occurrenceEngine.js');
               await generateOccurrencesForDate(today);
               setTodayOccurrences(await loadEnrichedOccurrences(subtractDays(today, 2), today, today));
+              const { loadHabitSummaries } = await import('./core/dailyHabits.js');
+              setHabitSummaries(await loadHabitSummaries());
               setReminders(await getReminders());
               setReminderPromptPending(await getSetting('firstHabitReminderPrompt') === 'pending');
             } catch (error) {
@@ -560,22 +590,8 @@ export default function App() {
             // Onboarding is high-value user data. Force a recovery snapshot now
             // so a later reinstall/update can restore the completed setup.
             await runAutoBackup({ force: true }).catch(() => {});
-            // Seed baseline titles from post-onboarding stats WITHOUT detecting level-ups,
-            // so ceremonies only fire for tiers crossed by real activity afterward.
             try {
-            const freshLogs = await getAllLogs();
-            const freshConfigs = await getAllAxisConfigs();
-            const freshQuests = await getAllQuests();
-            const postOnboardingStats = computeAllStats(freshLogs, freshConfigs, freshQuests, localDateStr());
-
-            const seedTitles = {};
-            for (const axis of ['body', 'discipline', 'knowledge', 'social', 'creativity', 'strategy']) {
-              seedTitles[axis] = getThresholdTitle(axis, Math.round(postOnboardingStats[axis] ?? 0));
-            }
-            await setSetting('lastStatTitles', JSON.stringify(seedTitles));
-
-            // Now safe — will see no diff, won't queue ceremonies
-            await recomputeStats();
+              await recomputeStats();
             } catch (error) {
               console.error('[App] Could not finish post-onboarding setup:', error);
               setDbError('Your plan was saved, but some progress data could not be refreshed.');
@@ -601,9 +617,10 @@ export default function App() {
               setShowSettings(false);
               try {
                 setReminderPromptPending(await getSetting('firstHabitReminderPrompt') === 'pending');
+                setVedConfigured(await hasJarvisApiKey());
               } catch (error) {
-                console.error('[App] Could not refresh reminder preference:', error);
-                setDbError('Could not reload the reminder preference.');
+                console.error('[App] Could not refresh settings:', error);
+                setDbError('Could not reload your settings.');
               }
             }}
           />
@@ -623,6 +640,12 @@ export default function App() {
               Local data could not be loaded. Some changes may not be saved. Details: {dbError}
             </div>
           )}
+          {dailyError && <div role="alert" style={{ margin: '12px 14px', color: 'var(--danger)' }}>
+            {dailyError} <button type="button" onClick={() => setDailyError('')}>Dismiss</button>
+          </div>}
+          {dailyNotice && <div role="status" style={{ margin: '12px 14px' }}>
+            {dailyNotice} <button type="button" onClick={() => setDailyNotice('')}>Dismiss</button>
+          </div>}
           {reminderPromptPending && todayOccurrences.some(occurrence => occurrence.status === 'completed') && (
             <section aria-label="Habit reminder" style={{ margin: '12px 14px', padding: '14px', background: 'var(--s1)', borderRadius: 'var(--r-control)' }}>
               <p>Nice work. Would you like a daily reminder at {reminders.find(reminder => reminder.id === 4)?.time}?</p>
@@ -638,6 +661,9 @@ export default function App() {
             dark={dark}
             today={today}
             todayOccurrences={todayOccurrences}
+            habits={habitSummaries}
+            onUpdateHabit={handleUpdateHabit}
+            onRestDay={handleRestDay}
             books={books}
             learnings={learnings}
             stats={stats}
@@ -651,6 +677,8 @@ export default function App() {
             onAddEvidence={handleAddEvidence}
             onAddHabit={handleAddHabit}
             onCompleteOccurrence={handleCompleteOccurrence}
+            onCorrectCompletion={handleCorrectCompletion}
+            onRefreshScores={recomputeStats}
             onExcuseOccurrence={handleExcuseOccurrence}
             onOccurrenceReason={handleOccurrenceReason}
             onGoToGoals={() => handleTabChange('goals')}
@@ -668,10 +696,7 @@ export default function App() {
           />
         </AppShell>
       )}
-      {levelUpQueue.length > 0 && (
-        <LevelUpCeremony levelUp={levelUpQueue[0]} onDismiss={() => setLevelUpQueue(q => q.slice(1))} />
-      )}
-      <CompletionFeedback feedback={completionFeedback} onDismiss={() => setCompletionFeedback(null)} />
+      <CompletionFeedback feedback={completionFeedback} onDismiss={dismissCompletionFeedback} onUndo={handleUndoCompletion} />
       {showCheckin && (
         <ProofFearCheckin onComplete={async () => { setShowCheckin(false); await recomputeStats(); }} />
       )}

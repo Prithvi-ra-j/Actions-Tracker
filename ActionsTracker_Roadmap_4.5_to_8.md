@@ -111,16 +111,16 @@ New first run, no AI, no API key, no "axis":
 
 ### Phase 3 — Growth you can see (L) → 6.70  ← where your philosophy becomes real
 This is the most important phase for differentiation. It fixes the biggest contradiction (§3).
-1. **Lifetime layer (monotonic).** Derive per attribute from cumulative history: total evidence, days practised, habits completed, milestones. It **never decreases.** Pure functions over existing logs/facts/occurrences first; no schema change needed. Optionally store lifetime in weekly snapshots.
+1. **Lifetime layer.** Derive per attribute from effective cumulative history: total evidence, days practised, habits completed, milestones. Time, inactivity, missed days, rest and baseline changes never reduce it. Explicit corrections may reduce it: the immediate undo removes a mistaken check-in, and later corrections are saved as new correction records. Pure functions over existing logs/facts/occurrences first; no schema change needed. Optionally store lifetime in weekly snapshots.
 2. **Momentum layer (existing).** Keep the rolling window but present it as **direction**, not score: *Building / Steady / Resting*. Never red; "Resting" is a valid state.
-3. **Character sheet as a mirror.** Per attribute: lifetime bar (only grows) + momentum word + "what moved it". No rank, no comparison, no ideal. A holiday must leave the lifetime bar untouched.
+3. **Character sheet as a mirror.** Per attribute: lifetime bar (unchanged by time, but correctable) + momentum word + "what moved it". No rank, no comparison, no ideal. A holiday must leave the lifetime bar untouched.
 4. **Retitle shaming labels** ("Inconsistent", "Dormant", etc.) to neutral stage names for the low end of each range. Test: no title implies failure.
 5. **Discipline gets its own panel:** follow-through rate over the period, rest-aware (rest/excused days excluded), with a plain-language sentence. It motivates; it doesn't grade.
 6. **Transparent attribution rule:** each habit/evidence item credits **one primary attribute** chosen by the user; an optional second one with an explicit split shown on screen. No automatic spreading.
 7. **Honest scores:** show "Early estimate" when the engine falls back; hide the radar until there is enough data (suggest ≥ 7 days and ≥ 2 attributes).
 8. **Stats top section** in plain words: this week vs last week, streak, calendar heat-grid, per-habit history.
 9. **Calibration & baseline engine** ("Learning your normal"): no scores in the first days, a Baseline Report at day 7, momentum measured against the user's own baseline, per-attribute states (Calibrating / Provisional / Calibrated). Full design in `ActionsTracker_Calibration_Design.md`. Adds roughly an **L** to this phase; it is what makes items 1–2 and 7 coherent.
-**Tests to add:** property test "lifetime never decreases"; scenario "30 days of inactivity changes momentum but not lifetime"; test that no title string is on a banned-word list.
+**Tests to add:** property test "lifetime never decreases without a user correction"; test that an undone completion is not counted; scenario "30 days of inactivity changes momentum but not lifetime"; test that no title string is on a banned-word list.
 **Exit test:** 5 testers answer "Are you growing?" and "What's hardest for you?" from the screen in **< 15 s**; the "holiday test" (30 days off) leaves lifetime unchanged and shows "Resting", not a drop.
 
 ### Phase 4 — Reflection & hook (M) → 6.95

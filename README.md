@@ -33,19 +33,32 @@ Actions Tracker brings some of that visibility to six parts of your life:
 
 **Vitality · Intellect · Judgment · Creation · Connection · Discipline**
 
-Your stats reflect recorded activity and habit outcomes. Your goals can have milestones. Your learning has a place to land. And when a stat crosses a title threshold, there's a little celebration.
+Your progress view reflects recorded activity and habit outcomes. Your goals can have milestones, and your learning has a place to land.
 
 Your next quest might be "read ten pages" instead of "defeat the dragon." Honestly? Some days, both sound equally difficult.
 
 ## A few things you can do right now
 
-- **Give today a job.** Create daily habits and check them off as you go.
+- **Give today a job.** Create habits, see them grouped by time of day, and check them off with an undo option.
+- **Make room for rest.** Use Rest day to excuse today's open habits; completed habits stay completed.
 - **Make the big thing smaller.** Turn a goal into milestones you can work toward.
 - **Remember what you're learning.** Save topics and log practice as you explore.
-- **Look at the bigger picture.** See stats based on what you've recorded, not imaginary XP.
+- **Look at the bigger picture.** See recorded activity and an early, personal momentum estimate rather than a rank.
 - **Leave yourself a note.** Record what you did or noticed, even when it doesn't fit neatly into a checkbox.
 
 On first use, choose the areas you want to grow, select starter habits or add your own, and choose a preferred time. Your reminder stays off until you opt in after your first check-off. You can change the habit reminder in Settings.
+
+Use **Manage habits** on Today to rename, schedule, pause, resume, or archive a habit, set its tiny version, and opt into a per-habit reminder. The displayed completed-day count comes from recorded occurrences; it is not a streak or proof of continuous use. Rest days are excused rather than marked missed, including habits added later on that day.
+
+Per-habit reminders use local notifications on supported devices. Snooze is available from the habit editor for an open habit today and is cancelled after completion or a rest day. Notification-level snooze and completion actions are not currently available. Recurring reminders can still arrive after a habit is completed or a rest day is selected. Scheduling and device behavior have not yet been validated.
+
+Ved's approved habit edits, pauses, archives and undo reconcile Today's schedule and per-habit reminders; any refresh or scheduling failure is reported. Quest shortcuts and the Today quest card are hidden, and quest actions are temporarily unavailable without deleting existing quest data.
+
+The growth view separates lifetime credits from personal momentum. It includes completed habits, attributed notes and learning practice, selected explicitly attributed evidence records, and newly completed goal milestones. Linked facts are not counted again when already represented by a log, occurrence or milestone. Each item credits its selected primary attribute, optionally split with a second. New habit completions retain their attribution when a habit is edited; older completions are attributed using the saved habit until its first edit. Legacy milestones without a recorded date and attribute, and other unattributed records, are not guessed or counted.
+
+Lifetime totals do not decrease because time passes, a day is missed or rested, or a baseline changes. The five-second completion undo removes a mistaken check-in; later corrections in habit history add an audit record and remove that completion from the effective total. Removing a completed goal milestone similarly records a correction. Rest dates, weekly baseline history and per-attribute pause/reset controls are saved locally and included in database backups. Calibration requires five active days per attribute and four active weeks for the calibrated label. Momentum uses earlier complete active weeks and a slowly updated baseline; paused and rest days are excluded. The first-week report summarizes recorded load, daily activity, time patterns and, when available, follow-through and recovery after explicit misses.
+
+After calibration, evidence-backed numeric scores require at least 80% coverage and 70% confidence. The provisional stage remains word-only. Scoring uses only explicitly attributed, unsplit evidence supported by each domain engine; split and unattributed records still appear in the growth view as applicable but are not used in numeric scores. Fallbacks are labelled "Early estimate" without a number; the radar appears after seven days only when at least two attributes meet the numeric gate, and excludes unavailable attributes rather than plotting zeros. Onboarding self-assessments remain saved as prior information but are no longer blended into the fallback score. On heavy days, Today can show and record tiny versions. Weekly baseline snapshots are saved when the growth view is opened, not in the background. The implementation and device behavior have not been verified; automated and synthetic scenario testing is deferred until the end of the roadmap.
 
 ## Meet Ved
 

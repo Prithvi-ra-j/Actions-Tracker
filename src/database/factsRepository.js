@@ -45,6 +45,8 @@ export async function addFact(fact) {
   const now = new Date();
   const id = fact.id ?? `fact_${now.getTime()}_${Math.random().toString(36).slice(2, 8)}`;
   const timezone = getLocalTimezone();
+  const occurredAt = fact.occurredAt ? new Date(fact.occurredAt) : now;
+  if (!Number.isFinite(occurredAt.getTime())) throw new Error('[factsRepository] Invalid occurredAt.');
 
   const record = {
     id,
@@ -55,10 +57,12 @@ export async function addFact(fact) {
     meta:           fact.meta      ?? {},
     source:         fact.source    ?? { type: 'user' },
     context:        fact.context   ?? {},
-    occurredAt:     fact.occurredAt ?? now.toISOString(),
+    occurredAt:     occurredAt.toISOString(),
     recordedAt:     now.toISOString(),
-    localDate:      localDateStr(now),
+    localDate:      localDateStr(occurredAt),
     timezone,
+    correctionOf:   fact.correctionOf ?? null,
+    supersedes:     fact.supersedes ?? null,
   };
 
   await dbPut(STORE, record);

@@ -46,21 +46,6 @@ function countInRange(logs, startDate, endDate) {
   ).length;
 }
 
-/**
- * Reads the onboarding_assessment log value for an axis (0–100).
- * Returns null if no assessment was ever recorded.
- */
-function getOnboardingValue(axisLogs) {
-  const log = axisLogs.find(l => l.type === 'onboarding_assessment');
-  return log != null ? Number(log.value) : null;
-}
-
-/**
- * How many real (non-onboarding) log entries are needed before the onboarding
- * baseline fades to zero influence. 30 ≈ one month of daily activity.
- */
-const ONBOARDING_FADE_THRESHOLD = 30;
-
 // ── Layer 2 Components ─────────────────────────────────────────────────────────
 
 /**
@@ -246,21 +231,6 @@ export function calcAxisStat(axis, axisLogs, axisConfig, axisQuests, today, axis
     computed = clamp((weightC * C) + (weightV * V) + (weightM * M), 0, 99);
   }
 
-  // ── Onboarding blend ────────────────────────────────────────────────────────
-  // The onboarding_assessment log sets an honest non-zero starting value on day
-  // one. It fades to zero influence linearly as real log entries accumulate.
-  // Once ONBOARDING_FADE_THRESHOLD real logs exist, computed stat is used as-is.
-  const onboardingVal = getOnboardingValue(axisLogs);
-  if (onboardingVal !== null) {
-    const realLogCount = axisLogs.filter(
-      l => l.type !== 'onboarding_assessment' && l.type !== 'proof_check_in'
-    ).length;
-    const w = Math.max(0, 1 - realLogCount / ONBOARDING_FADE_THRESHOLD);
-    if (w > 0) {
-      return clamp((1 - w) * computed + w * onboardingVal, 0, 99);
-    }
-  }
-
   return computed;
 }
 
@@ -333,7 +303,7 @@ const THRESHOLDS = {
     { min: 80, title: 'Elite'           },
   ],
   discipline: [
-    { min: 0,  title: 'Inconsistent'   },
+    { min: 0,  title: 'Beginning'      },
     { min: 25, title: 'Forming Habits' },
     { min: 55, title: 'Disciplined'    },
     { min: 80, title: 'Iron Will'      },
@@ -351,7 +321,7 @@ const THRESHOLDS = {
     { min: 55, title: 'Sage'           },
   ],
   creativity: [
-    { min: 0,  title: 'Dormant'        },
+    { min: 0,  title: 'Beginning'      },
     { min: 25, title: 'Exploring'      },
     { min: 55, title: 'Craftsman'      },
     { min: 80, title: 'Artist'         },
