@@ -40,10 +40,10 @@ describe('core loop UI', () => {
 
   it('uses axis tokens and points side labels toward the chart edges', () => {
     render(<RadarChart stats={{ body: 10 }} />);
-    expect(screen.getByText('BODY').getAttribute('fill')).toBe('var(--body)');
-    expect(screen.getByText('SOCIAL').getAttribute('fill')).toBe('var(--social)');
-    expect(screen.getByText('KNOWLEDGE').getAttribute('text-anchor')).toBe('start');
-    expect(screen.getByText('STRATEGY').getAttribute('text-anchor')).toBe('end');
+    expect(screen.getByText('VITALITY').getAttribute('fill')).toBe('var(--body)');
+    expect(screen.getByText('CONNECTION').getAttribute('fill')).toBe('var(--social)');
+    expect(screen.getByText('INTELLECT').getAttribute('text-anchor')).toBe('start');
+    expect(screen.getByText('JUDGMENT').getAttribute('text-anchor')).toBe('end');
   });
 
   it('keeps the habit draft available when saving fails', async () => {

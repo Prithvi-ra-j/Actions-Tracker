@@ -20,6 +20,7 @@ export const NOTIFICATION_IDS = {
   BODY:        1,
   PHILOSOPHY:  2,
   DAILY_CHECK: 3,
+  HABIT_REMINDER: 4,
 };
 
 // ─── Plugin access ─────────────────────────────────────────────────────────────
@@ -84,9 +85,12 @@ export async function checkNotificationPermission() {
  * @param {string} time    "HH:MM" local time
  * @param {number} weekday Capacitor weekday (1=Sunday, 2=Monday, ... 7=Saturday). If null, repeats every day.
  */
-export async function scheduleReminder(id, title, body, time, weekday = null) {
+export async function scheduleReminder(id, title, body, time, weekday = null, { strict = false } = {}) {
   const { api: plugin } = await getPlugin();
-  if (!plugin) return;
+  if (!plugin) {
+    if (strict) throw new Error('Notifications are unavailable.');
+    return;
+  }
 
   const [hourStr, minuteStr] = time.split(':');
   const hour   = parseInt(hourStr,   10);
@@ -94,6 +98,7 @@ export async function scheduleReminder(id, title, body, time, weekday = null) {
 
   if (Number.isNaN(hour) || Number.isNaN(minute)) {
     console.error(`[Notifications] Invalid time string: "${time}"`);
+    if (strict) throw new Error(`Invalid reminder time: "${time}"`);
     return;
   }
 
@@ -123,6 +128,7 @@ export async function scheduleReminder(id, title, body, time, weekday = null) {
     });
   } catch (err) {
     console.error(`[Notifications] schedule(id=${id}) failed:`, err);
+    if (strict) throw err;
   }
 }
 
@@ -152,7 +158,7 @@ export async function cancelReminder(id) {
  * @param {Array<{id: number, label: string, time: string, enabled: boolean}>} reminders
  * @param {{ body: boolean, philosophy: boolean, art: boolean, history: boolean }} todayRecord
  */
-export async function scheduleAllReminders(reminders, todayRecord = {}, onlyToday = false) {
+export async function scheduleAllReminders(reminders, todayRecord = {}, onlyToday = false, { strict = false } = {}) {
   const jsToday = new Date().getDay(); // 0 = Sunday, 1 = Monday ... 6 = Saturday
 
   for (const reminder of reminders) {
@@ -210,6 +216,8 @@ export async function scheduleAllReminders(reminders, todayRecord = {}, onlyToda
         } else {
           notifBody = 'Time for your philosophy practice.';
         }
+      } else if (reminder.id === NOTIFICATION_IDS.HABIT_REMINDER) {
+        notifBody = 'A little time for your habits, when you are ready.';
       }
 
       await scheduleReminder(
@@ -217,7 +225,8 @@ export async function scheduleAllReminders(reminders, todayRecord = {}, onlyToda
         'Actions',
         notifBody,
         reminder.time,
-        capWeekday
+        capWeekday,
+        { strict: strict && reminder.id === NOTIFICATION_IDS.HABIT_REMINDER }
       );
     }
   }

@@ -6,6 +6,7 @@ import { Button } from './ui/Buttons.jsx';
 import { EmptyState } from './ui/States.jsx';
 import { SegmentedBar } from './ui/Indicators.jsx';
 import { Sparkle, Warning, PencilSimple } from '@phosphor-icons/react';
+import { attributeLabel } from '../constants.js';
 
 // Axis color map — only used as small dots per design rules
 const AXIS_COLORS = {
@@ -57,7 +58,7 @@ function QuestRow({ occ, onComplete, onTap, showDate = false }) {
   const isDone = occ.status === 'completed';
   const isExcused = occ.status === 'excused';
   const axisColor = AXIS_COLORS[occ.axis?.toLowerCase()] || 'var(--mu)';
-  const axisLabel = occ.axis ? (occ.axis.charAt(0).toUpperCase() + occ.axis.slice(1)) : '';
+  const axisLabel = occ.axis ? attributeLabel(occ.axis) : '';
 
   return (
     <div
@@ -226,7 +227,7 @@ export default function TodayTab({
         }}>
           <Warning size={16} weight="fill" />
           <span>Heavy day. Review workload?</span>
-          <button
+          {onOpenJarvis && <button
             onClick={onOpenJarvis}
             style={{
               marginLeft: 'auto',
@@ -240,7 +241,7 @@ export default function TodayTab({
             }}
           >
             Ask Ved
-          </button>
+          </button>}
         </div>
       )}
 
@@ -381,7 +382,7 @@ export default function TodayTab({
               style={{ minHeight: '44px', padding: '0 12px', borderRadius: 'var(--r-control)', background: 'var(--s2)', color: 'var(--tx)', border: '1px solid var(--hairline)', font: 'inherit' }}
             >
               {['general', 'body', 'discipline', 'knowledge', 'social', 'creativity', 'strategy'].map(axis => (
-                <option key={axis} value={axis}>{axis[0].toUpperCase() + axis.slice(1)}</option>
+                <option key={axis} value={axis}>{attributeLabel(axis)}</option>
               ))}
             </select>
           </label>
@@ -405,8 +406,9 @@ export default function TodayTab({
         {selectedHabit && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
             <div style={{ fontSize: '14px', color: 'var(--mu)', fontFamily: "'Geist Mono', monospace" }}>
-              {selectedHabit.axis} • Status: {selectedHabit.status}
+              {attributeLabel(selectedHabit.axis)} • Status: {selectedHabit.status}
             </div>
+            {selectedHabit.timeSlot && <div>Preferred time: {attributeLabel(selectedHabit.timeSlot)}</div>}
             {getGracePrompt(selectedHabit.status, selectedHabit.graceState) && (
               <div style={{ fontSize: '13px', color: 'var(--mu)' }}>
                 {getGracePrompt(selectedHabit.status, selectedHabit.graceState)}
@@ -456,7 +458,7 @@ export default function TodayTab({
               </Button>
             )}
 
-            <button
+            {onOpenJarvis && <button
               onClick={() => {
                 setSelectedHabit(null);
                 onOpenJarvis?.({
@@ -483,7 +485,7 @@ export default function TodayTab({
             >
               <Sparkle size={16} />
               Ask Ved about this habit
-            </button>
+            </button>}
           </div>
         )}
       </BottomSheet>
@@ -539,7 +541,7 @@ export default function TodayTab({
               style={{ minHeight: '44px', padding: '0 12px', borderRadius: 'var(--r-control)', background: 'var(--s2)', color: 'var(--tx)', border: '1px solid var(--hairline)', font: 'inherit' }}
             >
               {['body', 'discipline', 'knowledge', 'social', 'creativity', 'strategy'].map(axis => (
-                <option key={axis} value={axis}>{axis[0].toUpperCase() + axis.slice(1)}</option>
+                <option key={axis} value={axis}>{attributeLabel(axis)}</option>
               ))}
             </select>
           </label>

@@ -1,5 +1,5 @@
 import React, { useEffect, useRef } from 'react';
-import { ACCENT } from '../constants.js';
+import { ACCENT, attributeLabel } from '../constants.js';
 
 /**
  * LevelUpCeremony — full-screen overlay that fires when an axis crosses a
@@ -102,7 +102,7 @@ export default function LevelUpCeremony({ levelUp, onDismiss }) {
           textTransform: 'uppercase',
           marginBottom: '1.5rem',
         }}>
-          {axis}
+          {attributeLabel(axis)}
         </div>
 
         {/* Stat number */}

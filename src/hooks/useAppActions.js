@@ -57,6 +57,7 @@ export default function useAppActions({
       setReminders(newReminders);
     } catch (error) {
       console.error('[AppActions] saveReminders failed:', error);
+      throw error;
     }
   }, [setReminders]);
 

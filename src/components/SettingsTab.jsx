@@ -116,6 +116,34 @@ export default function SettingsTab({ t, onClose, reminders: reminderConfigs = [
     }
   };
 
+  const habitReminder = reminderConfigs.find(reminder => reminder.id === 4);
+  const handleHabitReminderChange = async (updates) => {
+    setPreferenceError('');
+    try {
+      if (updates.enabled) {
+        const { requestNotificationPermission } = await import('../native/notifications.js');
+        if (!await requestNotificationPermission()) {
+          setPreferenceError('Notifications are unavailable or permission was not granted.');
+          return;
+        }
+      }
+      const updated = reminderConfigs.map(reminder => reminder.id === 4 ? { ...reminder, ...updates } : reminder);
+      const { scheduleAllReminders } = await import('../native/notifications.js');
+      try {
+        await scheduleAllReminders(updated, {}, false, { strict: true });
+      } catch (error) {
+        await scheduleAllReminders(reminderConfigs);
+        throw error;
+      }
+      await onSaveReminders(updated);
+      const { setSetting } = await import('../database/settingsRepository.js');
+      await setSetting('firstHabitReminderPrompt', 'done');
+    } catch (error) {
+      console.error('[Settings] Could not update habit reminder:', error);
+      setPreferenceError('Reminder preference could not be saved. Try again.');
+    }
+  };
+
   const handleBackup = async () => {
     const { exportDatabase } = await import('../database/db.js');
     const json = await exportDatabase();
@@ -479,15 +507,30 @@ export default function SettingsTab({ t, onClose, reminders: reminderConfigs = [
 
   const renderNotificationsSection = () => (
     <div style={{ padding: '0 14px', flex: 1, overflowY: 'auto' }}>
+      {habitReminder && (
+        <div style={{ ...groupStyle, padding: '14px' }}>
+          <label style={{ display: 'block', marginBottom: '10px' }}>
+            Habit reminder time{' '}
+            <input type="time" value={habitReminder.time} onChange={event => {
+              if (event.target.value) void handleHabitReminderChange({ time: event.target.value });
+            }} />
+          </label>
+          <button type="button" role="switch" aria-label="Habit reminder" aria-checked={habitReminder.enabled}
+            onClick={() => handleHabitReminderChange({ enabled: !habitReminder.enabled })}>
+            Habit reminder {habitReminder.enabled ? 'On' : 'Off'}
+          </button>
+        </div>
+      )}
+      {preferenceError && <p role="alert">{preferenceError}</p>}
       <div style={groupStyle}>
         <div style={rowStyle(false)}>
           Proactive suggestions
           <button type="button" role="switch" aria-checked={proactive} aria-label="Proactive suggestions" onClick={() => savePreference('jarvisProactiveSuggestions', proactive, setProactive)} style={{ marginLeft: 'auto', minWidth: '44px', minHeight: '32px', border: 0, borderRadius: 'var(--r-control)', background: proactive ? 'var(--ac)' : 'var(--s2)', color: proactive ? 'var(--on-ac)' : 'var(--tx)', cursor: 'pointer' }}>{proactive ? 'On' : 'Off'}</button>
         </div>
-        <div style={rowStyle(false)}>
+        {reminderConfigs.some(reminder => reminder.id === 3) && <div style={rowStyle(false)}>
           Review reminders
           <button type="button" role="switch" aria-checked={reminders} aria-label="Review reminders" onClick={handleReviewReminderToggle} style={{ marginLeft: 'auto', minWidth: '44px', minHeight: '32px', border: 0, borderRadius: 'var(--r-control)', background: reminders ? 'var(--ac)' : 'var(--s2)', color: reminders ? 'var(--on-ac)' : 'var(--tx)', cursor: 'pointer' }}>{reminders ? 'On' : 'Off'}</button>
-        </div>
+        </div>}
         <div style={rowStyle(true)}>
           Quiet hours
           <span style={rowRightStyle}>10 pm to 7 am</span>

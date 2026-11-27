@@ -24,6 +24,7 @@ export default function AppShell({
   onTabChange,
   children,
   onOpenJarvis,
+  vedConfigured = false,
   onOpenSettings,
   headerTitle = 'Actions',
   headerSubline = '',
@@ -104,7 +105,7 @@ export default function AppShell({
       </main>
 
       {/* Docked "Ask Ved" pill — accent, 44px, 14px above bar, right edge */}
-      {currentTab !== 'jarvis' && (
+      {currentTab !== 'jarvis' && vedConfigured && (
         <div style={{
           position: 'fixed',
           bottom: 'calc(64px + 14px + env(safe-area-inset-bottom, 0px))',

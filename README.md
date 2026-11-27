@@ -31,7 +31,7 @@ Games make progress feel good because you can *see* it. Real life is a little le
 
 Actions Tracker brings some of that visibility to six parts of your life:
 
-**Body · Knowledge · Strategy · Creativity · Social · Discipline**
+**Vitality · Intellect · Judgment · Creation · Connection · Discipline**
 
 Your stats reflect recorded activity and habit outcomes. Your goals can have milestones. Your learning has a place to land. And when a stat crosses a title threshold, there's a little celebration.
 
@@ -44,6 +44,8 @@ Your next quest might be "read ten pages" instead of "defeat the dragon." Honest
 - **Remember what you're learning.** Save topics and log practice as you explore.
 - **Look at the bigger picture.** See stats based on what you've recorded, not imaginary XP.
 - **Leave yourself a note.** Record what you did or noticed, even when it doesn't fit neatly into a checkbox.
+
+On first use, choose the areas you want to grow, select starter habits or add your own, and choose a preferred time. Your reminder stays off until you opt in after your first check-off. You can change the habit reminder in Settings.
 
 ## Meet Ved
 

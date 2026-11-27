@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { GOALS } from '../constants.js';
+import { GOALS, attributeLabel } from '../constants.js';
 import { addLog } from '../database/logsRepository.js';
 import { localDateStr } from '../helpers/dateHelpers.js';
 import { ACCENT } from '../constants.js';
@@ -113,7 +113,7 @@ export default function ProofFearCheckin({ onComplete }) {
             letterSpacing: '-0.01em',
             lineHeight: 1,
           }}>
-            {domain.domain}
+            {attributeLabel(domain.domain)}
           </div>
           <div style={{ fontFamily: 'monospace', fontSize: '0.65rem', color: domain.color, textTransform: 'uppercase', letterSpacing: '0.2em', marginTop: 2 }}>
             {domain.label}

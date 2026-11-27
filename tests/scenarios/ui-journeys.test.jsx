@@ -63,16 +63,16 @@ describe('UI Journeys', () => {
     expect(screen.getByLabelText('Ved API key')).toBeTruthy();
   });
 
-  it('starts first-run onboarding at Ved API setup', async () => {
+  it('starts first-run onboarding without requiring Ved setup', async () => {
     await clearSecureValue('aiApiKey');
     render(<App />);
-    expect(await screen.findByText(/Connect Ved/i)).toBeTruthy();
-    expect(screen.getByLabelText('Ved API key')).toBeTruthy();
+    expect(await screen.findByRole('button', { name: 'Get started' })).toBeTruthy();
+    expect(screen.queryByLabelText('Ved API key')).toBeNull();
   });
 
   it('uses the empty database as the first-run state', async () => {
     render(<App />);
-    expect(await screen.findByLabelText('Ved onboarding')).toBeTruthy();
+    expect(await screen.findByLabelText('First-run onboarding')).toBeTruthy();
   });
 
   it('opens the normal app when user data already exists', async () => {
@@ -218,7 +218,7 @@ describe('UI Journeys', () => {
     fireEvent.click(await screen.findByRole('button', { name: 'Add topic' }, { timeout: 15000 }));
     fireEvent.change(screen.getByLabelText('Learning topic'), { target: { value: 'Clear reasoning' } });
     fireEvent.change(screen.getByLabelText('Learning objective'), { target: { value: 'Explain arguments accurately' } });
-    fireEvent.click(screen.getByRole('button', { name: 'Social' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Connection' }));
     fireEvent.click(screen.getByRole('button', { name: 'Save topic' }));
 
     await waitFor(async () => {
@@ -472,7 +472,7 @@ describe('UI Journeys', () => {
     expect(await screen.findByText('1 recorded entries')).toBeTruthy();
     fireEvent.click(screen.getByRole('button', { name: 'Next review story' }));
     expect(await screen.findByText('Recorded by axis')).toBeTruthy();
-    expect(screen.getByText('body')).toBeTruthy();
+    expect(screen.getByText('Vitality')).toBeTruthy();
     fireEvent.click(screen.getByRole('button', { name: 'Next review story' }));
     expect(await screen.findByText('Latest saved entry')).toBeTruthy();
     fireEvent.click(screen.getByRole('button', { name: 'Ask Ved' }));

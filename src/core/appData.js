@@ -11,6 +11,7 @@ export async function loadEnrichedOccurrences(startDate, endDate, currentDate) {
       ...occurrence,
       habitTitle: habit?.name || 'Unknown Habit',
       axis: habit?.domain,
+      timeSlot: habit?.implementationIntention?.timeSlot,
       graceState: getGraceState(scheduledDate, currentDate).state,
     };
   }));

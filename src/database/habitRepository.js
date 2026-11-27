@@ -47,7 +47,7 @@ function now() {
  * }} fields
  * @returns {Promise<string>} The generated habit ID
  */
-export async function addHabit(fields) {
+export function createHabitRecord(fields) {
   const ts = now();
   const record = {
     id:              fields.id ?? generateId(),
@@ -71,6 +71,11 @@ export async function addHabit(fields) {
     createdAt:       ts,
     updatedAt:       ts,
   };
+  return record;
+}
+
+export async function addHabit(fields) {
+  const record = createHabitRecord(fields);
   await dbPut(STORE, record);
   return record.id;
 }

@@ -1,4 +1,5 @@
 import React, { useMemo } from 'react';
+import { attributeLabel } from '../constants.js';
 
 /**
  * RadarChart — SVG hexagonal radar chart (spec §9).
@@ -12,12 +13,12 @@ import React, { useMemo } from 'react';
 
 // Axis order clockwise from top (spec §9)
 const AXES = [
-  { key: 'body',       label: 'Body',       color: 'var(--body)' },
+  { key: 'body',       label: attributeLabel('body'), color: 'var(--body)' },
   { key: 'discipline', label: 'Discipline', color: 'var(--discipline)' },
-  { key: 'knowledge',  label: 'Knowledge',  color: 'var(--knowledge)' },
-  { key: 'social',     label: 'Social',     color: 'var(--social)' },
-  { key: 'creativity', label: 'Creativity', color: 'var(--creativity)' },
-  { key: 'strategy',   label: 'Strategy',   color: 'var(--strategy)' },
+  { key: 'knowledge',  label: attributeLabel('knowledge'), color: 'var(--knowledge)' },
+  { key: 'social',     label: attributeLabel('social'), color: 'var(--social)' },
+  { key: 'creativity', label: attributeLabel('creativity'), color: 'var(--creativity)' },
+  { key: 'strategy',   label: attributeLabel('strategy'), color: 'var(--strategy)' },
 ];
 
 const MAX_VALUE = 99;

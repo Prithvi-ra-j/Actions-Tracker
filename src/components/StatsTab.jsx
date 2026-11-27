@@ -152,7 +152,7 @@ function AxisSheet({ axisKey, stats, axisDetails, snapshots, onOpenJarvis, onClo
 
       {/* Actions */}
       <div style={{ display: 'flex', gap: '10px', marginTop: '4px' }}>
-        <Button
+        {onOpenJarvis && <Button
           variant="primary"
           style={{ flex: 1, fontSize: '14px' }}
           onClick={() => {
@@ -169,7 +169,7 @@ function AxisSheet({ axisKey, stats, axisDetails, snapshots, onOpenJarvis, onClo
             <Sparkle size={16} weight="fill" />
             Why did this change?
           </span>
-        </Button>
+        </Button>}
       </div>
     </div>
   );

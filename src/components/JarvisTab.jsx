@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { ACCENT } from '../constants.js';
+import { ACCENT, attributeLabel } from '../constants.js';
 import { chatWithJarvis, generateInsight } from '../core/ai/jarvisEngine.js';
 import { executeAction, undoAction } from '../core/ai/actionExecutor.js';
 import { computeImpact } from '../core/ai/impactEngine.js';
@@ -727,7 +727,7 @@ export default function JarvisTab({ t, isActive = true, onQuestsChanged, onboard
                   <div style={{ display: 'grid', gap: '8px', marginTop: '12px' }}>
                     {reviewStories.axisCounts.map(([axis, count]) => (
                       <div key={axis} style={{ display: 'flex', justifyContent: 'space-between', gap: '12px', padding: '10px 12px', background: 'var(--s2)', borderRadius: 'var(--r-control)' }}>
-                        <span>{axis}</span><strong style={{ fontFamily: "'Geist Mono', monospace" }}>{count}</strong>
+                        <span>{attributeLabel(axis)}</span><strong style={{ fontFamily: "'Geist Mono', monospace" }}>{count}</strong>
                       </div>
                     ))}
                   </div>

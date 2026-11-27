@@ -1,13 +1,20 @@
 // ─── Static content ───────────────────────────────────────────────────────────
 
 export const LIFE_DIMENSIONS = [
-  { key: 'body', label: 'Body', icon: '⚔' },
+  { key: 'body', label: 'Vitality', icon: '⚔' },
   { key: 'discipline', label: 'Discipline', icon: '⚡' },
-  { key: 'knowledge', label: 'Knowledge', icon: '∞' },
-  { key: 'social', label: 'Social', icon: '♥' },
-  { key: 'creativity', label: 'Creativity', icon: '◈' },
-  { key: 'strategy', label: 'Strategy', icon: '♟' },
+  { key: 'knowledge', label: 'Intellect', icon: '∞' },
+  { key: 'social', label: 'Connection', icon: '♥' },
+  { key: 'creativity', label: 'Creation', icon: '◈' },
+  { key: 'strategy', label: 'Judgment', icon: '♟' },
 ];
+
+export function attributeLabel(key) {
+  const original = String(key || '');
+  const normalized = original.toLowerCase();
+  return LIFE_DIMENSIONS.find(dimension => dimension.key === normalized)?.label
+    || (original ? original.charAt(0).toUpperCase() + original.slice(1) : 'General');
+}
 
 export const PERSONA = [
   "He walks into a room and people notice — not because he announced himself, but because something about him is settled.",

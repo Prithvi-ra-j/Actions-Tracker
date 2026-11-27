@@ -4,6 +4,7 @@ import { Button } from './ui/Buttons.jsx';
 import { EmptyState } from './ui/States.jsx';
 import { SegmentedBar } from './ui/Indicators.jsx';
 import { Sparkle, Plus } from '@phosphor-icons/react';
+import { attributeLabel } from '../constants.js';
 
 const AXIS_COLORS = {
   knowledge:  'var(--knowledge)',
@@ -20,7 +21,7 @@ const LOOP_STEPS = ['Learn', 'Practice', 'Apply', 'Evidence', 'Review'];
 function TopicCard({ topic, onClick }) {
   const axisKey = (topic.tags?.[0] || 'Knowledge').toLowerCase();
   const axisColor = AXIS_COLORS[axisKey] || 'var(--knowledge)';
-  const axisLabel = topic.tags?.[0] || 'Knowledge';
+  const axisLabel = attributeLabel(topic.tags?.[0] || 'knowledge');
   const stepIndex = Math.max(0, LOOP_STEPS.indexOf(topic.loopStep || 'Learn'));
   const currentStep = LOOP_STEPS[stepIndex] || LOOP_STEPS[0];
 
@@ -115,7 +116,7 @@ function TopicSheet({ topic, onClose, onOpenJarvis, onLogPractice }) {
   const [practiceError, setPracticeError] = useState('');
   const axisKey = (topic.tags?.[0] || 'Knowledge').toLowerCase();
   const axisColor = AXIS_COLORS[axisKey] || 'var(--knowledge)';
-  const axisLabel = topic.tags?.[0] || 'Knowledge';
+  const axisLabel = attributeLabel(topic.tags?.[0] || 'knowledge');
   const currentStepIndex = Math.max(0, LOOP_STEPS.indexOf(topic.loopStep || 'Learn'));
 
   return (
@@ -250,7 +251,7 @@ function TopicSheet({ topic, onClose, onOpenJarvis, onLogPractice }) {
         >
           {savingPractice ? 'Saving...' : 'Log practice'}
         </Button>
-        <Button
+        {onOpenJarvis && <Button
           variant="secondary"
           style={{ flex: 1 }}
           onClick={() => {
@@ -267,7 +268,7 @@ function TopicSheet({ topic, onClose, onOpenJarvis, onLogPractice }) {
             <Sparkle size={16} />
             Ask Ved
           </span>
-        </Button>
+        </Button>}
       </div>
     </div>
   );
@@ -433,7 +434,7 @@ export default function LearnTab({ t, learnings = [], onAddLearning, onLogLearni
                   transition: 'all 0.2s',
                 }}
               >
-                {a}
+                {attributeLabel(a)}
               </button>
             ))}
           </div>
@@ -442,7 +443,7 @@ export default function LearnTab({ t, learnings = [], onAddLearning, onLogLearni
             <Button variant="primary" style={{ flex: 1 }} onClick={handleCreateTopic} disabled={savingTopic}>
               {savingTopic ? 'Saving...' : 'Save topic'}
             </Button>
-            <Button variant="secondary" onClick={() => {
+            {onOpenJarvis && <Button variant="secondary" onClick={() => {
               setSheet(null);
               onOpenJarvis?.({ page: 'learn', payload: { concept: topic } });
             }}>
@@ -450,7 +451,7 @@ export default function LearnTab({ t, learnings = [], onAddLearning, onLogLearni
                 <Sparkle size={16} />
                 Ask Ved
               </span>
-            </Button>
+            </Button>}
           </div>
           {topicError && <p role="alert" style={{ color: 'var(--danger)', fontSize: '13px' }}>{topicError}</p>}
         </div>

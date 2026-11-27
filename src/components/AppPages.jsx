@@ -52,6 +52,7 @@ export default function AppPages({
   onGoToGoals,
   onGoToToday,
   onOpenJarvis,
+  vedConfigured,
   onQuestsChanged,
   onClearJarvisContext,
   onUpdatePages,
@@ -82,7 +83,7 @@ export default function AppPages({
           onOccurrenceReason={onOccurrenceReason}
           completionFeedback={completionFeedback}
           onGoToGoals={onGoToGoals}
-          onOpenJarvis={context => onOpenJarvis(context || { page: 'today' })}
+          onOpenJarvis={vedConfigured ? context => onOpenJarvis(context || { page: 'today' }) : undefined}
         />
       </AppPage>
       <AppPage id="stats" currentTab={currentTab} visitedTabs={visitedTabs}>
@@ -96,7 +97,7 @@ export default function AppPages({
           allLogs={allLogs}
           axisConfigs={axisConfigs}
           onGoToToday={onGoToToday}
-          onOpenJarvis={context => onOpenJarvis(context || { page: 'stats' })}
+          onOpenJarvis={vedConfigured ? context => onOpenJarvis(context || { page: 'stats' }) : undefined}
         />
       </AppPage>
       <AppPage id="goals" currentTab={currentTab} visitedTabs={visitedTabs}>
@@ -105,7 +106,7 @@ export default function AppPages({
           dark={dark}
           allQuests={allQuests}
           allLogs={allLogs}
-          onOpenJarvis={context => onOpenJarvis(context || { page: 'goals' })}
+          onOpenJarvis={vedConfigured ? context => onOpenJarvis(context || { page: 'goals' }) : undefined}
         />
       </AppPage>
       <AppPage id="learn" currentTab={currentTab} visitedTabs={visitedTabs}>
@@ -119,7 +120,7 @@ export default function AppPages({
           onLogLearningPractice={onLogLearningPractice}
           onAddBook={onAddBook}
           onStartBook={onStartBook}
-          onOpenJarvis={context => onOpenJarvis(context || { page: 'learn' })}
+          onOpenJarvis={vedConfigured ? context => onOpenJarvis(context || { page: 'learn' }) : undefined}
         />
       </AppPage>
       <AppPage

@@ -11,7 +11,7 @@ import { initAxisConfigs, getAllAxisConfigs } from './database/axisConfigReposit
 import { getAllLogs } from './database/logsRepository.js';
 import { initQuestBoard, getAllQuests, syncQuestProgress } from './database/questBoardRepository.js';
 import { initGoals, getAllGoals } from './database/goalsRepository.js';
-import { getSetting, setSetting, getReminders } from './database/settingsRepository.js';
+import { getSetting, setSetting, getReminders, saveReminders } from './database/settingsRepository.js';
 import { checkAndWriteWeeklySnapshot, getLatestSnapshot } from './database/statSnapshotsRepository.js';
 import { runAnomalyDetection, saveTelemetryEvent } from './database/telemetryRepository.js';
 import { runAutoBackup, restoreLatestBackupIfDatabaseEmpty } from './database/backupService.js';
@@ -27,7 +27,7 @@ import { checkForUpdate } from './core/updateChecker.js';
 import { computeAllStats, getThresholdTitle } from './helpers/statsEngine.js';
 
 // ── Native ────────────────────────────────────────────────────────────────────
-import { scheduleAllReminders } from './native/notifications.js';
+import { scheduleAllReminders, requestNotificationPermission } from './native/notifications.js';
 import { registerBackHandler, setupStatusBar } from './native/backButton.js';
 
 // ── Components ────────────────────────────────────────────────────────────────
@@ -119,6 +119,7 @@ export default function App() {
     return window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
   });
   const [showSettings, setShowSettings] = useState(false);
+  const [vedConfigured, setVedConfigured] = useState(false);
   const settingsWasOpen = useRef(false);
   const [expanded,     setExpanded]     = useState(null); // expanded goal index
   const [jarvisContext, setJarvisContext] = useState(null);
@@ -152,6 +153,9 @@ export default function App() {
   // levelUpQueue: array of { axis, value, newTitle, color } — shown one at a time
   const [levelUpQueue,     setLevelUpQueue]       = useState([]);
   const [completionFeedback, setCompletionFeedback] = useState(null);
+  const [reminderPromptPending, setReminderPromptPending] = useState(false);
+  const [reminderError, setReminderError] = useState('');
+  const [reminderSaving, setReminderSaving] = useState(false);
   const [showCheckin,      setShowCheckin]        = useState(false);
 
   // ── Phase 7: Learn tab state ───────────────────────────────────────────────
@@ -222,6 +226,7 @@ export default function App() {
         // an empty user-data layer means the app has never been set up.
         const userDataExists = await hasUserData();
         setNeedsOnboarding(!userDataExists);
+        setVedConfigured(await hasJarvisApiKey());
 
         setAllLogs(allLogs);
         setAxisConfigs(axisConfigs);
@@ -229,13 +234,13 @@ export default function App() {
         setAllQuests(syncedQuests);
 
         if (!userDataExists) {
-          const startupReminders = savedReminders?.length ? savedReminders : reminders;
-          void scheduleAllReminders(startupReminders, todayRecord);
           checkForUpdate().then(info => { if (info) setUpdateInfo(info); }).catch(() => {});
           setDbReady(true);
           return;
         }
 
+        setReminderPromptPending(await getSetting('firstHabitReminderPrompt') === 'pending');
+        setVedConfigured(await hasJarvisApiKey());
         const todayStr = localDateStr();
         const enrichedOccs = await loadEnrichedOccurrences(subtractDays(todayStr, 2), todayStr, todayStr);
         setTodayOccurrences(enrichedOccs);
@@ -455,6 +460,37 @@ export default function App() {
     recomputeStats,
   });
 
+  async function handleFirstReminder(enable) {
+    setReminderSaving(true);
+    setReminderError('');
+    try {
+      if (enable) {
+        const granted = await requestNotificationPermission();
+        if (!granted) {
+          setReminderError('Notifications are unavailable or permission was not granted. You can continue without them.');
+          return;
+        }
+        const updated = reminders.map(reminder => reminder.id === 4 ? { ...reminder, enabled: true } : reminder);
+        if (!updated.some(reminder => reminder.id === 4)) throw new Error('Habit reminder configuration is missing.');
+        try {
+          await scheduleAllReminders(updated, todayRecord, false, { strict: true });
+        } catch (error) {
+          await scheduleAllReminders(reminders, todayRecord);
+          throw error;
+        }
+        await saveReminders(updated);
+        setReminders(updated);
+      }
+      await setSetting('firstHabitReminderPrompt', 'done');
+      setReminderPromptPending(false);
+    } catch (error) {
+      console.error('[App] Could not update reminder:', error);
+      setReminderError('Could not save your reminder choice. Please try again.');
+    } finally {
+      setReminderSaving(false);
+    }
+  }
+
   function handleTabChange(id) {
     setTab(id);
     setShowSettings(false);
@@ -511,11 +547,22 @@ export default function App() {
             setNeedsOnboarding(false);
             setTab(startInToday ? 'daily' : 'jarvis');
 
+            try {
+              const { generateOccurrencesForDate } = await import('./core/occurrenceEngine.js');
+              await generateOccurrencesForDate(today);
+              setTodayOccurrences(await loadEnrichedOccurrences(subtractDays(today, 2), today, today));
+              setReminders(await getReminders());
+              setReminderPromptPending(await getSetting('firstHabitReminderPrompt') === 'pending');
+            } catch (error) {
+              console.error('[App] Could not load the new plan:', error);
+              setDbError('Your plan was saved, but Today could not be refreshed. Restart the app to try again.');
+            }
             // Onboarding is high-value user data. Force a recovery snapshot now
             // so a later reinstall/update can restore the completed setup.
             await runAutoBackup({ force: true }).catch(() => {});
             // Seed baseline titles from post-onboarding stats WITHOUT detecting level-ups,
             // so ceremonies only fire for tiers crossed by real activity afterward.
+            try {
             const freshLogs = await getAllLogs();
             const freshConfigs = await getAllAxisConfigs();
             const freshQuests = await getAllQuests();
@@ -529,6 +576,10 @@ export default function App() {
 
             // Now safe — will see no diff, won't queue ceremonies
             await recomputeStats();
+            } catch (error) {
+              console.error('[App] Could not finish post-onboarding setup:', error);
+              setDbError('Your plan was saved, but some progress data could not be refreshed.');
+            }
           }}
         />
       </Suspense>
@@ -546,7 +597,15 @@ export default function App() {
             setReminders={setReminders}
             onSaveReminders={handleSaveReminders}
             todayRecord={todayRecord}
-            onClose={() => setShowSettings(false)}
+            onClose={async () => {
+              setShowSettings(false);
+              try {
+                setReminderPromptPending(await getSetting('firstHabitReminderPrompt') === 'pending');
+              } catch (error) {
+                console.error('[App] Could not refresh reminder preference:', error);
+                setDbError('Could not reload the reminder preference.');
+              }
+            }}
           />
         </Suspense>
       ) : (
@@ -554,6 +613,7 @@ export default function App() {
           currentTab={tab}
           onTabChange={handleTabChange}
           onOpenJarvis={handleOpenJarvis}
+          vedConfigured={vedConfigured}
           onOpenSettings={() => setShowSettings(true)}
           headerTitle={getHeaderTitle()}
           headerSubline={getHeaderSubline()}
@@ -562,6 +622,14 @@ export default function App() {
             <div role="alert" style={{ margin: '12px 14px', padding: '12px', borderRadius: 'var(--r-control)', background: 'var(--s2)', color: 'var(--danger)' }}>
               Local data could not be loaded. Some changes may not be saved. Details: {dbError}
             </div>
+          )}
+          {reminderPromptPending && todayOccurrences.some(occurrence => occurrence.status === 'completed') && (
+            <section aria-label="Habit reminder" style={{ margin: '12px 14px', padding: '14px', background: 'var(--s1)', borderRadius: 'var(--r-control)' }}>
+              <p>Nice work. Would you like a daily reminder at {reminders.find(reminder => reminder.id === 4)?.time}?</p>
+              {reminderError && <p role="alert">{reminderError}</p>}
+              <button type="button" disabled={reminderSaving} onClick={() => handleFirstReminder(true)}>Enable reminder</button>{' '}
+              <button type="button" disabled={reminderSaving} onClick={() => handleFirstReminder(false)}>Not now</button>
+            </section>
           )}
           <UpdateBanner updateInfo={updateInfo} />
           <AppPages
@@ -588,6 +656,7 @@ export default function App() {
             onGoToGoals={() => handleTabChange('goals')}
             onGoToToday={() => handleTabChange('daily')}
             onOpenJarvis={handleOpenJarvis}
+            vedConfigured={vedConfigured}
             onQuestsChanged={refreshAfterJarvisAction}
             onClearJarvisContext={() => setJarvisContext(null)}
             onUpdatePages={handleUpdatePages}

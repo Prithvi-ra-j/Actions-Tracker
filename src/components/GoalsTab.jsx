@@ -7,6 +7,7 @@ import { EntityRow } from './ui/Cards.jsx';
 import { Checkbox } from './ui/Inputs.jsx';
 import { Sparkle, PencilSimple, Plus } from '@phosphor-icons/react';
 import { EvidenceSheet } from './EvidenceSheet.jsx';
+import { attributeLabel } from '../constants.js';
 
 // Axis dot color map (dots only, per design rules)
 const AXIS_COLORS = {
@@ -23,9 +24,7 @@ function GoalCard({ goal, onClick }) {
   const doneTargets = goal.targets?.filter(t => t.completed)?.length || 0;
   const progress = totalTargets > 0 ? Math.round((doneTargets / totalTargets) * 10) : 0;
   const axisColor = AXIS_COLORS[goal.domain?.toLowerCase()] || 'var(--mu)';
-  const axisLabel = goal.domain
-    ? goal.domain.charAt(0).toUpperCase() + goal.domain.slice(1)
-    : 'General';
+  const axisLabel = attributeLabel(goal.domain);
 
   return (
     <button
@@ -311,7 +310,7 @@ export default function GoalsTab({ t, onOpenJarvis }) {
             Area
             <select aria-label="Goal area" value={goalDraft.domain} onChange={e => setGoalDraft(prev => ({ ...prev, domain: e.target.value }))}>
               {['body', 'discipline', 'knowledge', 'social', 'creativity', 'strategy'].map(axis => (
-                <option key={axis} value={axis}>{axis[0].toUpperCase() + axis.slice(1)}</option>
+                <option key={axis} value={axis}>{attributeLabel(axis)}</option>
               ))}
             </select>
           </label>
@@ -426,7 +425,7 @@ export default function GoalsTab({ t, onOpenJarvis }) {
 
             {/* Actions */}
             <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
-              <Button
+              {onOpenJarvis && <Button
                 variant="primary"
                 style={{ flex: 1, fontSize: '14px' }}
                 onClick={() => {
@@ -443,7 +442,7 @@ export default function GoalsTab({ t, onOpenJarvis }) {
                   <Sparkle size={16} weight="fill" />
                   Ask about this goal
                 </span>
-              </Button>
+              </Button>}
               <IconButton
                 label="Edit goal"
                 icon={<PencilSimple size={18} />}
@@ -494,7 +493,7 @@ export default function GoalsTab({ t, onOpenJarvis }) {
             Area
             <select aria-label="Edit goal area" value={goalDraft.domain} onChange={e => setGoalDraft(prev => ({ ...prev, domain: e.target.value }))}>
               {['body', 'discipline', 'knowledge', 'social', 'creativity', 'strategy'].map(axis => (
-                <option key={axis} value={axis}>{axis[0].toUpperCase() + axis.slice(1)}</option>
+                <option key={axis} value={axis}>{attributeLabel(axis)}</option>
               ))}
             </select>
           </label>

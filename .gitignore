@@ -27,6 +27,10 @@ Thumbs.db
 coverage/
 reports/
 docs/
+!docs/
+docs/*
+!docs/DOGFOOD.md
+!docs/SYNTHETIC_VALIDATION.md
 skills/
 playwright-report/
 test-results/
